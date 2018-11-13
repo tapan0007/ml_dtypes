@@ -23,9 +23,7 @@ public:
         , m_MapHeight(map_height)
         , m_MapWidth(map_width)
     {
-        assert(num_maps > 0 && "Number FMAPs must be positive");
-        assert(map_height > 0 && "FMAP height must be positive");
-        assert(map_width > 0 && "FMAP width must be positive");
+        // Consts(scalars) are allowed to have rank 0, so num_maps==0
     }
 
     FmapDesc()

@@ -1,3 +1,4 @@
+#include "utils/inc/asserter.hpp"
 #include "layers/inc/combinelayer.hpp"
 
 
@@ -16,8 +17,12 @@ CombineLayer::CombineLayer(const Params& params, Layer* prev_layer, Layer* earli
             mkLayerVector2(prev_layer, earlier_layer))
 
 {
-    assert(prev_layer->gOfmapWidth() == earlier_layer->gOfmapWidth() && "Combine layer: Input image widths not identical");
-    assert(prev_layer->gOfmapHeight() == earlier_layer->gOfmapHeight() && "Combine layer: Input image heights not identical");
+    Assert(num_ofmaps > 0, "Combine layer: number of OFMAPs must be positive");
+
+    Assert(prev_layer->gOfmapWidth() == earlier_layer->gOfmapWidth(),
+           "Combine layer: Input image widths not identical");
+    Assert(prev_layer->gOfmapHeight() == earlier_layer->gOfmapHeight(),
+           "Combine layer: Input image heights not identical");
 }
 
 //----------------------------------------------------------------

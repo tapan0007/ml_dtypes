@@ -229,6 +229,18 @@ testConfigMap = {
   "0-1concat_h35c1m1ni2" : [ "trivnet_concat_variable_inputs",  "tfloat16-b1-h35-r1-s1-c1-m1-ni2-wmin2-wmax2.2-imin3-imax3.2", "1concat", MEv2("Generic")],
   "0-1concat_h35c64m64ni4" : [ "trivnet_concat_variable_inputs",  "tfloat16-b1-h35-r1-s1-c64-m64-ni4-wmin2-wmax2.2-imin3-imax3.2", "1concat", MEv2("Generic")],
   "0-1concat_h35c63m127ni5" : [ "trivnet_concat_variable_inputs",  "tfloat16-b1-h35-r1-s1-c63-m127-ni5-wmin2-wmax2.2-imin3-imax3.2", "1concat", MEv2("Generic")],
+
+  "0-1concat_h16c63m127ni5_sem_qemu" : [
+    "trivnet_concat_variable_inputs",
+    "tfloat16-b1-h16-r1-s1-c63-m127-ni5-wmin2-wmax2.2-imin3-imax3.2",
+    "1concat",
+    ("--scheduler wave2 "
+    + " --schedule_options ' --nname=generic --save_layer_output' "
+    + " --waive_wavegraph_checks"
+    + " --be_options sync-with-semaphores "
+    )
+  ],
+
   "0-2conv3_relu_wave" : [ "trivnet_lin",    "tfloat16-l2-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.24-imin-10000-imax10100", "1conv3", MEv2("Generic")],
   "0-2conv3_relu_b16_wave" : [ "trivnet_lin",    "tfloat16-l2-b16-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.24-imin-10000-imax10100", "1conv3", MEv2("RN50")],
   "3-rn50_relu_fp16_wave"  : [ "trivnet_lin","tfloat16-l2-b1-h224-r7-s2-c3-m3-relu-wmin-1-wmax1.1-imin-3-imax3.2", "2conv32b", MEv2("Generic")],
@@ -890,6 +902,17 @@ testConfigMap = {
   "0-1avgpool_wave_h17c768m768k3d1_same"  : [ "trivnet_pool", "tfloat16-b1-h17-r1-s1-c768-m768-SAME-AvgPool-k3-d1-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1pool", MEv2("Generic")],
   "0-1avgpool_wave_h8c1280m1280k3d1_same"  : [ "trivnet_pool", "tfloat16-b1-h8-r1-s1-c1280-m1280-SAME-AvgPool-k3-d1-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1pool", MEv2("Generic")],
   "0-1avgpool_wave_h8c2048m2048k3d1_same"  : [ "trivnet_pool", "tfloat16-b1-h8-r1-s1-c2048-m2048-SAME-AvgPool-k3-d1-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1pool", MEv2("Generic")],
+
+  "0-1avgpool_wave_h8c2048m2048k3d1_same_qemu_sem"  : [
+    "trivnet_pool",
+    "tfloat16-b1-h8-r1-s1-c2048-m2048-SAME-AvgPool-k3-d1-wmin-0.1-wmax0.2-imin-0.2-imax0.3",
+    "1pool",
+    ( "--scheduler qemu_wave2 "
+    + " --schedule_options ' --nname=generic ' "
+    + " --be_options sync-with-semaphores "
+    )
+  ],
+
   # End of AvgPools in InceptionV3
   "0-1conv1avgpool_wave_h35c192m192k3d1"  : [ "trivnet_conv_pool", "tfloat16-b1-h35-r1-s1-c192-m192-SAME-AvgPool-k3-d1-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1conv1pool", MEv2("Generic")],
   "0-1conv1avgpool_wave_h35c128m128k3d1"  : [ "trivnet_conv_pool", "tfloat16-b1-h35-r1-s1-c128-m128-SAME-AvgPool-k3-d1-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1conv1pool", MEv2("Generic")],

@@ -103,7 +103,17 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         params.m_RefFile = serLayer.gRefFile();
         params.m_RefFileFormat = serLayer.gOfmapFormat();
 
+        if (serLayer.gTypeStr() != layers::LayerTypeStr_Const) {
+            Assert(serLayer.gNumOfmaps() > 0,
+                   "Non const tensor must have more than on Fmap");
+            Assert(serLayer.gOfmapHeight() > 0,
+                   "Non const tensor height must be positive");
+            Assert(serLayer.gOfmapWidth() > 0,
+                   "Non const tensor height must be positive");
+        }
+
         FmapDesc fmap_desc(serLayer.gNumOfmaps(), serLayer.gOfmapHeight(), serLayer.gOfmapWidth());
+
         layers::Layer* layer = nullptr;
         if (serLayer.gTypeStr() == layers::LayerTypeStr_Input) {
             ASSERT_NUM_LAYERS(serLayer, 0);

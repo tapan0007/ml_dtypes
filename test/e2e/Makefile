@@ -89,14 +89,38 @@ run_kelf_cached:
 
 # Tests that run as commit criteria.
 # The set after the blank line are auto-derived tests created by appending _qemu suffix to an explicit test.
-TEST_ARGS_CHECK = --timeout 900 --test 0-1conv0_wave  3-rn50-t00_wave 3-rn50_pool2_wave 4-ptb_word_small1_host 3-rn50-13_wave 0-1conv1ba1_h4c2m2_wave 0-1conv0_qemu_wave 0-1conv0_b16_wave 0-1conv0_ckpt_wave 0-1conv_h4r1_b2_wave 0-1conv_h4r1_wave 0-1conv_tile_r1_wave 0-1conv_tile_r1h32_wave 0-4conv_relu_nne 0-116conv_tanh_wave 0-4conv_multiout_wave 5-rn50_nne_to_act4_wave-no_repl-t1_focus_to-qemu-all_layers 5-parwavenet_10_fp16_in_to_add1_wave \
-\
-0-11conv_tanh_wave_qemu  0-1clipbyvalue_wave_qemu  0-1concat_h1c1m1ni2_qemu  0-1conv0_subnormal_wave_qemu  \
-0-1conv1ba1_h4c2m2_wave_qemu  0-1conv_exp_pad_wave_qemu  0-1conv_h4_softplus_wave_qemu  \
-4-ptb_word_small_sigmoid_wave 4-ptb_word_small_sigmoid_2l_wave_qemu \
+TEST_ARGS_CHECK = --timeout 900 --test \
+0-116conv_tanh_sem_qemu_wave \
+0-116conv_tanh_wave \
+0-11conv_tanh_wave_qemu \
+0-1avgpool_wave_h8c2048m2048k3d1_same_qemu_sem \
+0-1clipbyvalue_wave_qemu \
+0-1concat_h16c63m127ni5_sem_qemu \
+0-1concat_h1c1m1ni2_qemu \
+0-1conv0_b16_wave \
+0-1conv0_ckpt_wave \
+0-1conv0_qemu_sem_wave \
+0-1conv0_qemu_wave \
+0-1conv0_subnormal_wave_qemu \
+0-1conv0_wave \
+0-1conv1ba1_h4c2m2_wave \
+0-1conv1ba1_h4c2m2_wave_qemu \
+0-1conv_exp_pad_wave_qemu \
+0-1conv_h4_softplus_wave_qemu \
+0-1conv_h4r1_b2_wave \
+0-1conv_h4r1_wave \
+0-1conv_tile_r1_wave \
+0-1conv_tile_r1h32_wave \
+0-4conv_multiout_wave \
+0-4conv_relu_nne \
+0-resadd_wave_qemu \
+3-rn50-13_wave \
+3-rn50-t00_wave \
+3-rn50_pool2_wave \
+4-ptb_word_small1_host \
 4-ptb_word_small_sigmoid_fp16_b32_wave_qemu \
-0-1conv0_qemu_sem_wave 0-116conv_tanh_sem_qemu_wave \
-0-resadd_wave_qemu   
+5-parwavenet_10_fp16_in_to_add1_wave \
+5-rn50_nne_to_act4_wave-no_repl-t1_focus_to-qemu-all_layers 
 
 # Tests that will be run on emulator. These tests are run to check if RTL is fine.
 # Using parallel 1 till we figure out the lock issue
