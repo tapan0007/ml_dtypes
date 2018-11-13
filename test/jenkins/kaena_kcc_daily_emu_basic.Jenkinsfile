@@ -122,6 +122,7 @@ pipeline{
                         sh 'mkdir /artifact/test_qemu'
                         sh '/bin/cp $TEST_DIR/test_qemu/qor* /artifact/test_qemu/ || touch /artifact/test_qemu/qor_RunAllWithArgs_qor_available.txt'
                         sh 'for f in `find $TEST_DIR/test_qemu  -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" -o -iname "*.png" -o -iname "*.csv" -o -iname "*.asm" `; do cp $f --parents  /artifact/test_qemu/;done; '
+                        sh 'for f in `find $TEST_DIR/test_qemu/*/working_dir  -iname "*.npy" -a -type f`; do cp $f --parents  /artifact/test_qemu/;done; '
                         sh 'chmod -R a+wX /artifact/'
                         archiveArtifacts artifacts:'test_qemu/*.txt,*.tgz,test_qemu/**/*.txt,tgz,test_qemu/**/*.json, test_qemu/**/*.bin, test_qemu/**/*.svg, test_qemu/**/*.png, test_qemu/**/*.csv, test_qemu/**/*.asm'
                     }
@@ -178,6 +179,7 @@ pipeline{
                                 sh 'mkdir /artifact/compiler_test'
                                 sh '/bin/cp $TEST_DIR/compiler_test/qor* /artifact/compiler_test/ || touch /artifact/compiler_test/qor_RunAllWithArgs_qor_available.txt'
                                 sh 'for f in `find $TEST_DIR/compiler_test  -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" -o -iname "*.png" -o -iname "*.csv" -o -iname "*.asm" `; do cp $f --parents  /artifact/compiler_test/;done; '
+                                sh 'for f in `find $TEST_DIR/compiler_test/*/working_dir  -iname "*.npy" -a -type f`; do cp $f --parents  /artifact/compiler_test/;done; '
                                 sh 'chmod -R a+wX /artifact/'
                                 archiveArtifacts artifacts:'compiler_test/*.txt,*.tgz,compiler_test/**/*.txt,tgz,compiler_test/**/*.json, compiler_test/**/*.bin, compiler_test/**/*.svg, compiler_test/**/*.png, compiler_test/**/*.csv, compiler_test/**/*.asm'
                             }
