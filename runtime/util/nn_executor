@@ -453,7 +453,8 @@ class NnExec:
             retAll = ret | retAll
             print("INFO: subgraph  %s  internal tensor  %s  status  %s" % (
                     sg.sgDir, tensorName, ('PASS' if ret == 0 else 'FAIL')), flush=True)
-      if retAll != 0:
+      # if we are doing cachedKelf make sure we do that compare even if this fails
+      if retAll != 0 and not cachedGoldensPath:
         return retAll
     
     if cachedGoldensPath:
