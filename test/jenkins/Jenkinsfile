@@ -130,7 +130,7 @@ pipeline{
 			    junit allowEmptyResults: true, testResults: 'RunAllReportCheck.xml'
                             sh 'find $TEST_DIR/precheckin -type f -name "*.vdi" -delete'
                             sh '/bin/cp -r $TEST_DIR/precheckin /artifact/precheckin'
-                            archiveArtifacts artifacts:'precheckin/*.txt,*.tgz, precheckin/**/*.txt,tgz, precheckin/**/*.json, precheckin/**/*.bin, precheckin/**/*.svg, precheckin/**/*.png, precheckin/**/*.csv, precheckin/**/*.asm'
+                            archiveArtifacts artifacts:'precheckin/*.txt,*.tgz, precheckin/**/*.txt,tgz, precheckin/**/*.json, precheckin/**/*.bin, precheckin/**/*.svg, precheckin/**/*.png, precheckin/**/*.csv, precheckin/**/*.asm, precheckin/**/*.npy'
                         }
                         failure {
                             sh 'tar -czvf /artifact/test-precheckin-result-all.tgz $TEST_DIR/precheckin'
@@ -157,7 +157,7 @@ pipeline{
                             sh 'for f in `find $TEST_DIR/RunAllWithArgs  -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" -o -iname "*.png" -o -iname "*.csv" -o -iname "*.asm" -o -iname "kelf.tar.gz"`; do cp $f --parents  /artifact/RunAllWithArgs/;done; '
                             sh 'for f in `find $TEST_DIR/RunAllWithArgs/*/working_dir  -iname "*.npy" -a -type f`; do cp $f --parents  /artifact/RunAllWithArgs/;done; '
                             sh 'chmod -R a+wX /artifact/'
-                            archiveArtifacts artifacts:'RunAllWithArgs/*.txt,*.tgz,RunAllWithArgs/**/*.txt,tgz,RunAllWithArgs/**/*.json, RunAllWithArgs/**/*.bin, RunAllWithArgs/**/*.svg, RunAllWithArgs/**/*.png, RunAllWithArgs/**/*.csv, RunAllWithArgs/**/*.asm, RunAllWithArgs/**/kelf.tar.gz'
+                            archiveArtifacts artifacts:'RunAllWithArgs/*.txt,*.tgz,RunAllWithArgs/**/*.txt,tgz,RunAllWithArgs/**/*.json, RunAllWithArgs/**/*.bin, RunAllWithArgs/**/*.svg, RunAllWithArgs/**/*.png, RunAllWithArgs/**/*.csv, RunAllWithArgs/**/*.asm, RunAllWithArgs/**/*.npy, RunAllWithArgs/**/kelf.tar.gz'
                         }
                         failure {
                             sh 'find $TEST_DIR/RunAllWithArgs -type f -name "*.vdi" -delete'

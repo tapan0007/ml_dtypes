@@ -136,8 +136,9 @@ pipeline{
                             sh 'mkdir /artifact/test_qemu_compiler'
                             sh '/bin/cp $TEST_DIR/test_qemu_compiler/qor* /artifact/test_qemu_compiler/ || touch /artifact/test_qemu_compiler/qor_RunAllWithArgs_qor_available.txt'
                             sh 'for f in `find $TEST_DIR/test_qemu_compiler  -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" -o -iname "*.png" -o -iname "*.csv" -o -iname "*.asm" `; do cp $f --parents  /artifact/test_qemu_compiler/;done; '
+                            sh 'for f in `find $TEST_DIR/test_qemu_compiler/*/working_dir  -iname "*.npy" -a -type f`; do cp $f --parents  /artifact/test_qemu_compiler/;done; '
                             sh 'chmod -R a+wX /artifact/'
-                            archiveArtifacts artifacts:'test_qemu_compiler/*.txt,*.tgz,test_qemu_compiler/**/*.txt,tgz,test_qemu_compiler/**/*.json, test_qemu_compiler/**/*.bin, test_qemu_compiler/**/*.svg, test_qemu_compiler/**/*.png, test_qemu_compiler/**/*.csv, test_qemu_compiler/**/*.asm'
+                            archiveArtifacts artifacts:'test_qemu_compiler/*.txt,*.tgz,test_qemu_compiler/**/*.txt,tgz,test_qemu_compiler/**/*.json, test_qemu_compiler/**/*.bin, test_qemu_compiler/**/*.svg, test_qemu_compiler/**/*.png, test_qemu_compiler/**/*.csv, test_qemu_compiler/**/*.asm, test_qemu_compiler/**/*.npy'
                         }
                         failure {
                             sh 'find $TEST_DIR/test_qemu_compiler -type f -name "*.vdi" -delete'

@@ -124,7 +124,7 @@ pipeline{
                         sh 'for f in `find $TEST_DIR/test_qemu_compiler  -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" -o -iname "*.png" -o -iname "*.csv" -o -iname "*.asm" `; do cp $f --parents  /artifact/test_qemu_compiler/;done; '
                         sh 'for f in `find $TEST_DIR/test_qemu_compiler/*/working_dir  -iname "*.npy" -a -type f`; do cp $f --parents  /artifact/test_qemu_compiler/;done; '
                         sh 'chmod -R a+wX /artifact/'
-                        archiveArtifacts artifacts:'test_qemu_compiler/*.txt,*.tgz,test_qemu_compiler/**/*.txt,tgz,test_qemu_compiler/**/*.json, test_qemu_compiler/**/*.bin, test_qemu_compiler/**/*.svg, test_qemu_compiler/**/*.png, test_qemu_compiler/**/*.csv, test_qemu_compiler/**/*.asm'
+                        archiveArtifacts artifacts:'test_qemu_compiler/*.txt,*.tgz,test_qemu_compiler/**/*.txt,tgz,test_qemu_compiler/**/*.json, test_qemu_compiler/**/*.bin, test_qemu_compiler/**/*.svg, test_qemu_compiler/**/*.png, test_qemu_compiler/**/*.csv, test_qemu_compiler/**/*.asm, test_qemu_compiler/**/*.npy'
                     }
                 }
                 failure {
@@ -181,7 +181,7 @@ pipeline{
                                 sh 'for f in `find $TEST_DIR/test_emu_compiler  -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" -o -iname "*.png" -o -iname "*.csv" -o -iname "*.asm" `; do cp $f --parents  /artifact/test_emu_compiler/;done; '
                                 sh 'for f in `find $TEST_DIR/test_emu_compiler/*/working_dir  -iname "*.npy" -a -type f`; do cp $f --parents  /artifact/test_emu_compiler/;done; '
                                 sh 'chmod -R a+wX /artifact/'
-                                archiveArtifacts artifacts:'test_emu_compiler/*.txt,*.tgz,test_emu_compiler/**/*.txt,tgz,test_emu_compiler/**/*.json, test_emu_compiler/**/*.bin, test_emu_compiler/**/*.svg, test_emu_compiler/**/*.png, test_emu_compiler/**/*.csv, test_emu_compiler/**/*.asm'
+                                archiveArtifacts artifacts:'test_emu_compiler/*.txt,*.tgz,test_emu_compiler/**/*.txt,tgz,test_emu_compiler/**/*.json, test_emu_compiler/**/*.bin, test_emu_compiler/**/*.svg, test_emu_compiler/**/*.png, test_emu_compiler/**/*.csv, test_emu_compiler/**/*.asm, test_emu_compiler/**/*.npy'
                             }
                         }
                         failure {
