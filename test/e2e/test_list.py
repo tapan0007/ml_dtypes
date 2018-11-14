@@ -1015,7 +1015,7 @@ testConfigMap = {
     "--executors host 0 2 wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --images {} --wavegraph_checks structure data-race".format(transformerInX), "--input_files {}".format(transformerRtInX) 
   ],
   
-  #WaveRNN Tests
+  #WaveRNN Tests #cb-compiler bug workaround - no support for constants to Sub and Mul operators - WA to remove sub operatoins in sigmoid and change Mul constants to placeholders
   "wavernn_tf_ts0_wave1_host02_cb"     : [
     #"tf_pb", "wavernn/wave_rnn_ts0_cb_f_opt.pb","wavernn",
     "tf_s3", "s3://kaena-nn-models", "wave_rnn_ts0_cb_f_opt.pb",
@@ -1200,6 +1200,8 @@ testWaiver = [
     # Comment calling kp.reportOpAndSizes() to see ME failure
     ['0-transformer-matmul', 'WAIVE_KAENA964'],
     ['0-transformer-mul', 'WAIVE_KAENA964'],
+    #wavernn
+    ['wavernn_tf_ts0_wave1_host02_cb','WAIVE_KAENA_WAVRNN']
   ]
 
 noGpuTestWaiver = [
