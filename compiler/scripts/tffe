@@ -154,6 +154,17 @@ def invokeWatchpointInsertion(_kPath, _sgDir, args):
     shutil.copyfile("wavegraph.watchpoint.json", "wavegraph.json")
   return wpRet
 
+def invokeShellScript(arg):
+  assert arg.startswith("shell="), "Invalid preprocessor argument: %s" % arg
+  (_, cmd) = arg.split("=", 1)
+  cmd = "%s > log-wavepreproc.txt 2>&1" % (cmd)
+  print(getInfoDateStr(), "executing %s" % cmd, flush=True)
+  ppRet = os.system(cmd)
+  if ppRet != 0:
+    print("WARNING: wavegraph preprocessor failed, see %s/log-wavepreproc.txt" % sgDir);
+  return ppRet
+
+
 inputNamesToFormat = {}
 iformat = args.sg_input_format
 if iformat != []:
@@ -227,13 +238,6 @@ if args.images != None:
           print("ERROR: skipping backend compilation since the mid scheduler failed")
           ret = 1
 
-        # Run wavegraph preprocessor (e.g. a perl script)
-        if "shell=" in args.wavegraph_transform:
-          tfms = args.wavegraph_transform.split(",")
-          for t in tfms:
-            if t.startswith("shell="):
-              ret += abs(invokeShellCommand(t))          
-
         if (ret == 0):
           # Invoke wavegraph post-pass tools
           for t in args.wavegraph_transform:
@@ -241,17 +245,22 @@ if args.images != None:
                 print('ERROR: Cleaner failed')
                 ret = 1
                 break
-            if (t == 'euler' and\
+            elif (t == 'euler' and\
                 invokeEuLeR(kPath, sgDir, args.euler_options) != 0):
                 print('ERROR: Euler failed')
                 ret = 1
                 break
-            
-            if (t == 'watchpoint'):
+            elif (t == 'watchpoint'):
               watchpoint_args = args.wavegraph_transform[args.wavegraph_transform.index('watchpoint')+1]
               if invokeWatchpointInsertion(kPath, sgDir, watchpoint_args) != 0:
                 print('ERROR: Watchpoint insertion failed')
                 ret = 1
+                break
+            elif t.startswith("shell=") and \
+                invokeShellScript(t) != 0:
+                print('ERROR: Preprocessor failed')
+                ret = 1
+                break
 
         if ret == 0:
           # Invoke backend

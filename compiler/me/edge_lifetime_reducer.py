@@ -372,6 +372,7 @@ class EdgeLifetimeReducer():
         elr_cnt = 0
         self.after_metrics.serial_cnt = 0
         serial_cnt = 0
+        changed = False
         while((first or serial_cnt > 0) and\
             ((self.run_until_end == False and elr_cnt < MAX_ELR_CNT) or\
             self.run_until_end == True)):
@@ -382,6 +383,7 @@ class EdgeLifetimeReducer():
                     logging.info("Starting level %d"%l)
                 if (self.edge_cnt_level[l] > self.max_edges_level):
                     serial_cnt += 1
+                    changed = True
                     edges = self.gather_longest_edges(l)
                     if (len(edges)):
                         last_source = self.serialize_vertices(edges, True)
@@ -393,6 +395,7 @@ class EdgeLifetimeReducer():
             first = False
             elr_cnt += 1
             self.initialize(first = True)
+        return changed
 
     def remove_edges(self, edges):
         for e in edges:
@@ -439,17 +442,18 @@ class EdgeLifetimeReducer():
             self.after_metrics.total_depths = self.max_level
             self.after_metrics.max_live_edges = max_le
 
-    def convert_nx_to_wavegraph (self):
+    def convert_nx_to_wavegraph (self, changed):
         new_stream = []
-        for v in nx.topological_sort(self.nx_wavegraph):
-            wop = self.vtx2wop[v]
-            prevs = []
-            for in_e in self.nx_wavegraph.in_edges(v):
-                prev_wop = self.vtx2wop_name[in_e[0]]
-                prevs.append(prev_wop)
-            wop["previous_waveops"] = prevs
-            new_stream.append(wop)
-        self.wavegraph_json["waveops"] = new_stream
+        if (changed):
+          for v in nx.topological_sort(self.nx_wavegraph):
+              wop = self.vtx2wop[v]
+              prevs = []
+              for in_e in self.nx_wavegraph.in_edges(v):
+                  prev_wop = self.vtx2wop_name[in_e[0]]
+                  prevs.append(prev_wop)
+              wop["previous_waveops"] = prevs
+              new_stream.append(wop)
+          self.wavegraph_json["waveops"] = new_stream
         print("Saving Wave-Graph %s"%(args.wavegraph+"-elr"))
         with (open(args.wavegraph+"-elr", 'w')) as f:
             s = json.dumps(self.wavegraph_json, indent=2, sort_keys=True)
@@ -495,8 +499,8 @@ if (__name__ == "__main__"):
 #    l.lifetime_edges(l.nx_wavegraph)
     l.print_edges_per_level(args.before_dist)
     if (not args.profile_only):
-        l.limit_max_edges_per_level()
-        l.convert_nx_to_wavegraph()
+        changed = l.limit_max_edges_per_level()
+        l.convert_nx_to_wavegraph(changed)
         l.print_edges_per_level(args.after_dist, before=False, complete_init = True)
         print("%s"%l.before_metrics)
         print("%s"%l.after_metrics)

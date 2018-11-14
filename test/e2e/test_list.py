@@ -455,8 +455,7 @@ testConfigMap = {
   "3-rn50-19_wave" : [ "trivnet_conv1",  "tfloat16-b1-h14-r1-s2-c1024-m512-wmin-1-wmax1.1-imin-3-imax3.2",  "1conv", MEv2("Generic")],
   "3-rn50-20_wave" : [ "trivnet_conv1",  "tfloat16-b1-h14-r1-s2-c1024-m2048-wmin-1-wmax1.1-imin-3-imax3.2", "1conv", MEv2("Generic")],
 
-  "3-rn50-16_wave_repl" : [ "trivnet_conv1", "tfloat16-b1-h224-r7-s2-c3-m64-wmin-1-wmax1.1-imin-3-imax3.2", "1conv", 
-    "--scheduler wave2 --schedule_options ' --enable_replication '" ],
+  "3-rn50-16_wave_repl" : [ "trivnet_conv1", "tfloat16-b1-h224-r7-s2-c3-m64-wmin-1-wmax1.1-imin-3-imax3.2", "1conv", MEv2("Generic-Repl")],
 
   ## db
   "3-rn50-16_wave_repl-fast_dram" : [ "trivnet_conv1", "tfloat16-b1-h224-r7-s2-c3-m64-wmin-1-wmax1.1-imin-3-imax3.2", "1conv", MEv2("RN50-Repl"), 
@@ -631,7 +630,7 @@ testConfigMap = {
   #"7-rn50_nne_fp16_b16_waveopt"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave2 --batch 16 --images %s"%(rnPreFp16, getBatchedJpgs(16)), "--input_files %s" % (getBatchedJpgs(16))],
 
   # Resnet50 bfloat16
-  "7-rn50_nne_bfloat16_wave": [ "tf_s3", "s3://kaena-nn-models", "resnet50_bfp16infp16_keras_opt.pb", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 --wavegraph_transform 'cleaner,shell=perl -i -p -e s/float16/bfloat16/g wavegraph.json' --images %s --euler_options '--max_events 230'" % (MEv2("RN50-no_verify"), rnBfloat16Npy), "--input_files %s --check_against_ref none" % rnBfloat16Npy ],
+  "7-rn50_nne_bfloat16_wave": [ "tf_s3", "s3://kaena-nn-models", "resnet50_bfp16infp16_keras_opt.pb", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 --wavegraph_transform 'shell=perl -i -p -e s/float16/bfloat16/g wavegraph.json' cleaner euler cleaner --images %s --euler_options '--max_events 230'" % (MEv2("RN50-no_verify"), rnBfloat16Npy), "--input_files %s --check_against_ref none" % rnBfloat16Npy ],
 
 
 ##################################################################
@@ -967,13 +966,13 @@ testConfigMap = {
   #
 
   # c < 128
-  "0-watchpoint-3conv_b1_h4_c32_m32_relu_wave" : [ "trivnet_lin",    "tfloat16-l3-b1-h4-r1-s1-c32-m32-relu-wmin-0.2-wmax0.4-imin-10-imax11", "10cr", " --wavegraph_transform watchpoint 10cr/relu1 " + MEv2("Generic"), "--check_against_ref all_available"],
+  "0-watchpoint-3conv_b1_h4_c32_m32_relu_wave" : [ "trivnet_lin",    "tfloat16-l3-b1-h4-r1-s1-c32-m32-relu-wmin-0.2-wmax0.4-imin-10-imax11", "10cr", " --wavegraph_transform cleaner watchpoint 10cr/relu1 euler cleaner" + MEv2("Generic"), "--check_against_ref all_available"],
   # c, m = 128
-  "0-watchpoint-3conv_b1_h14_c128_m128_relu_wave" : [ "trivnet_lin",    "tfloat16-l3-b1-h14-r1-s1-c128-m128-relu-wmin-0.2-wmax0.4-imin-10-imax11", "10cr", " --wavegraph_transform watchpoint 10cr/relu1 " + MEv2("Generic"), "--check_against_ref all_available"],
+  "0-watchpoint-3conv_b1_h14_c128_m128_relu_wave" : [ "trivnet_lin",    "tfloat16-l3-b1-h14-r1-s1-c128-m128-relu-wmin-0.2-wmax0.4-imin-10-imax11", "10cr", " --wavegraph_transform cleaner watchpoint 10cr/relu1 euler cleaner" + MEv2("Generic"), "--check_against_ref all_available"],
   # c, m > 128
-  "0-watchpoint-3conv_b1_h4_c256_m256_relu_wave" : [ "trivnet_lin",    "tfloat16-l3-b1-h4-r1-s1-c256-m256-relu-wmin-0.2-wmax0.4-imin-10-imax11", "10cr", " --wavegraph_transform watchpoint 10cr/relu1 " + MEv2("Generic"), "--check_against_ref all_available"],
+  "0-watchpoint-3conv_b1_h4_c256_m256_relu_wave" : [ "trivnet_lin",    "tfloat16-l3-b1-h4-r1-s1-c256-m256-relu-wmin-0.2-wmax0.4-imin-10-imax11", "10cr", " --wavegraph_transform cleaner watchpoint 10cr/relu1 euler cleaner" + MEv2("Generic"), "--check_against_ref all_available"],
   # b=2
-  "0-watchpoint-2conv3_relu_b2_h20_m128_wave" : [ "trivnet_lin",    "tfloat16-l3-b2-h20-r1-s1-c128-m128-relu-wmin-0.2-wmax0.24-imin-10-imax11", "1conv3", " --wavegraph_transform watchpoint 1conv3/relu1 " + MEv2("RN50"), "--check_against_ref all_available"],
+  "0-watchpoint-2conv3_relu_b2_h20_m128_wave" : [ "trivnet_lin",    "tfloat16-l3-b2-h20-r1-s1-c128-m128-relu-wmin-0.2-wmax0.24-imin-10-imax11", "1conv3", " --wavegraph_transform cleaner watchpoint 1conv3/relu1 euler cleaner " + MEv2("RN50"), "--check_against_ref all_available"],
   # rn50 tests
   "5-watchpoint-rn50_nne_to_act4_wave-repl"     : [
     "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
