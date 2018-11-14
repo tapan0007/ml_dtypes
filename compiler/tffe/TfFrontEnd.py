@@ -222,8 +222,8 @@ class TfFe:
         elif (re.search("MaxPool|AvgPool", tfop.op, re.I) != None):
           node = kog.NodePool(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeMaxPool")
-        #elif (re.search("Const", tfop.op, re.I) != None):
-        #  node = kog.NodeConst(tfNode.name, tfop.op, add_attrs)
+        elif (re.search("Const", tfop.op, re.I) != None):
+          node = kog.NodeConst(tfNode.name, tfop.op, add_attrs)
         #  #print("DEBUG created NodeConst")
         elif (re.search("Placeholder", tfop.op, re.I) != None):
         #print("DEBUG created NodeInput")

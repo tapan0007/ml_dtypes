@@ -242,6 +242,9 @@ class Node(Object):
     elif len(npInfo.npShape) == 1:
       tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
       tfFormat = npt.C
+    elif len(npInfo.npShape) == 0:
+      tfShape4D = []
+      tfFormat = ""
     else:
       assert len(npInfo.npShape) == 4
       tfShape4D = npInfo.npShape
@@ -270,8 +273,12 @@ class Node(Object):
         print("ERROR: input format %s is not recognized (must be one of C, NC, NWC, HNC, or NHWC)"%self.inputFormat)
 
     if simFormat == "":
-        tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
-        (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+        if tfShape4D != []:
+            tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+            (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+        else:
+            tpbShape = []
+            (npFileSim, simFormat) = (npInfo.npFile, tfFormat)
     tensorFormatMap.add(npInfo.tensorName,
                         TensorFormat(npInfo.tensorName, self.getOpName(),
                                      npInfo.npFile, tfFormat,
@@ -359,21 +366,7 @@ class NodeConst(Node):
   def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     npInfo = self.getNpInfo()[0]
-    if len(npInfo.npShape) == 4:
-      tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
-      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
-      tensorFormatMap.add(npInfo.tensorName,
-                          TensorFormat(npInfo.tensorName, self.getOpName(),
-                                       npInfo.npFile, npt.Formats[npt.TF][npt.Fmaps],
-                                       npFileSim, simFormat, True))
-    else:
-      tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
-      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
-      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
-      tensorFormatMap.add(npInfo.tensorName,
-                          TensorFormat(npInfo.tensorName, self.getOpName(),
-                                       npInfo.npFile, npt.C,
-                                       npFileSim, simFormat, True))
+    (tpbShape, simFormat, npFileSim) = self.convertShape(npInfo, tensorFormatMap)
 
       # Spec for future global format tracking
       #  (newShape, newFile) = npTt.translate("NC", npt.FmapsSIM, npt.FmapsopName, npInfo.npShape, npInfo.npFile)
@@ -480,15 +473,7 @@ class NodeConcat(Node):
   def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     npInfo = self.getNpInfo()[0]
-    if len(npInfo.npShape) == 4: # output dimension
-      tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
-      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
-      tensorFormatMap.add(npInfo.tensorName,
-                          TensorFormat(npInfo.tensorName, self.getOpName(),
-                                       npInfo.npFile, npt.Formats[npt.TF][npt.Fmaps],
-                                       npFileSim, simFormat, False))
-    else:
-      assert (0)
+    (tpbShape, simFormat, npFileSim) = self.convertShape(npInfo, tensorFormatMap)
 
     # FIX_THIS - IFMAP, it should not be needed
     #((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
@@ -1169,14 +1154,25 @@ class NodeSimple2(Node):
     # Residual Add has both inputs dependent on the input image
     # BiasAdd has the other input constant
     # In Keras plain Add can be of either of the above types
-    (faninEdgeFmap, faninEdgeOther) = self.getFaninEdges()
-    theOpIsInMainDataFlow = faninEdgeFmap.isInMainFlow()
-    if not theOpIsInMainDataFlow:
-      # This Add is a part of a side branch computation, no layer needed
+    (faninEdge0, faninEdge1) = self.getFaninEdges()
+    op0IsInMainDataFlow = faninEdge0.isInMainFlow()
+    op1IsInMainDataFlow = faninEdge1.isInMainFlow()
+
+    # If no main data flow, this op is a part of a side branch computation, so no layer needed
+    # (TBD: do we need to enable scalar operations?)
+    if not op0IsInMainDataFlow and not op1IsInMainDataFlow:
       return [], []
 
-    isJoin = faninEdgeOther.isInMainFlow()
+    # Join type if both incoming edges are main data flow edges
+    isJoin = op0IsInMainDataFlow and op1IsInMainDataFlow 
+
+    # Get predecessor nodes, keeping TF order (for Sub order is important)
     ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
+    (fromIfNodeMain, fromIfNodeSide) = (fromIfNode0, fromIfNode1)
+    (npInfoIFMain, npInfoIFSide)     = (npInfoIF0, npInfoIF1)
+    if op1IsInMainDataFlow:
+      (fromIfNodeMain, fromIfNodeSide) = (fromIfNode1, fromIfNode0)
+      (npInfoIFMain, npInfoIFSide)     = (npInfoIF1, npInfoIF0)
 
     layerData = {
       "ofmap_shape"     : tpbShape,
@@ -1191,20 +1187,18 @@ class NodeSimple2(Node):
     fileListBase += fileList
 
     # Override layer name to backend
-    #   BiasAdd - when one input is constant
     #   ResAdd - when both inputs depend on the input image
     overrideType = self.getOpType()
     if isJoin and overrideType == "Add":
-      overrideType = "ResAdd"
+      overrideType = "ResAdd"   # Maybe better to keep "Add"
     layerDataBase[0]["layer_type"] = overrideType
 
-    if not isJoin and not type(fromIfNode1) == NodeConst:
-
-      # Scalar add is fused (e.g. for LSTMs)
-      if len(npInfoIF1.npShape) == 0:
-        val = npInfoIF1.getValues()
+    if not isJoin:
+      # Scalar is passed as a field (e.g. for LSTMs)
+      if len(npInfoIFSide.npShape) == 0:
+        val = npInfoIFSide.getValues()
         assert val.size == 1
-        layerDataBase[0]["previous_layers"] = [fromIfNode0.getName()]
+        layerDataBase[0]["previous_layers"] = [fromIfNodeMain.getName()]
         if self.getOpType() == "ExpandDims":
           layerDataBase[0]["axis"] = np.asscalar(val.ravel()[0])
           layerDataBase[0]["#comment"] = "Insert new dimension of size 1 in the axis specified by \"axis\" field."
@@ -1212,18 +1206,17 @@ class NodeSimple2(Node):
           layerDataBase[0]["add_scalar"] = np.asscalar(val.ravel()[0])
           layerDataBase[0]["#comment"] = "Element-wise operation on one input tensor and scalar."
       else:
-
         # Collapse the side node to a branch (except when it already is a real constant)
         # Main input is covered by a previous layer
         #   tfShape4D0 = npt.cShapeToNHWC(npInfoIF0.npShape)
         #   (npFileSimF0, simFormatIF0)  = npt.copyNpyFileAs(npInfoIF0.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D0)
         # Side input has to be collapsed to a constant
     
-        (tpbShape1, simFormat1, npFileSim1) = self.convertShape(npInfoIF1, tensorFormatMap, True)
+        (tpbShape1, simFormat1, npFileSim1) = self.convertShape(npInfoIFSide, tensorFormatMap, True)
 
         constLayerData = {
           "layer_type" :  "Const",
-          "layer_name" :  fromIfNode1.getName(),
+          "layer_name" :  fromIfNodeSide.getName(),
           "ofmap_shape"     : tpbShape1,
           "ofmap_format"    : simFormat1,
           "ref_file"        : npFileSim1,
