@@ -29,6 +29,9 @@ transformerRtInX = 'infer_x:0={0}/images/transformer_x.npy'.format(kePath)
 transformerIn = '{0}/images/transformer_x.npy {0}/images/transformer_y.npy'.format(kePath)
 transformerRtIn = 'infer_x:0={0}/images/transformer_x.npy infer_y:0={0}/images/transformer_y.npy'.format(kePath)
 
+transformerEncoderIn = '{0}/images/transformer_x.npy'.format(kePath)
+transformerEncoderRtIn = 'infer_x:0={0}/images/transformer_x.npy infer_y:0={0}/images/transformer_y.npy'.format(kePath)
+
 def getBatchedJpgs(batchLevel):
     listExtraJpgs = [rnDogJpg, rnCatJpg, rnKoalaJpg] * ((batchLevel+3)//3)
     return ' '.join(tuple(listExtraJpgs[0:batchLevel]))
@@ -1023,6 +1026,20 @@ testConfigMap = {
     " --executors host 0 2 wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race --parallel_streams --partition from_multi MatMul,MatMul_2,MatMul_4,MatMul_3,MatMul_1,Mul,Mul_1 Softmax ",
     "--input_files prev:0=$KAENA_EXT_PATH/apps/tf/wavernn/prev_samp.npy cond:0=$KAENA_EXT_PATH/apps/tf/wavernn/cond.npy init_state:0=$KAENA_EXT_PATH/apps/tf/wavernn/init_state.npy --diff_options '--tolerance 30 1e-5' "
   ],  
+
+  "5-transformer-encoder": [ 
+    "tf_s3", "s3://kaena-nn-models", 
+    "transformer_infer_encoder_v2_fp16.pb",
+    "--input_node transformer_infer_encoder/encoder_inputs --depth 2 "
+    "--partition from_multi '"
+      "transformer_infer_encoder/encoder_attention_bias/bias"
+      "','"
+      "transformer_infer_encoder/encoder_embedding/embedding_and_positional"
+      "' "
+      "--dot_timeout 1 "
+      "--executors host 0 wave 1 {} --images {} --wavegraph_checks structure data-race".format(MEv2("generic"), transformerEncoderIn), 
+    "--input_files {}".format(transformerEncoderRtIn)
+   ],
 }
 
 def gen_rn50_nne_to_act_norepl(act_num, batch):
@@ -1196,7 +1213,8 @@ testWaiver = [
     ['0-transformer-matmul', 'WAIVE_KAENA964'],
     ['0-transformer-mul', 'WAIVE_KAENA964'],
     #wavernn
-    ['2-wavernn_tf_ts0_wave1_host02_cb','WAIVE_KAENA_WAVRNN']
+    ['2-wavernn_tf_ts0_wave1_host02_cb','WAIVE_KAENA_WAVRNN'],
+    ['5-transformer-encoder', 'WAIVE_KAENA974'],
   ]
 
 noGpuTestWaiver = [
