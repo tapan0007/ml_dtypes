@@ -604,7 +604,7 @@ class Ktests:
       if cachedKelf:
         cachedTestPath = "%s/%s" % (self.https2sshUrl(cachedKelf), testName)
         makeTarget = "run_kelf_cached CACHED_KELF=%s" % cachedTestPath
-        rtArgs += " --cached_goldens %s/working_dir" % cachedTestPath
+        rtArgs += " --cached_goldens ../working_dir_cached " 
       cmd += 'make -f  $KAENA_PATH/test/e2e/Makefile %s %s NN_CONFIG=%s OUT_PREFIX=%s NN_NAME=%s NN_ARGS="%s" RT_ARGS="%s"' % (
              makeTarget, sealifeOpt, nnConfig, outPrefix, nnLabel, nnArgs, rtArgs)
       cmd +=  ' > log-top.txt 2>&1'
