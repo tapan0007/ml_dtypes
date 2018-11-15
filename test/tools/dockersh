@@ -1,0 +1,30 @@
+#!/bin/bash
+# From https://w.amazon.com/bin/view/Search/SearchX/SXInsights/UserDocs/Docker
+
+SCRIPT=$(readlink -f $0)
+SCRIPT_DIR=`dirname $SCRIPT`
+IMAGE_NAME=docker_image
+CHECK_IMAGE=$(docker images | grep "$IMAGE_NAME")
+if [ -z "$CHECK_IMAGE" ]; then
+    docker build -t $IMAGE_NAME $SCRIPT_DIR/../jenkins
+    echo "New docker build with image tag $IMAGE_NAME"
+fi    
+LIB_MODULES=$(\uname -r | xargs -I{} echo '-v /lib/modules/{}:/lib/modules/{}')
+CONTAINER_ID=$(docker ps | grep "$IMAGE_NAME" | awk '{print $1}')
+X11_SOCKET="/tmp/.X11-unix:/tmp/.X11-unix"
+
+if [ -z "$CONTAINER_ID" ]; then
+    docker run -d -it --privileged -P -e DISPLAY=$DISPLAY -e XAUTHORITY=$XAUTHORITY -v $X11_SOCKET $LIB_MODULES -v /home/$USER:/home/$USER -w /home/$USER --net=host "$IMAGE_NAME"
+    CONTAINER_ID=$(docker ps | grep "$IMAGE_NAME" | awk '{print $1}')
+    docker exec $CONTAINER_ID useradd -u $UID $USER -g 100
+    #docker exec $CONTAINER_ID apt-get upgrade -y
+    docker exec $CONTAINER_ID apt-get install -y vim
+    echo "New container started for $IMAGE_NAME with $CONTAINER_ID"
+fi
+
+INTERACTIVE="-it"
+#INTERACTIVE=""
+
+#Run Command
+echo "Using container started for $IMAGE_NAME with $CONTAINER_ID"
+docker exec $INTERACTIVE -u $USER "$CONTAINER_ID" bash
