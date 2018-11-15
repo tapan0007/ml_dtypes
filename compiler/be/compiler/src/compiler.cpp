@@ -102,7 +102,7 @@ Main(int argc, char* argv[])
     bool ParallelStreams = true;
     const char* JsonInFileName = nullptr;
     bool dmaOnly = false;
-    bool useSem = false;
+    bool useSem = true;
 
     kcc_int32 numTpbEvents = -1;
     {

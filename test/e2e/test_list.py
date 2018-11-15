@@ -1136,8 +1136,6 @@ testWaiver = [
     ['^0-resadd_uint8_wave$', 'WAIVE-UINT8'],
     ['0-resadd_2in_wave', 'WAIVE-2INPUTS'],
 
-    ['1-1conv0_r3h55c256_wave',     'WAIVE_WAVESC'],
-
     ['4-rn50_matmul_plus_softmax_fp32_wave$',      'WAIVE-S10_BE_SOFTMAX'],
     ['4-rn50_matmul_plus_softmax_fp16_wave$',      'WAIVE-S10_BE_SOFTMAX'],
 
@@ -1192,8 +1190,6 @@ testWaiver = [
 
     # Qemu only works on C5 (till we add VDI to S3)
     #['^0-1conv0_qemu_wave$', 'WAIVE_QEMU'],
-
-    [ '3-1conv1relupoolconv_k3d2_wave', 'WAIVE_RELU_POOL'],
 
     # Transformer
     # Comment calling kp.reportOpAndSizes() to see ME failure
