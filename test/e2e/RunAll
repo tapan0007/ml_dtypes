@@ -133,6 +133,7 @@ def selectTests(testConfigMap, testWaiver, argLevel, argTest,
   # Pre-select by level and the select method
   if len(argTest) == 0 and len(argTestRe) == 0:
     for testName in sorted(testConfigMap):
+      assert getLevel(testName) < 10
       isWaived = calcIsWaived(testName, testWaiver)
       if getLevel(testName) <= argLevel:
         if argSelect == "any" or (isWaived and argSelect == "waived_only") or ((not isWaived) and argSelect == "not_waived"):
