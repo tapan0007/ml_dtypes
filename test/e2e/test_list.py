@@ -1015,7 +1015,7 @@ testConfigMap = {
   ],
   
   #WaveRNN Tests #cb-compiler bug workaround - no support for constants to Sub and Mul operators - WA to remove sub operatoins in sigmoid and change Mul constants to placeholders
-  "wavernn_tf_ts0_wave1_host02_cb"     : [
+  "2-wavernn_tf_ts0_wave1_host02_cb"     : [
     #"tf_pb", "wavernn/wave_rnn_ts0_cb_f_opt.pb","wavernn",
     "tf_s3", "s3://kaena-nn-models", "wave_rnn_ts0_cb_f_opt.pb",
     "--input_node prev cond init_state --depth -1 --focus_to multinomial/Multinomial  --show_op_name_in_kgraph "
@@ -1200,7 +1200,7 @@ testWaiver = [
     ['0-transformer-matmul', 'WAIVE_KAENA964'],
     ['0-transformer-mul', 'WAIVE_KAENA964'],
     #wavernn
-    ['wavernn_tf_ts0_wave1_host02_cb','WAIVE_KAENA_WAVRNN']
+    ['2-wavernn_tf_ts0_wave1_host02_cb','WAIVE_KAENA_WAVRNN']
   ]
 
 noGpuTestWaiver = [
