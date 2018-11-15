@@ -2,7 +2,9 @@
 # Copyright (C) 2018 Amazon Inc. All Rights Reserved.
 #
 # Bartosz Putrycz <bartosz@amazon.com>
-
+import os
+import sys
+sys.path.insert(0, os.environ["KAENA_EXT_PATH"] + "/apps/tf/wavernn")
 import argparse
 from collections import OrderedDict
 import logging
