@@ -131,6 +131,8 @@ endif
 TEST_ARGS_CHECK_EMU = ${TEST_EMU_OPTS} --test
 
 TEST_ARGS_CHECK_EMU_TESTS = \
+0-1maxpool_wave_h71c192m192k3d2_valid \
+0-rtl-act_tanh_minisweep_wave \
 0-1conv0_qemu_sem_wave \
 0-116conv_tanh_sem_qemu_wave \
 6-inceptionv3_wave_dog_sg00_tpb_upto_concat8 \
