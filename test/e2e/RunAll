@@ -551,6 +551,16 @@ class Ktests:
       (nnStruct, nnConfig) = self.testConfigMap[testName][0:2]
       print("%-20s  %-12s  %s" % (testName, nnStruct, nnConfig))
 
+  # Convert jenkins URL to ssh sioptvpc URL to allow scp or rsync
+  def https2sshUrl(self, httpsUrl):
+    sshUrl0 = re.sub('/(\d+)/artifact/', r'/builds/\1/archive/', httpsUrl)
+    sshUrl = re.sub('https://siopt-294228977.us-east-1.elb.amazonaws.com/ci-server-tonga-sw/job/',
+                    'siopt.vpc:/proj/jenkins/servers/tonga-sw/home/jobs/', sshUrl0)
+    if httpsUrl != sshUrl:
+      print('INFO: translated  %s  to  %s' % (httpsUrl, sshUrl))
+    assert not 'https:' in sshUrl
+    return sshUrl
+
   # Run tests
   def run(self, parallel, maxLoad, reportOnly, startSpacing, forceQemu, sealife, cachedKelf):
     self.parallel = parallel
@@ -592,7 +602,7 @@ class Ktests:
             ulimitCpuTimeout, ulimitCpuTimeout, testName, testName)
       makeTarget = nnStruct
       if cachedKelf:
-        cachedTestPath = "%s/%s" % (cachedKelf, testName)
+        cachedTestPath = "%s/%s" % (self.https2sshUrl(cachedKelf), testName)
         makeTarget = "run_kelf_cached CACHED_KELF=%s" % cachedTestPath
         rtArgs += " --cached_goldens %s/working_dir" % cachedTestPath
       cmd += 'make -f  $KAENA_PATH/test/e2e/Makefile %s %s NN_CONFIG=%s OUT_PREFIX=%s NN_NAME=%s NN_ARGS="%s" RT_ARGS="%s"' % (
