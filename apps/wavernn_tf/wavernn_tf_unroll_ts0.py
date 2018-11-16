@@ -25,6 +25,7 @@ def main():
 
     batch_size = 1
     frame_to_sample_ratio = 300
+    #set seed so tf produces same results across runs
     tf.set_random_seed(0)
     with open(args.affines_input, "rb") as reader:
         affines = pickle.load(reader)
@@ -105,6 +106,7 @@ def main():
 
     #GRU Cell
     gru_l = GRU_local(in_dim,hidden_dim)
+    #ideally we dont need this, but adding a seperate GRU to enable easier cutting, so W params are not shared across timesteps;
     gru_2 = GRU_local(in_dim,hidden_dim)
     #lstm_out , state = tf.nn.static_rnn(lstm1,RNN_in,sequence_length=200)
     cond_in_0 = tf.split(cond_in,timesteps,1)
@@ -122,14 +124,15 @@ def main():
     w_fc1 = tf.Variable(tf.truncated_normal(dtype='float', shape=(1024, 1024), mean=0, stddev=0.01), name='w_fc1')
 
 
-    #Forward pass graph
+    #Forward pass graph - Timestep0
     gru_state = gru_l.forward_pass(init_state,gru_in_0)
     gru_in_1 = tf.nn.relu(tf.matmul(gru_state,w_fc0))
     gru_in_1 = tf.matmul(gru_in_1,w_fc1)
 
     gru_in_1 = tf.nn.softmax(gru_in_1)
     prev_sample_1 = tf.multinomial(gru_in_1,1,output_dtype='int32',seed=0)
-
+     
+    #FP time step -1  
     embed_out = tf.gather_nd(inp_lkup,prev_sample_1)
     RNN_in_1 = embed_out
     RNN_in_1 = tf.reshape(RNN_in_1,(1,1024))
