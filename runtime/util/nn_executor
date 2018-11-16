@@ -412,9 +412,9 @@ class NnExec:
     else:
       raise ValueError("ERROR: Unsupported subgraph mode --check_against_ref '%s'" % sgMode)
     comparedFiles = []
+    retAll = 0
     for sg in sgList:
       print("\nINFO: nn_executor.check subgraph  %s OUTPUT tensors" % (sg.sgDir), flush=True)
-      retAll = 0
       for jsonOutput in sg.outputs:
         refOutFile = jsonOutput['file']
         outBase = refOutFile[:-4]
