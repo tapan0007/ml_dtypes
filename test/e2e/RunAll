@@ -1017,6 +1017,8 @@ os.nice(18)
 testList = selectTests(test_list.testConfigMap, test_list.testWaiver, args.level,
                        args.test, args.test_re, args.select, args.filter,
                        args.force_qemu)
+if len(testList) == 0:
+  raise ValueError('ERROR: no tests were selected, select at least 1 test')
 if args.show_only:
   if args.verbose:
     print("INFO: --show_only --verbose mode: selected tests are\n")
