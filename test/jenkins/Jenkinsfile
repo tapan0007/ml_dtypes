@@ -30,6 +30,7 @@ pipeline{
         KRT_EMU_BLD_DIR = "$BLD_DIR/krt_emu"
         KCC_BLD_DIR = "$BLD_DIR/kcc"
         QEMU_BLD_DIR = "$BLD_DIR/qemu"
+        KAENA_BLD_DIR = "$BLD_DIR/kaena"
     }
 
     stages {
@@ -109,6 +110,10 @@ pipeline{
                             sh 'cp $KRT_DV_BLD_DIR/krt-*.*.tar.gz /artifact/'
                             sh 'cp $KRT_EMU_BLD_DIR/krt-*.*.tar.gz /artifact/'
                             archiveArtifacts artifacts:'krt-*.*.tar.gz'
+
+                            sh 'for f in `ls $KAENA_BLD_DIR/*.tar.gz`; do aws s3 --profile kaena cp $f s3://kaena-release-bucket/$BUILD_TAG/; done'
+                            sh 'aws s3 --profile kaena ls --recursive --human-readable s3://kaena-release-bucket/$BUILD_TAG/ > /artifact/files_uploaded.txt'
+                            archiveArtifacts artifacts:'files_uploaded.txt'
                         }
                     }
                 }
