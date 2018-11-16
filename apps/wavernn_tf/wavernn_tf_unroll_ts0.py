@@ -25,7 +25,7 @@ def main():
 
     batch_size = 1
     frame_to_sample_ratio = 300
-
+    tf.set_random_seed(0)
     with open(args.affines_input, "rb") as reader:
         affines = pickle.load(reader)
 
@@ -105,6 +105,7 @@ def main():
 
     #GRU Cell
     gru_l = GRU_local(in_dim,hidden_dim)
+    gru_2 = GRU_local(in_dim,hidden_dim)
     #lstm_out , state = tf.nn.static_rnn(lstm1,RNN_in,sequence_length=200)
     cond_in_0 = tf.split(cond_in,timesteps,1)
     cond_in_0 = tf.reshape(cond_in,(1,mel_dim))
@@ -127,15 +128,15 @@ def main():
     gru_in_1 = tf.matmul(gru_in_1,w_fc1)
 
     gru_in_1 = tf.nn.softmax(gru_in_1)
-    prev_sample_1 = tf.multinomial(gru_in_1,1,output_dtype='int32')
+    prev_sample_1 = tf.multinomial(gru_in_1,1,output_dtype='int32',seed=0)
 
-    #embed_out = tf.gather_nd(inp_lkup,prev_sample_1)
-    #RNN_in_1 = embed_out
-    #RNN_in_1 = tf.reshape(RNN_in_1,(1,1024))
-    #RNN_in = gru_in_1
+    embed_out = tf.gather_nd(inp_lkup,prev_sample_1)
+    RNN_in_1 = embed_out
+    RNN_in_1 = tf.reshape(RNN_in_1,(1,1024))
+    RNN_in = gru_in_1
 
-    #gru_in_1 = tf.concat([RNN_in_1,cond_in_0],1)
-    #gru_state_1 = gru_l.forward_pass(gru_state,gru_in_1)
+    gru_in_1 = tf.concat([RNN_in_1,cond_in_0],1)
+    gru_state_1 = gru_2.forward_pass(gru_state,gru_in_1)
 
     #Global initialisation
     init = tf.global_variables_initializer()
@@ -146,9 +147,10 @@ def main():
 
     with tf.Session() as session :
       session.run(init)
-      result = session.run(prev_sample_1,feed_dict={prev_sample_in : prev_sample , cond_in : cond , init_state : state0_var })
-      tf.train.write_graph(session.graph,'.','wavernn_tf_ts0.pbtxt')
-      saver.save(session,'./wave_rnn_tf_ts0')
+      #result = session.run(prev_sample_1,feed_dict={prev_sample_in : prev_sample , cond_in : cond , init_state : state0_var })
+      result = session.run(gru_state_1,feed_dict={prev_sample_in : prev_sample , cond_in : cond , init_state : state0_var })
+      tf.train.write_graph(session.graph,'.','wavernn_tf_ts1_cb_seed1.pbtxt')
+      saver.save(session,'./wavernn_tf_ts1_cb_seed1')
       print(result)
 
 def parse_args():

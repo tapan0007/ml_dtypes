@@ -14,11 +14,11 @@ from tensorflow.python.platform import gfile
 from tensorflow.python.tools.freeze_graph import freeze_graph
 from tensorflow.tools.graph_transforms import TransformGraph
 
-model_name = "wave_rnn_ts0_cb_f"
+model_name = "wavernn_ts1_cb_seed1_f"
 if(1) : 
     # read back frozen graph
     frozen_graph_def = graph_pb2.GraphDef()
-    with gfile.FastGFile("waver_rnn_tf_ts0_cb.pb", "rb") as f:
+    with gfile.FastGFile("wavernn_tf_ts1_cb_seed1.pb", "rb") as f:
         frozen_graph_def.ParseFromString(f.read())
     # write out in text for debugging
     #with gfile.GFile(frozen_file+"txt", 'w') as f:
@@ -28,8 +28,8 @@ if(1) :
     transformed_graph_def = graph_pb2.GraphDef()
     transformed_graph_def = TransformGraph (
              frozen_graph_def,
-             ['cond','prev'],
-             ['multinomial/Multinomial'],
+             ['cond','prev','init_state'],
+             ['add_13'],
              [
                 'add_default_attributes',
                 'remove_nodes(op=Identity, op=CheckNumerics)',
