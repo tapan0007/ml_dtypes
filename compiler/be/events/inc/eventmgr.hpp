@@ -93,7 +93,7 @@ private:
     EventId getLocalEventId(const wave::WaveEdge* edge);
 
     enum  {
-        RunTimeReservedEventsCount = 15,
+        RunTimeReservedEventsCount = 23,
         RunTimeReservedSemaphoresCount = 3,
     };
     enum ReservedEvent {
