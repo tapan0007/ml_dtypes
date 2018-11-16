@@ -20,14 +20,26 @@ if __name__ == "__main__":
 
     # parse results
     passfail = {}
+    name = ""
     for line in result_lines:
         if re.search("^Allclose", line):
             m = re.search("gold (.*) vs .* (PASS|FAIL)", line)
             if m:
                 name = m.group(1).split(":")[0]
                 name = re.sub("^([^_]+)_", "", name)
+                name = re.sub("__", "/", name)
                 passfail[name] = m.group(2)
-                #print(name, m.group(2))
+                print(name, m.group(2))
+        if re.search("^GOLD", line):
+            toks = line.split()
+            name = toks[6]
+        if re.search("^ValueError", line):
+            toks = line.split()
+            name = name.split(":")[0]
+            name = re.sub("^([^_]+)_", "", name)
+            name = re.sub("__", "/", name)
+            passfail[name] = toks[4] + toks[5]
+            print(name, passfail[name])
 
     # read log file
     try:
@@ -41,10 +53,10 @@ if __name__ == "__main__":
     fusedop_id = {}
     for line in log_lines:
         if re.search("^TRACE: executing", line):
-            m = re.search("fused op (\w+) \(ID (\d+)\)", line)
+            m = re.search("fused op ([0-9a-zA-Z/_]+) \(ID (\d+)\)", line)
             if m:
                 fusedop_id[m.group(1)] = m.group(2)
-                #print(m.group(1), m.group(2))
+                print(m.group(1), m.group(2))
                 
     # read dot file
     try:
@@ -66,13 +78,14 @@ if __name__ == "__main__":
                 fillcolor = "lightgreen" if last_status == "PASS" else "tomato"
                 line = re.sub("\"\]", "\" style=filled fillcolor=%s]"%fillcolor, line)
         else:
-            m = re.search("^([0-9a-zA-Z_/]+)", line)
+            m = re.search("^\s*\"([0-9a-zA-Z_/]+)\".*(label=\"[0-9a-zA-Z_/]+)", line)
             if m:
                 first_word = m.group(1)
+                second_word = m.group(2)
                 if first_word in passfail:
-                    line = re.sub(first_word, first_word + " " + passfail[first_word], line)
+                    line = re.sub(second_word, second_word + " " + passfail[first_word], line)
                     if first_word in fusedop_id:
-                        line = re.sub(first_word, first_word + " ID" + fusedop_id[first_word], line)
+                        line = re.sub(second_word, second_word + " FOP_ID" + fusedop_id[first_word], line)
                     seeking_end_of_node = True
                     last_status = passfail[first_word]
         new_lines.append(line)                    

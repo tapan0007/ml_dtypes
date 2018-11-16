@@ -1099,8 +1099,15 @@ def gen_7_rn50_nne_fp16_wave_no_repl_save(layer_name):
     ) %(rnPreFp16, rnDogJpg),
     "--input_files %s --check_against_ref all_available" % rnDogJpg ]
 
+# Tests for per activation layer debug on emulator
 #for i in range(49):
 #    testConfigMap["7-rn50_nne_fp16_wave-no_repl-save-act%s"%i] = gen_7_rn50_nne_fp16_wave_no_repl_save("activation_%s"%i)
+
+# Tests for rcell0 debug (kaena-972)
+#for i in [1,2,3,4,5]:
+#    testConfigMap["7-amoebanet_fp16_rcell0_save_last%s"%i] = [ "tf_s3",
+#            "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb",
+#            "--input_node=transpose --focus_to reduction_cell_0/cell_output/concat --partition from_multi reduction_cell_0/Relu,reduction_cell_0/Relu_1 --executors host all wave 1 %s --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % ("--scheduler wave2 --schedule_options \' --save_layer_output -%s \' "%i, rnDogJpg), "--input_files %s" % (rnDogJpg)]
 
 # Regression waiver mechanism
 # If the testname matches the regexp then the FAIL status is replaced with
