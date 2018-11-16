@@ -120,6 +120,7 @@ TEST_ARGS_CHECK = --timeout 900 --test \
 4-ptb_word_small1_host \
 4-ptb_word_small_sigmoid_fp16_b32_wave_qemu \
 5-parwavenet_10_fp16_in_to_add1_wave \
+5-rn50_nne_to_act4_wave-repl \
 5-rn50_nne_to_act4_wave-no_repl-t1_focus_to-qemu-all_layers 
 
 # Tests that will be run on emulator. These tests are run to check if RTL is fine.
@@ -153,11 +154,11 @@ TEST_ARGS_CHECK_EMU_TESTS = \
 7-rn50_nne_fp16_b4_wave-no_repl \
 7-rn50_nne_fp16_wave \
 7-rn50_nne_fp16_wave-no_repl \
-6-parwavenet_10_fp16_tanh_to_add12_wave \
-6-parwavenet_10_fp16_tanh_to_add15_wave \
-6-parwavenet_10_fp16_tanh_to_add18_wave \
-6-parwavenet_10_fp16_tanh_to_add22_wave \
-7-parwavenet_10_fp16_tanh_to_add24_wave \
+6-parwavenet_10_fp16_in_to_add12_wave \
+6-parwavenet_10_fp16_in_to_add15_wave \
+6-parwavenet_10_fp16_in_to_add18_wave \
+6-parwavenet_10_fp16_in_to_add22_wave \
+7-parwavenet_10_fp16_in_to_add24_wave \
 7-amoebanet_fp16_cell0 \
 7-amoebanet_fp16_cell1 \
 7-amoebanet_fp16_cell2 \
@@ -166,6 +167,9 @@ TEST_ARGS_CHECK_EMU_TESTS = \
 7-amoebanet_fp16_cell5 \
 7-amoebanet_fp16_cell6 \
 7-amoebanet_fp16_cell7 \
+7-amoebanet_fp16_cell8 \
+7-amoebanet_fp16_cell9 \
+7-amoebanet_fp16_cell10 \
 7-amoebanet_fp16_cell11 \
 7-amoebanet_fp16_rcell0 \
 7-amoebanet_fp16_rcell1 
@@ -181,11 +185,21 @@ TEST_ARGS_CHECK_EMU_TESTS_EXTRA = \
 6-rn50_nne_to_act43_wave-repl \
 6-rn50_nne_to_act49_wave-no_repl \
 6-rn50_nne_to_act49_wave-repl \
+5-parwavenet_10_fp16_in_to_add1_wave \
+5-parwavenet_10_fp16_in_to_add2_wave \
+5-parwavenet_10_fp16_in_to_add3_wave \
+5-parwavenet_10_fp16_in_to_add6_wave \
+6-parwavenet_10_fp16_in_to_add9_wave \
 5-parwavenet_10_fp16_tanh_to_add1_wave \
 5-parwavenet_10_fp16_tanh_to_add2_wave \
 5-parwavenet_10_fp16_tanh_to_add3_wave \
 5-parwavenet_10_fp16_tanh_to_add6_wave \
-6-parwavenet_10_fp16_tanh_to_add9_wave 
+6-parwavenet_10_fp16_tanh_to_add9_wave \
+6-parwavenet_10_fp16_tanh_to_add12_wave \
+6-parwavenet_10_fp16_tanh_to_add15_wave \
+6-parwavenet_10_fp16_tanh_to_add18_wave \
+6-parwavenet_10_fp16_tanh_to_add22_wave \
+7-parwavenet_10_fp16_tanh_to_add24_wave 
 
 # 0-subtract_psum_sb_wave  
 
