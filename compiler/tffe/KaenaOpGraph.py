@@ -232,7 +232,7 @@ class Node(Object):
       numBytes += npInfo.nbytes()
     return numBytes
 
-  def convertShape(self, npInfo, tensorFormatMap):
+  def convertShape(self, npInfo, tensorFormatMap, isConst=False):
     if len(npInfo.npShape) == 3:
       tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
       tfFormat = npt.NWC
@@ -275,7 +275,7 @@ class Node(Object):
     tensorFormatMap.add(npInfo.tensorName,
                         TensorFormat(npInfo.tensorName, self.getOpName(),
                                      npInfo.npFile, tfFormat,
-                                     npFileSim, simFormat, False))
+                                     npFileSim, simFormat, isConst))
     return (tpbShape, simFormat, npFileSim)                        
        
 
@@ -1218,24 +1218,19 @@ class NodeSimple2(Node):
         #   tfShape4D0 = npt.cShapeToNHWC(npInfoIF0.npShape)
         #   (npFileSimF0, simFormatIF0)  = npt.copyNpyFileAs(npInfoIF0.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D0)
         # Side input has to be collapsed to a constant
-        tfShape4D1 = npt.cShapeToNHWC(npInfoIF1.npShape)
-        (npFileSimF1, simFormatIF1)  = npt.copyNpyFileAs(npInfoIF1.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D1)
-        tensorFormatMap.add(npInfoIF1.tensorName,
-                            TensorFormat(npInfoIF1.tensorName, self.getOpName(),
-                                         npInfoIF1.npFile, npt.C,
-                                         npFileSimF1, simFormatIF1, True))
-        tpbShape4D1 = list(npt.reorderShape(tfShape4D1, npt.TF, npt.SIM, npt.Fmaps))
+    
+        (tpbShape1, simFormat1, npFileSim1) = self.convertShape(npInfoIF1, tensorFormatMap, True)
 
         constLayerData = {
-         "layer_type" :  "Const",
-         "layer_name" :  fromIfNode1.getName(),
-          "ofmap_shape"     : tpbShape4D1,
-          "ofmap_format"    : simFormat,
-          "ref_file"        : npFileSimF1,
+          "layer_type" :  "Const",
+          "layer_name" :  fromIfNode1.getName(),
+          "ofmap_shape"     : tpbShape1,
+          "ofmap_format"    : simFormat1,
+          "ref_file"        : npFileSim1,
           "previous_layers" : [],
-         "#comment"   :  "Captured constant"
+          "#comment"   :  "Captured constant"
         }
-        fileListBase.insert(0, npFileSimF1)
+        fileListBase.insert(0, npFileSim1)
         layerDataBase.insert(0, constLayerData)  # prepend - because the backend Json parser requires layers defined
 
     return(layerDataBase, fileListBase)
@@ -1929,6 +1924,43 @@ class NodePad(Node):
 
   def isSupported(self):
     return True
+
+###############################################################################
+# A node for ReduceOp operation (supports only reduce_sum for now)
+###############################################################################
+class NodeReduceOp(Node):
+  def __init__(self, name, opType, attrs):
+    assert(opType == 'Sum')
+    super().__init__(name, opType, attrs)
+
+  # Returns layer json model in dictionary format, and list of files (npy data)
+  def genCompilerLayerJson(self, tensorFormatMap):
+    fileList = []
+    npInfo = self.getNpInfo()[0]
+    (tpbShape, simFormat, npFileSim) = self.convertShape(npInfo, tensorFormatMap)
+    ((fromIfNode, npInfoIF), (fromIdxNode, npInfoIdx)) = self.getInputNodesAndNpInfo()
+
+    axesTF = [0, 0, 0, 0] 
+    for v in npInfoIdx.getValues():
+      axesTF[3 if v == -1 else v] = 1
+    axesNCHW = list(npt.reorderShape(axesTF, npt.TF, npt.SIM, npt.Fmaps))      
+    
+    layerData = {
+      "reduce_axes"     : axesNCHW,
+      "ofmap_shape"     : tpbShape,
+      "ofmap_format"    : simFormat,
+      "ref_file"        : npFileSim,
+      "previous_layers" : [fromIfNode.getOpName()],
+      "#comment"        : "Reduce tensor along with given axes"
+    }
+    fileList.append(npFileSim)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
+    layerDataBase[0].update(layerData)
+    fileListBase += fileList
+    return(layerDataBase, fileListBase)
+
+  def isSupported(self):
+    return True          
 
 ###############################################################################
 # Computational data flow graph

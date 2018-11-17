@@ -216,7 +216,7 @@ class TfFe:
           node = kog.NodeReshape(tfNode.name, tfop.op, add_attrs)
         elif  (re.search("relu|lrelu|tanh|Softplus|Sigmoid|Softmax", tfop.op, re.I) != None):
           node = kog.NodeSimple(tfNode.name, tfop.op, add_attrs)
-        elif (re.search("Squeeze|Exp", tfop.op, re.I) != None):
+        elif (re.search("Squeeze|Exp|Rsqrt", tfop.op, re.I) != None):
           node = kog.NodeSimple(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeSimple")
         elif (re.search("MaxPool|AvgPool", tfop.op, re.I) != None):
@@ -250,6 +250,8 @@ class TfFe:
           node = kog.NodeTranspose(tfNode.name, tfop.op, add_attrs)
         elif (re.search("SpaceToBatch|BatchToSpace", tfop.op, re.I) != None):
           node = kog.NodeSpaceBatch(tfNode.name, tfop.op, add_attrs)
+        elif (re.search("Sum", tfop.op, re.I) != None):
+          node = kog.NodeReduceOp(tfNode.name, tfop.op, add_attrs)
         else:
           node = kog.Node(tfNode.name, tfop.op, add_attrs)
         node.setProtoShape(tfop.shape)
