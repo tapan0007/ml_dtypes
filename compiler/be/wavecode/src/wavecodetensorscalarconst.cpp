@@ -71,8 +71,8 @@ WaveCodeTensorScalarConst::generate(wave::WaveOp* waveOp)
 
     tensorscalarInstr.op[0] = static_cast<TONGA_ISA_TPB_ALU_OP>(tensorscalarconstWaveop->gAluOp(0));
     tensorscalarInstr.op[1] = static_cast<TONGA_ISA_TPB_ALU_OP>(tensorscalarconstWaveop->gAluOp(1));
-    tensorscalarInstr.imm_val[0] = static_cast<TONGA_ISA_TPB_ALU_OP>(tensorscalarconstWaveop->gImmVal(0));
-    tensorscalarInstr.imm_val[1] = static_cast<TONGA_ISA_TPB_ALU_OP>(tensorscalarconstWaveop->gImmVal(1));
+    tensorscalarInstr.imm_val[0] = tensorscalarconstWaveop->gImmVal(0);
+    tensorscalarInstr.imm_val[1] = tensorscalarconstWaveop->gImmVal(1);
 
 
 
