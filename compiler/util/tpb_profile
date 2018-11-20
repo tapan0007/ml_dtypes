@@ -15,12 +15,6 @@ set d = 7-rn50_nne_fp16_wave-zero/ ; cd $d ; $ku/tpb_profile --log working_dir/l
 
 import argparse
 import os, json, sys, re
-
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt    
-from matplotlib.widgets import Button
-
 import datetime
 
 def getInfoDateStr():
@@ -31,7 +25,7 @@ argStr = " ".join(sys.argv)
 parser = argparse.ArgumentParser()
 parser.add_argument('--log', help='Inkling debug log file (seenv SIM_DEBUG all; RunAll ...) or notification log in json format', default=None)
 parser.add_argument('--tpb', help='Tpb binary program files named ...-pe.tpb, ..-act.tpb', nargs='+', default=[])
-parser.add_argument('--verbose', help='Verbose node content', action='store_true', default=False)
+parser.add_argument('--verbose', help='Verbose content such as arrows for events', action='store_true', default=False)
 parser.add_argument('--show', help='Invoke interactive viewer', action='store_true', default=False)
 parser.add_argument('--cycle_range', help='Display only activity within the cycle range, default 0 2e6', type=float, nargs=2, default=[0,2e6])
 parser.add_argument('--geometry', help='Output size width height', type=int, nargs=2, default=[])
@@ -42,6 +36,14 @@ parser.add_argument('--output_files', help='List of files to plot to, default is
 parser.add_argument('--title', help='Text to include in the plot', default="")
 
 args = parser.parse_args()
+
+pltLib = 'tkagg' if args.show else 'Agg'
+
+import matplotlib
+matplotlib.use(pltLib)  
+import matplotlib.pyplot as plt    
+from matplotlib.widgets import Button
+
 
 if len(args.geometry) == 0:
   if args.long > 0:
