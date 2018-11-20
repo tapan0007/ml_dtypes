@@ -1212,6 +1212,7 @@ testWaiver = [
     # Transformer
     # Comment calling kp.reportOpAndSizes() to see ME failure
     ['0-transformer-matmul', 'WAIVE_KAENA964'],
+    ['0-transformer-mul', 'WAIVE_KAENA961'],
     ['5-transformer-encoder', 'WAIVE_KAENA974']
    
 
