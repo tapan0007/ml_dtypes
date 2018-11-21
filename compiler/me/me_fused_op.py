@@ -573,7 +573,8 @@ class FusedOp(list):
                 print("%d: (current) start %d size %d (%s)"%(i, mapped_cur.start_addr, mapped_cur.region_sz, live_mapped_file_params[i].file_name))
             if i+1 < num_live_tensors:
                 mapped_nxt = live_mapped_file_params[i+1].mapped_params
-                #print("%d: (next) start %d size %d (%s)"%(i, mapped_nxt.start_addr, mapped_nxt.region_sz, live_mapped_file_params[i+1].file_name))
+                if (self.args.debug > 3):
+                    print("%d: (next) start %d size %d (%s)"%(i, mapped_nxt.start_addr, mapped_nxt.region_sz, live_mapped_file_params[i+1].file_name))
             else:
                 mapped_nxt = None
             if len(list_of_seg) == 0:
@@ -820,13 +821,15 @@ class FusedOp(list):
                     largest_free_section = self.get_list_of_free_sections(
                                                     file_mapper               = tpb.statebuffer.file_mapper
                                                     , min_region_start        = bias_region_sz
-                                                    , live_mapped_file_params = live_mapped_file_params)[-1][1]
-                    if weights_file_sz > largest_free_section:
-                        chunk_sz_x_chan_folds = weights_file_params.chunk_sz_padded * weights_file_params.fmap_channels_folds
-                        multiplier = largest_free_section // chunk_sz_x_chan_folds
-                        weights_file_sz = multiplier * chunk_sz_x_chan_folds
+                                                    , live_mapped_file_params = live_mapped_file_params)[-1]
+                    if weights_file_sz > largest_free_section[1]:
+                        multiplier = largest_free_section[1] // weights_file_params.chunk_sz_padded
+                        if multiplier == 0:
+                            raise RuntimeError("Can't fit file of size %d into the largest free section size %d at address %d"%(weights_file_sz, largest_free_section[1], largest_free_section[0]))
+                        weights_file_sz = multiplier * weights_file_params.chunk_sz_padded
+                        weights_file_start_addr = largest_free_section[0]
                         wrap_around = True
-                    t = weights_file_start_addr
+                        #print("largest_free_section ", largest_free_section, " chunk_sz_x_chan_folds ",  chunk_sz_x_chan_folds,  " chunk_sz_padded ", weights_file_params.chunk_sz_padded, " fmap_channels_folds ", weights_file_params.fmap_channels_folds)
                     weights_file_start_addr = self.move_addr_to_first_free_section(
                                                     file_mapper               = tpb.statebuffer.file_mapper
                                                     , st_addr                 = weights_file_start_addr 

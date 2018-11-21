@@ -756,11 +756,8 @@ class FileParams():
         if self.file_dims.has_M:
             m_data_len = self.file_dims.M * self.item_sz
             sm_data_len = self.file_dims.S * m_data_len
-            folding_multiple = (self.file_dims.C // PEArray.NUM_ROWS) * (self.file_dims.M // PEArray.NUM_COLS)
             atom_sz_for_computation = self.chunk_sz_limit
             # TODO: simplify to just limiting to 64 output channels
-            if (folding_multiple > 16):
-                atom_sz_for_computation = self.chunk_sz_limit//4
             if (self.fmap_data_len <= atom_sz_for_computation):
                 self.chunk_sz = self.fmap_data_len
             # Map to M or SM to fit into circular-buffer regions exactly
@@ -1033,6 +1030,7 @@ class FileMapper():
             raise RuntimeError("End address %d falls outside partition size %d. Something wrong during file mapping. Please check map_files function."%(end_addr, self.sb_partition_sz))
         # Save mapped information            
         #print("taemk::FileParams to be consumed = %s"%file_params.file_name)
+        #print("INFO: file %s mapped to start_addr %d region_sz %d (orig region_sz %d) num_region_chunks %d wrap_around %d modify_in_place %d"%(file_params.file_name, start_addr, adj_region_sz, region_sz, num_region_chunks, wrap_around, modify_in_place))
         file_params.mapped_params = MappedParams(file_params.file_dims.N, start_addr, adj_region_sz, num_region_chunks, file_params.batch_item_num_chunks, end_addr, modify_in_place, file_params.consumers)
         # Save file params in a list
         self.file_params_list[file_params.file_id] = file_params
