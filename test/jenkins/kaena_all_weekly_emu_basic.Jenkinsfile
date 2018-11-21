@@ -164,7 +164,7 @@ pipeline{
                     steps {
                         catchError {
                             sh '''
-                            (cd $TEST_DIR/test_emu_compiler && export QEMU_KRT_NUM_INFERENCES=$NUM_INFERENCES && export KAENA_ZEBU_SERVER=$ZEBU_SERVER && make -f $KAENA_PATH/test/e2e/Makefile check_emu_weekend 'TEST_EMU_OPTS=--force_qemu --parallel 1 --cached_kelf /workdir/test/test_qemu_compiler')
+                            (cd $TEST_DIR/test_emu_compiler && export QEMU_KRT_NUM_INFERENCES=$NUM_INFERENCES && export KAENA_ZEBU_SERVER=$ZEBU_SERVER && make -f $KAENA_PATH/test/e2e/Makefile check_emu_weekend 'TEST_EMU_OPTS=--force_qemu --parallel 1 --timeout 3600 --cached_kelf /workdir/test/test_qemu_compiler')
                             '''
                         }
                     }
