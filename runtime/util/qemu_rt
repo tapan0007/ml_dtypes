@@ -590,6 +590,20 @@ class PythonTest:
     pyResultFile = "%s/%s" % (workingDir, self.pytestResultXml)
     tree = ET.parse(self.pytestResultXml)
     root = tree.getroot()
+    # in nc tests today lots of tests are marked as skipped
+    # for ex, semaphore tests are skipped in qemu but run on emu
+    # since those skipped numbers show up on total tests it confuses
+    # so for the time being removing them from total count. Ideally
+    # this should be done before report generation and since right
+    # now I don't know of an easy way to do in pytest adding this
+    # hack. Will remove this once I figure out the way
+    if root.attrib['skips'] != '0':
+        skip = int(root.attrib['skips'])
+        test = int(root.attrib['tests'])
+        root.attrib['tests'] = str(test-skip)
+        root.attrib['skips'] = '0'
+        tree = ET.ElementTree(root)
+        tree.write(self.pytestResultXml)
     if root.attrib['errors'] != '0' or root.attrib['failures'] != '0':
         return 0
     return 1
