@@ -558,7 +558,7 @@ class TestCircbufPtrsMethods(unittest.TestCase):
 """ Class to manage N-dimensional shapes
 """
 class ShapeDims():
-    supported_dims = set(["N", "H", "W", "C", "M", "R", "S"])
+    supported_dims = set(["N", "H", "W", "C", "c", "M", "R", "S"])
 
     def __init__(self, format_str, shape_tuple):
         var_list = vars(self)            
@@ -568,6 +568,7 @@ class ShapeDims():
         self.shape_tuple = tuple(shape_tuple)
         self.tot_elems = 1
         self.has_M = False
+        self.has_c = False
         if (len(format_str) != len(shape_tuple)):
             raise RuntimeError("ERROR ShapeDims: format_str %s doesn't have the same length as shape_tuple %s"%(format_str, str(shape_tuple)))
         for d in self.supported_dims:
@@ -587,6 +588,12 @@ class ShapeDims():
             self.tot_elems *= shape_tuple[i]
             if format_str[i] == 'M': 
                 self.has_M = True
+            if format_str[i] == 'c': 
+                self.has_c = True
+            if format_str[i] == 'C': 
+                self.orig_C = shape_tuple[i]
+        if self.has_c:
+            self.orig_C = self.c * PEArray.NUM_ROWS 
 
     def check_format_str(self, format_str):
         if (format_str != self.format_str):
@@ -637,6 +644,7 @@ class FileParams():
         self.fmap_data_len_padded = -1
         self.fmap_num_chunks = -1
         self.fmap_channels_folds = 1
+        self.fmap_channels_folds_in_chunk = 1
         self.fmap_last_chunk_sz = -1
         self.batch_item_partition_usage_sz = -1
         self.batch_item_partition_usage_sz_padded = -1
@@ -648,7 +656,7 @@ class FileParams():
         self.writers_of_shared_fmap = []
         self.readers_of_shared_fmap = []
         self.consumers = []
-        self.compute_params(op_params, args)
+        self.compute_params(op_params.stride, args)
         self.chunk_alignment_info = []
         self.unstack_from_file  = None
         self.unstack_from_file_shape = []
@@ -656,28 +664,30 @@ class FileParams():
 
     def load_file(self):
         if (self.file_name != None):
-            if not self.file_loaded:
-                # initialize file if it doesn't exist
-                if not os.path.isfile(self.file_name):
-                    self.dram_data = np.zeros(self.file_dims.shape_tuple, dtype=self.data_type)
-                    try:
-                        np.save(self.file_name, self.dram_data)
-                    except:
-                        raise RuntimeError("Cannot save numpy file %s"%(self.file_name))
-                else:
-                    try:
-                        self.dram_data = np.load(self.file_name)
-                    except:
-                        raise RuntimeError("Cannot load numpy file %s"%(self.file_name))
-                self.file_loaded = True                    
-                assert(self.dram_data.flags.c_contiguous == True)
-                assert(self.dram_data.itemsize == self.item_sz)
-                assert(self.dram_data.size == self.file_dims.tot_elems)
-                self.file_sz = self.dram_data.size * self.dram_data.itemsize
-                self.file_addr_skip_per_batch_item  = self.file_sz // self.file_dims.N
-                #print("dram_data.size %d file_dims.tot_elems %d"%(self.dram_data.size, self.file_dims.tot_elems))
+            # initialize file if it doesn't exist
+            if not os.path.isfile(self.file_name):
+                self.dram_data = np.zeros(self.file_dims.shape_tuple, dtype=self.data_type)
+                try:
+                    np.save(self.file_name, self.dram_data)
+                except:
+                    raise RuntimeError("Cannot save numpy file %s"%(self.file_name))
             else:
-                print("INFO: file %s is already loaded"%(self.file_name))
+                try:
+                    self.dram_data = np.load(self.file_name)
+                except:
+                    raise RuntimeError("Cannot load numpy file %s"%(self.file_name))
+            self.file_loaded = True                    
+            assert(self.dram_data.flags.c_contiguous == True)
+            assert(self.dram_data.itemsize == self.item_sz)
+            if self.dram_data.size != self.file_dims.tot_elems:
+                self.file_dims = ShapeDims(self.file_dims.format_str, self.dram_data.shape)
+                self.compute_params(self.stride, self.args)
+            self.file_sz = self.dram_data.size * self.dram_data.itemsize
+            if self.file_dims.has_c:
+                self.file_addr_skip_per_batch_item  = self.file_sz // PEArray.NUM_ROWS // self.file_dims.N
+            else:                    
+                self.file_addr_skip_per_batch_item  = self.file_sz // self.file_dims.N
+            #print("dram_data.size %d file_dims.tot_elems %d"%(self.dram_data.size, self.file_dims.tot_elems))
         else:
             raise RuntimeError("File name is empty")
         return self.dram_data            
@@ -695,7 +705,10 @@ class FileParams():
             assert(self.dram_data.itemsize == self.item_sz)
             assert(self.dram_data.size == self.file_dims.tot_elems)
             self.file_sz = self.dram_data.size * self.dram_data.itemsize
-            self.file_addr_skip_per_batch_item  = self.file_sz // self.file_dims.N
+            if self.file_dims.has_c:
+                self.file_addr_skip_per_batch_item  = self.file_sz // PEArray.NUM_ROWS // self.file_dims.N
+            else:                    
+                self.file_addr_skip_per_batch_item  = self.file_sz // self.file_dims.N
             #print("dram_data.size %d file_dims.tot_elems %d"%(self.dram_data.size, self.file_dims.tot_elems))
         else:
             raise RuntimeError("File name is empty")
@@ -733,6 +746,15 @@ class FileParams():
         coord[self.file_dims.M_axis] = M
         return int(np.ravel_multi_index(coord, dims=self.file_dims.shape_tuple) * self.item_sz)
 
+    def ravel_cnchw(self, C, N, c, H, W):
+        coord = [0, 0, 0, 0, 0]
+        coord[self.file_dims.C_axis] = C
+        coord[self.file_dims.N_axis] = N
+        coord[self.file_dims.c_axis] = c
+        coord[self.file_dims.H_axis] = H
+        coord[self.file_dims.W_axis] = W
+        return int(np.ravel_multi_index(coord, dims=self.file_dims.shape_tuple) * self.item_sz)
+
     # obtain element data within numpy array
     def elem_nchw(self, N, C, H, W):
         coord = [0, 0, 0, 0]
@@ -742,81 +764,87 @@ class FileParams():
         coord[self.file_dims.W_axis] = W
         return self.dram_data[tuple(coord)]
 
-    def compute_params(self, op_params, args, repl_multiple_of_C = 1, stride = 1):
+    def compute_params(self, stride, args, repl_multiple_of_C = 1):
         # Single FMAP elem count (unified formula for weights and FMAP)
         fmap_elem_count = self.file_dims.R * self.file_dims.S * self.file_dims.M * self.file_dims.H * self.file_dims.W
         self.fmap_data_len = fmap_elem_count * self.item_sz
-        self.stride = op_params.stride
+        self.stride = stride
         self.weights_S_dim = self.file_dims.S
         # per kaena-85, use noodle shapes for tiles
         # need to guard against small EF and build noodle tile to enable higher state buffer efficiency
         self.fmap_full_tilex_sz = min(self.file_dims.W, PEArray.MAX_WAVE_SIZE)
         self.fmap_full_tiley_sz = min(self.file_dims.H, PEArray.MAX_WAVE_SIZE // self.fmap_full_tilex_sz)
         # Chunk (aka atom) size computation for weights
+        self.chunk_sz = self.chunk_sz_limit
+        self.fmap_channels_folds  = ceildiv(self.file_dims.orig_C, PEArray.NUM_ROWS)  # num of folds (same as lowercase "c" computed elsewhere):
+        self.fmap_channels_folds_in_chunk = 1
+        if self.file_dims.has_c:
+            self.fmap_channels_folds_in_chunk = min(self.fmap_channels_folds, self.chunk_sz_limit // self.fmap_data_len)
+        # TODO: if number of channels is not multiple of 128, need to disable multi-fold chunk
+        # to prevent accessing beyond end of file.
         if self.file_dims.has_M:
             m_data_len = self.file_dims.M * self.item_sz
             sm_data_len = self.file_dims.S * m_data_len
-            atom_sz_for_computation = self.chunk_sz_limit
-            # TODO: simplify to just limiting to 64 output channels
-            if (self.fmap_data_len <= atom_sz_for_computation):
-                self.chunk_sz = self.fmap_data_len
+            if (self.fmap_data_len <= self.chunk_sz_limit):
+                self.chunk_sz = self.fmap_data_len * self.fmap_channels_folds_in_chunk
             # Map to M or SM to fit into circular-buffer regions exactly
-            elif (sm_data_len <= atom_sz_for_computation):
-                #multiple = atom_sz_for_computation // sm_data_len
-                self.chunk_sz = sm_data_len # * min(self.file_dims.R, multiple)
-            elif (m_data_len <= atom_sz_for_computation):
-                #multiple = atom_sz_for_computation // m_data_len
-                self.chunk_sz = m_data_len  #* min(self.file_dims.S, multiple)
-            else:
-                self.chunk_sz = atom_sz_for_computation
+            elif (sm_data_len <= self.chunk_sz_limit):
+                self.chunk_sz = sm_data_len
+            elif (m_data_len <= self.chunk_sz_limit):
+                self.chunk_sz = m_data_len
         else:                
             ifmap_width_data_len = self.file_dims.W * self.item_sz
             # make atom size multiple of IFMAP if IFMAP is smaller than default atom size (CNHW)
             # For NCHW, just use ifmap size as atom size (see rule above: "different FMAPs folds will be in different atoms")
             if (self.fmap_data_len <= self.chunk_sz_limit):
-                self.chunk_sz = self.fmap_data_len
+                self.chunk_sz = self.fmap_data_len * self.fmap_channels_folds_in_chunk
             # make atom size multiple of width data length if it is smaller than default atom size
             # For FP32, use initial atom of 2KB to guarantee gapless spaces for 28x28 (without using skip-atoms), when folding is involved
             elif (ifmap_width_data_len <= self.chunk_sz_limit):
-                input_fmap_full_tiley_sz = self.fmap_full_tiley_sz * op_params.stride.y
+                input_fmap_full_tiley_sz = self.fmap_full_tiley_sz * self.stride.y
                 if (args is not None and args.abstract_mem):
                     self.chunk_sz = ifmap_width_data_len * input_fmap_full_tiley_sz
                 else:
                     multiple = self.chunk_sz_limit // ifmap_width_data_len
                     multiple = min(self.file_dims.H, multiple)
                     if repl_multiple_of_C > 1:
-                        multiple = (multiple // stride) * stride
+                        multiple = (multiple // self.stride.x) * self.stride.x
                     # eliminate skip atoms by requiring atom size is multiple of tile size 
                     if (input_fmap_full_tiley_sz < multiple):
                         multiple = (multiple//input_fmap_full_tiley_sz) * input_fmap_full_tiley_sz
                     elif (self.fmap_full_tiley_sz < multiple):
                         multiple = (multiple//self.fmap_full_tiley_sz) * self.fmap_full_tiley_sz
                     self.chunk_sz = ifmap_width_data_len * min(self.file_dims.H, multiple)
-                    # warn if FMAP size is not multiple of chunk size (i.e. 55x55) where c>=1 addresses don't align to chunks
-                    #if (self.fmap_data_len % self.chunk_sz) != 0:
-                    #    print("WARNING: FMAP size %d is not a multiple of chunk size %d for shape %s, so c>=1 addresses don't align to chunks!"%(self.fmap_data_len, self.chunk_sz, str(self.file_dims.shape_tuple)))
-            else:
-                self.chunk_sz = self.chunk_sz_limit
-        self.fmap_channels_folds            = ceildiv(self.file_dims.C, PEArray.NUM_ROWS)  # num of folds (same as lowercase "c" computed elsewhere):
+
         self.batch_item_partition_usage_sz  = self.fmap_data_len * self.fmap_channels_folds
         self.tot_partition_usage_sz         = self.batch_item_partition_usage_sz * self.file_dims.N
-        self.fmap_num_chunks                = ceildiv(self.fmap_data_len, self.chunk_sz)
-        self.fmap_count                     = min(self.file_dims.C, PEArray.NUM_ROWS)
-        self.fmap_last_fold_channels        = self.file_dims.C % PEArray.NUM_ROWS
+        self.fmap_count                     = min(self.file_dims.orig_C, PEArray.NUM_ROWS)
+        self.fmap_last_fold_channels        = self.file_dims.orig_C % PEArray.NUM_ROWS
         if self.fmap_last_fold_channels == 0: 
             self.fmap_last_fold_channels = PEArray.NUM_ROWS
-        self.batch_item_num_chunks          = self.fmap_num_chunks * self.fmap_channels_folds
+        if self.file_dims.has_c:
+            self.batch_item_num_chunks          = ceildiv(self.batch_item_partition_usage_sz, self.chunk_sz)
+            self.fmap_last_chunk_sz             = self.batch_item_partition_usage_sz % self.chunk_sz
+            if self.fmap_last_chunk_sz == 0:
+                self.fmap_last_chunk_sz         = self.chunk_sz
+            self.file_addr_skip_per_fmap_fold   = self.fmap_data_len
+            self.partition_step_bytes           = self.fmap_data_len * self.file_dims.c
+        else:
+            self.fmap_num_chunks                = ceildiv(self.fmap_data_len, self.chunk_sz) 
+            self.batch_item_num_chunks          = ceildiv(self.fmap_data_len, self.chunk_sz) * self.fmap_channels_folds
+            self.fmap_last_chunk_sz             = self.fmap_data_len % self.chunk_sz
+            if self.fmap_last_chunk_sz == 0:
+                self.fmap_last_chunk_sz         = self.chunk_sz
+            self.file_addr_skip_per_fmap_fold   = self.fmap_data_len * min(self.file_dims.orig_C, PEArray.NUM_ROWS)
+            self.partition_step_bytes           = self.fmap_data_len
         self.tot_num_chunks                 = self.batch_item_num_chunks * self.file_dims.N
-        self.fmap_last_chunk_sz             = self.fmap_data_len % self.chunk_sz
-        if self.fmap_last_chunk_sz == 0:    
-            self.fmap_last_chunk_sz         = self.chunk_sz
-        self.file_addr_skip_per_fmap_fold   = self.fmap_data_len * min(self.file_dims.C, PEArray.NUM_ROWS)
         # Default unpadded sizes for internal FMAPs (see compute_padded_sizes for weights/input/output FMAPs)
         self.chunk_sz_padded                = self.chunk_sz                
         if (args is not None and args.nname == 'generic'):
           self.fmap_data_len_padded           = align_addr_NB(self.fmap_data_len,4)
         else:
           self.fmap_data_len_padded           = self.fmap_data_len
+        print("INFO: file %s shape %s chunk_sz %d chunk_sz_padded %d batch_item_num_chunks %d tot_num_chunks %d partition_step_bytes %d fmap_channels_folds %d fmap_channels_folds_in_chunk %d"%(self.file_name, str(self.file_dims.shape_tuple), self.chunk_sz, self.chunk_sz_padded, self.batch_item_num_chunks, self.tot_num_chunks, self.partition_step_bytes, self.fmap_channels_folds, self.fmap_channels_folds_in_chunk))
         self.compute_padded_sizes()
 
     def compute_padded_sizes(self):
@@ -1012,14 +1040,24 @@ class FileMapper():
             num_region_chunks = file_params.tot_num_chunks
             adj_region_sz     = file_params.tot_partition_usage_sz_padded
         else:
-            if adj_region_sz >= file_params.fmap_data_len_padded:
-                num_region_fmaps  = adj_region_sz // file_params.fmap_data_len_padded
-                num_region_chunks = num_region_fmaps * file_params.fmap_num_chunks
-                adj_region_sz     = num_region_fmaps * file_params.fmap_data_len_padded
-            else:                
-                # If wrapping around and FMAP too big, waste the last odd chunk and just make sure to have chunk_sz pieces
-                num_region_chunks = adj_region_sz // file_params.chunk_sz_padded
-                adj_region_sz     = num_region_chunks * file_params.chunk_sz_padded
+            if file_params.file_dims.has_c:
+                if adj_region_sz >= file_params.batch_item_partition_usage_sz_padded:
+                    num_region_fmaps  = adj_region_sz // file_params.batch_item_partition_usage_sz_padded
+                    num_region_chunks = num_region_fmaps * file_params.batch_item_num_chunks
+                    adj_region_sz     = num_region_fmaps * file_params.batch_item_partition_usage_sz_padded
+                else:                
+                    # If wrapping around and FMAP too big, waste the last odd chunk and just make sure to have chunk_sz pieces
+                    num_region_chunks = adj_region_sz // file_params.chunk_sz_padded
+                    adj_region_sz     = num_region_chunks * file_params.chunk_sz_padded
+            else:
+                if adj_region_sz >= file_params.fmap_data_len_padded:
+                    num_region_fmaps  = adj_region_sz // file_params.fmap_data_len_padded
+                    num_region_chunks = num_region_fmaps * file_params.fmap_num_chunks
+                    adj_region_sz     = num_region_fmaps * file_params.fmap_data_len_padded
+                else:                
+                    # If wrapping around and FMAP too big, waste the last odd chunk and just make sure to have chunk_sz pieces
+                    num_region_chunks = adj_region_sz // file_params.chunk_sz_padded
+                    adj_region_sz     = num_region_chunks * file_params.chunk_sz_padded
 
         # Check number of chunks is reasonable            
         if num_region_chunks == 0:                
@@ -1037,30 +1075,48 @@ class FileMapper():
         return end_addr + file_params.item_sz
 
     def get_chunk_id_from_file_addr(self, file_params, batch_item, addr):
-        assert(file_params.file_dims.format_str == "NCHW" or file_params.file_dims.format_str == "CRSM")
+        assert(    file_params.file_dims.format_str == "NCHW" 
+                or file_params.file_dims.format_str == "CNcHW"
+                or file_params.file_dims.format_str == "CRSM" 
+                or file_params.file_dims.format_str == "CcRSM" )
         assert(addr >= 0)
         assert(addr >= batch_item * file_params.file_addr_skip_per_batch_item)
         addr_adj         = addr - batch_item * file_params.file_addr_skip_per_batch_item
-        fold_idx         = addr_adj // file_params.file_addr_skip_per_fmap_fold 
-        fold_offset      = addr_adj % file_params.file_addr_skip_per_fmap_fold 
-        # only consider fold_offset in partition 0 (take care of cases where channel starts in mid partition) 
-        fold_offset_part0 = fold_offset % file_params.fmap_data_len
-        chunk_id_in_fold = fold_offset_part0 // file_params.chunk_sz
-        chunk_id         = fold_idx * file_params.fmap_num_chunks + chunk_id_in_fold
-        chunk_id        += batch_item * file_params.batch_item_num_chunks 
+        if file_params.file_dims.has_c:
+            assert(file_params.file_dims.format_str == "CNcHW" or file_params.file_dims.format_str == "CcRSM")
+            chunk_id         = addr_adj // file_params.chunk_sz
+            chunk_id        += batch_item * file_params.batch_item_num_chunks 
+        else:
+            assert(file_params.file_dims.format_str == "NCHW" or file_params.file_dims.format_str == "CRSM")
+            fold_idx         = addr_adj // file_params.file_addr_skip_per_fmap_fold 
+            fold_offset      = addr_adj % file_params.file_addr_skip_per_fmap_fold 
+            # only consider fold_offset in partition 0 (take care of cases where channel starts in mid partition) 
+            fold_offset_part0 = fold_offset % file_params.fmap_data_len
+            chunk_id_in_fold = fold_offset_part0 // file_params.chunk_sz
+            chunk_id         = fold_idx * file_params.fmap_num_chunks + chunk_id_in_fold
+            chunk_id        += batch_item * file_params.batch_item_num_chunks 
         return chunk_id
 
     def get_file_addr_from_chunk_id(self, file_params, batch_item, chunk_id):
-        assert(file_params.file_dims.format_str == "NCHW" or file_params.file_dims.format_str == "CRSM")
+        assert(    file_params.file_dims.format_str == "NCHW" 
+                or file_params.file_dims.format_str == "CNcHW"
+                or file_params.file_dims.format_str == "CRSM" 
+                or file_params.file_dims.format_str == "CcRSM" )
         assert(chunk_id >= 0)
         assert(chunk_id >= batch_item * file_params.batch_item_num_chunks)
         assert(chunk_id < file_params.tot_num_chunks)
         chunk_id_adj     = chunk_id - batch_item * file_params.batch_item_num_chunks
-        fold_idx         = chunk_id_adj // file_params.fmap_num_chunks
-        chunk_id_in_fold = chunk_id_adj % file_params.fmap_num_chunks
-        fold_offset      = chunk_id_in_fold * file_params.chunk_sz
-        addr_adj         = fold_idx * file_params.file_addr_skip_per_fmap_fold + fold_offset
-        addr             = addr_adj + batch_item * file_params.file_addr_skip_per_batch_item
+        if file_params.file_dims.has_c:
+            assert(file_params.file_dims.format_str == "CNcHW" or file_params.file_dims.format_str == "CcRSM")
+            addr_adj         = chunk_id_adj * file_params.chunk_sz
+            addr             = addr_adj + batch_item * file_params.file_addr_skip_per_batch_item
+        else:
+            assert(file_params.file_dims.format_str == "NCHW" or file_params.file_dims.format_str == "CRSM")
+            fold_idx         = chunk_id_adj // file_params.fmap_num_chunks
+            chunk_id_in_fold = chunk_id_adj % file_params.fmap_num_chunks
+            fold_offset      = chunk_id_in_fold * file_params.chunk_sz
+            addr_adj         = fold_idx * file_params.file_addr_skip_per_fmap_fold + fold_offset
+            addr             = addr_adj + batch_item * file_params.file_addr_skip_per_batch_item
         return addr 
 
     def get_fmap_count_from_chunk_id(self, file_params, batch_item, chunk_id):
@@ -1069,7 +1125,10 @@ class FileMapper():
         assert(chunk_id < file_params.tot_num_chunks)
         chunk_id_adj    = chunk_id - batch_item * file_params.batch_item_num_chunks
         fmap_count      = file_params.fmap_count
-        fold_idx        = chunk_id_adj // file_params.fmap_num_chunks
+        if file_params.file_dims.has_c:
+            fold_idx        = chunk_id_adj * file_params.fmap_channels_folds_in_chunk
+        else:
+            fold_idx        = chunk_id_adj // file_params.fmap_num_chunks
         if file_params.fmap_channels_folds > 1:
             if (fold_idx == file_params.fmap_channels_folds - 1):
                 fmap_count = file_params.fmap_last_fold_channels
@@ -1079,11 +1138,14 @@ class FileMapper():
         assert(addr >= 0)
         assert(addr >= batch_item * file_params.file_addr_skip_per_batch_item)
         addr_adj    = addr - batch_item * file_params.file_addr_skip_per_batch_item
-        fold_idx    = addr_adj // file_params.file_addr_skip_per_fmap_fold 
-        fold_offset = addr_adj % file_params.file_addr_skip_per_fmap_fold 
-        # only consider fold_offset in partition 0 (take care of cases where channel starts in mid partition) 
-        fold_offset_part0 = fold_offset % file_params.fmap_data_len
-        chunk_offset = fold_offset_part0 % file_params.chunk_sz
+        if file_params.file_dims.has_c:
+            chunk_offset = addr_adj % file_params.chunk_sz
+        else:
+            fold_idx    = addr_adj // file_params.file_addr_skip_per_fmap_fold 
+            fold_offset = addr_adj % file_params.file_addr_skip_per_fmap_fold 
+            # only consider fold_offset in partition 0 (take care of cases where channel starts in mid partition) 
+            fold_offset_part0 = fold_offset % file_params.fmap_data_len
+            chunk_offset = fold_offset_part0 % file_params.chunk_sz
         return chunk_offset
 
     def get_chunk_len_from_chunk_id (self, file_params, batch_item, chunk_id):
@@ -1091,11 +1153,18 @@ class FileMapper():
         assert(chunk_id >= batch_item * file_params.batch_item_num_chunks)
         assert(chunk_id < file_params.tot_num_chunks)
         chunk_id_adj = chunk_id - batch_item * file_params.batch_item_num_chunks
-        chunk_id_in_fold = chunk_id_adj % file_params.fmap_num_chunks
-        if chunk_id_in_fold == (file_params.fmap_num_chunks - 1):            
-            chunk_len = file_params.fmap_last_chunk_sz
+        if file_params.file_dims.has_c:
+            chunk_id_in_fold = chunk_id_adj
+            if chunk_id_in_fold == (file_params.batch_item_num_chunks - 1):            
+                chunk_len = file_params.fmap_last_chunk_sz
+            else:
+                chunk_len = file_params.chunk_sz
         else:
-            chunk_len = file_params.chunk_sz
+            chunk_id_in_fold = chunk_id_adj % file_params.fmap_num_chunks
+            if chunk_id_in_fold == (file_params.fmap_num_chunks - 1):            
+                chunk_len = file_params.fmap_last_chunk_sz
+            else:
+                chunk_len = file_params.chunk_sz
         return chunk_len
 
     def get_atom_id_from_file_addr (self, file_params, batch_item, addr):
@@ -1110,15 +1179,18 @@ class FileMapper():
         assert(chunk_id >= batch_item * file_params.batch_item_num_chunks)
         assert(chunk_id < file_params.tot_num_chunks)
         chunk_id_offset = chunk_id % file_params.mapped_params.num_region_chunks
-        if file_params.mapped_params.region_sz >= file_params.fmap_data_len_padded:
-            # if region_sz >= fmap_data_len, earlier computation guarantees that region_sz is multiple of fmap_data_len
-            fold_idx         = chunk_id_offset // file_params.fmap_num_chunks
-            chunk_id_in_fold = chunk_id_offset % file_params.fmap_num_chunks
-            # kaena- : pad chunk size and FMAP data length to align to 8B (hard requirement)
-            sb_addr          = fold_idx * file_params.fmap_data_len_padded + chunk_id_in_fold * file_params.chunk_sz_padded
-        else:            
+        if file_params.file_dims.has_c:
             sb_addr         = chunk_id_offset * file_params.chunk_sz_padded
-        sb_addr     += file_params.mapped_params.start_addr            
+        else:
+            if file_params.mapped_params.region_sz >= file_params.fmap_data_len_padded:
+                # if region_sz >= fmap_data_len, earlier computation guarantees that region_sz is multiple of fmap_data_len
+                fold_idx         = chunk_id_offset // file_params.fmap_num_chunks
+                chunk_id_in_fold = chunk_id_offset % file_params.fmap_num_chunks
+                # kaena- : pad chunk size and FMAP data length to align to 8B (hard requirement)
+                sb_addr          = fold_idx * file_params.fmap_data_len_padded + chunk_id_in_fold * file_params.chunk_sz_padded
+            else:            
+                sb_addr         = chunk_id_offset * file_params.chunk_sz_padded
+        sb_addr += file_params.mapped_params.start_addr            
         return sb_addr
 
     def get_sb_addr_from_file_addr(self, file_params, batch_item, addr):
@@ -1757,7 +1829,7 @@ class FileMapper():
               'length'           : length,
               'start_at_mid_part' : False,  # TODO: is this always false for loads?
               'num_partitions'    : fmap_count,  # if this is larger than C, replicate fmap_count/C times
-              'partition_step_bytes': file_params.fmap_data_len,
+              'partition_step_bytes': file_params.partition_step_bytes,
               'stride'              : stride,
               'ifmap_replication_resolution' : ifmap_replication_resolution, 
               'ifmap_replication_num_rows' : ifmap_replication_num_rows,
@@ -1810,7 +1882,7 @@ class FileMapper():
               'ofmaps_fold_idx'  : 0,   # TODO: is this still needed?
               'batch_fold_idx'   : 0,   # TODO: is this still needed?
               'num_partitions'   : fmap_count,
-              'partition_step_bytes': file_params.fmap_data_len,
+              'partition_step_bytes': file_params.partition_step_bytes,
               'last_save_of_file' : last_atom_of_file,
               'final_layer_ofmap' : file_params.final_layer_ofmap,
             }

@@ -133,7 +133,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0__0"
+        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 512,
@@ -169,7 +171,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s1__0"
+        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s1__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 514,
@@ -205,7 +209,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s2__0"
+        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s2__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 512,
@@ -241,7 +247,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s0__0"
+        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s0__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 512,
@@ -277,7 +285,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s1__0"
+        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s1__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 514,
@@ -313,7 +323,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s2__0"
+        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s2__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 582,
@@ -349,7 +361,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s0__0"
+        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s0__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 582,
@@ -385,7 +399,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s1__0"
+        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s1__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 584,
@@ -457,7 +473,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s2__0"
+        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s2__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 932,
@@ -493,7 +511,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s0__0"
+        "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s0__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 932,
@@ -529,7 +549,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s1__0"
+        "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s1__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 934,
@@ -565,7 +587,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s2__0"
+        "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s2__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1002,
@@ -601,7 +625,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s0__0"
+        "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s0__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1002,
@@ -637,7 +663,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s1__0"
+        "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s1__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1004,
@@ -673,7 +701,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s2__0"
+        "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s2__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1072,
@@ -709,7 +739,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s0__0"
+        "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s0__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1072,
@@ -745,7 +777,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s1__0"
+        "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s1__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1074,
@@ -818,7 +852,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s2__0"
+        "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s2__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1422,
@@ -854,7 +890,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s0__0"
+        "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s0__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1422,
@@ -890,7 +928,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s1__0"
+        "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s1__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1424,
@@ -926,7 +966,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s2__0"
+        "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s2__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1492,
@@ -962,7 +1004,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s0__0"
+        "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s0__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1492,
@@ -998,7 +1042,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s1__0"
+        "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s1__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1494,
@@ -1034,7 +1080,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s2__0"
+        "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s2__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1562,
@@ -1070,7 +1118,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s0__0"
+        "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s0__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1562,
@@ -1106,7 +1156,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s1__0"
+        "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s1__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1564,
@@ -1179,7 +1231,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s2__0"
+        "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s2__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1912,
@@ -1215,7 +1269,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s0__0"
+        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s0__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1912,
@@ -1251,7 +1307,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s1__0"
+        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s1__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1914,
@@ -1287,7 +1345,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s2__0"
+        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s2__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1982,
@@ -1323,7 +1383,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s0__0"
+        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s0__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1982,
@@ -1359,7 +1421,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s1__0"
+        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s1__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 1984,
@@ -1388,7 +1452,8 @@
       "offset_in_file": 1960,
       "partition_step_bytes": 2450,
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s2__0"
+        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s2__0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "ref_file": "trivnet_input:0_NCHW.npy",
       "ref_file_format": "NCHW",
@@ -1420,7 +1485,8 @@
       "out_dtype": "float32",
       "previous_waveops": [
         "trivnet_input__0_NCHW.npy_1",
-        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s2__0"
+        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s2__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 2052,
@@ -1456,7 +1522,10 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s0__0"
+        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s0__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0",
+        "trivnet_input__0_NCHW.npy_1"
       ],
       "src_is_psum": false,
       "src_sb_address": 2052,
@@ -1492,7 +1561,10 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s1__0"
+        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s1__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0",
+        "trivnet_input__0_NCHW.npy_1"
       ],
       "src_is_psum": false,
       "src_sb_address": 2054,
@@ -1565,8 +1637,11 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
+        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s2__0",
         "1conv/i1/Pool_n0_m0_h0_w0",
-        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s2__0"
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0",
+        "trivnet_input__0_NCHW.npy_1"
       ],
       "src_is_psum": false,
       "src_sb_address": 2402,
@@ -1602,7 +1677,10 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s0__0"
+        "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s0__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0",
+        "trivnet_input__0_NCHW.npy_1"
       ],
       "src_is_psum": false,
       "src_sb_address": 2402,
@@ -1638,7 +1716,10 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s1__0"
+        "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s1__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_0",
+        "trivnet_input__0_NCHW.npy_1"
       ],
       "src_is_psum": false,
       "src_sb_address": 2404,
@@ -1674,7 +1755,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s2__0"
+        "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s2__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_1"
       ],
       "src_is_psum": false,
       "src_sb_address": 2472,
@@ -1710,7 +1793,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s0__0"
+        "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s0__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_1"
       ],
       "src_is_psum": false,
       "src_sb_address": 2472,
@@ -1746,7 +1831,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s1__0"
+        "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s1__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_1"
       ],
       "src_is_psum": false,
       "src_sb_address": 2474,
@@ -1782,7 +1869,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s2__0"
+        "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s2__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_1"
       ],
       "src_is_psum": false,
       "src_sb_address": 2542,
@@ -1818,7 +1907,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s0__0"
+        "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s0__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_1"
       ],
       "src_is_psum": false,
       "src_sb_address": 2542,
@@ -1854,7 +1945,9 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s1__0"
+        "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s1__0",
+        "trivnet_1conv__weight1__read__0_CRSM.npy_0",
+        "trivnet_input__0_NCHW.npy_1"
       ],
       "src_is_psum": false,
       "src_sb_address": 2544,

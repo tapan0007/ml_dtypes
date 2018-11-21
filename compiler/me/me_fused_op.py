@@ -649,13 +649,13 @@ class FusedOp(list):
         #   - keep in contiguous region to help DMA perf: an optimizer (TBD) will need to coalesce the bias files
         #   - share bias mapping for all type of nets
         #   - make sure to keep bias region the same in the batch map (BatchSBDataMap)
-        if self.has_biasadd:
-            if bias_file_params.mapped_params is None:
-                map_file(bias_file_params, bias_file_start_addr, wrap_around=False, region_sz=bias_file_sz)
-                tpb.statebuffer.adv_next_bias_file_start(bias_file_sz)
-            else:                
-                # in case that file is already mapped, keep the mapped values
-                bias_file_start_addr = bias_file_params.mapped_params.start_addr
+        #if self.has_biasadd:
+        #    if bias_file_params.mapped_params is None:
+        #        map_file(bias_file_params, bias_file_start_addr, wrap_around=False, region_sz=bias_file_sz)
+        #        tpb.statebuffer.adv_next_bias_file_start(bias_file_sz)
+        #    else:                
+        #        # in case that file is already mapped, keep the mapped values
+        #        bias_file_start_addr = bias_file_params.mapped_params.start_addr
 
         if self.args.nname == "resnet50":
             # Input/residue uses upper portion of the shared space
@@ -1441,10 +1441,10 @@ class FusedOp(list):
                     (writers, readers, dram_bias_waveops, new_reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
                                                     tpb.waveop_stream.waveop_count,
                                                     tpb.waveop_stream,
-                                                    tpb.statebuffer.zero_bias_file_params,
+                                                    self[i].parent.zero_bias_file_params,
                                                     0,  # batch_item is not needed for bias
-                                                    tpb.statebuffer.zero_bias_file_params.mapped_params.start_addr,
-                                                    tpb.statebuffer.zero_bias_file_params.item_sz,
+                                                    0,
+                                                    self[i].item_sz,
                                                     EngineEnum.ACT,
                                                     )
                     list_of_accessors_wr += writers # writers for WAW dependencies
@@ -1458,7 +1458,7 @@ class FusedOp(list):
                     tpb.pearray.write_psum(psum_bank_dst, 0, psum_temp.shape[0], psum_temp)
                 waveop = self.gen_act_waveop_inline(tpb, None, op_list[i], self.first_op, ifmap_tile, ofmap_tile, 
                                           True, psum_bank_id, dst_is_psum, psum_bank_id, dram_bias_waveops, 
-                                          tpb.statebuffer.zero_bias_file_params.mapped_params.start_addr, new_reader_morsels)
+                                          self[i].parent.zero_bias_file_params.mapped_params.start_addr, new_reader_morsels)
                 prev_waveops = extract_predecessors(
                         list_of_accessors_wr = list_of_accessors_wr, 
                         list_of_accessors_rd = list_of_accessors_rd,
@@ -1469,31 +1469,36 @@ class FusedOp(list):
                 attach_predecessors(waveop, prev_waveops)
             elif (layer_type == 'BiasAdd'):
                 # load bias values
-                bias = []
-                bias_temp = self.biasadd_op.bias_file_params.dram_data
-                bias = bias_temp.flatten()
-                bias_chan_start = (ofmap_tile.m_id//2) * PEArray.NUM_ROWS
-                bias_chan_mid_part = (ofmap_tile.m_id%2) == 1
-                bias_chan_end = min(bias_chan_start + PEArray.NUM_ROWS, ofmap_tile.file_params.file_dims.C)
-                bias_extracted = np.zeros(PEArray.NUM_ROWS)
-                bias_extracted[0 : bias_chan_end - bias_chan_start] = bias[bias_chan_start : bias_chan_end]
-                bias_addr = bias_chan_start * op_list[i].item_sz
-                dram_bias_waveops = []
+                bias_data_temp          = self[i].parent.zero_bias_file_params.dram_data
+                bias_chan_start         = self[i].bias_file_c_fold_offset * PEArray.NUM_ROWS + ofmap_tile.m_id * PEArray.NUM_COLS
+                if self[i].parent.zero_bias_file_params.file_dims.has_c:
+                    bias_addr           = (bias_chan_start // PEArray.NUM_ROWS) * self[i].item_sz
+                else:                    
+                    bias_addr           = bias_chan_start * self[i].item_sz
+                bias_chan_mid_part      = (ofmap_tile.m_id%2) == 1
+                bias_chan_end           = min(bias_chan_start + PEArray.NUM_COLS, self[i].bias_file_c_fold_offset * PEArray.NUM_ROWS + ofmap_tile.file_params.file_dims.C)
+                bias_extracted          = np.zeros(bias_chan_end - bias_chan_start)
+                for chan in range(bias_chan_start, bias_chan_end):
+                    fold = chan // PEArray.NUM_ROWS
+                    part = chan % PEArray.NUM_ROWS
+                    bias_extracted[chan - bias_chan_start] = self[i].parent.zero_bias_file_params.dram_data[part, 0, fold, 0, 0]
+                    #print("c_fold_offset %d chan %d fold %d partition %d value %d"%(self[i].bias_file_c_fold_offset, chan, fold, part, bias_extracted[chan - bias_chan_start]))
+                dram_bias_waveops   = []
                 list_of_accessors_wr = []
                 list_of_accessors_rd = [[] for l in range(EngineEnum.COUNT)]
                 if 1: #(ofmap_tile.m_id%2 == 0):
                     (writers, readers, dram_bias_waveops, new_reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
                                                     tpb.waveop_stream.waveop_count,
                                                     tpb.waveop_stream,
-                                                    self.biasadd_op.bias_file_params,
+                                                    self[i].parent.zero_bias_file_params,
                                                     0,  # batch_item is not needed for bias
                                                     bias_addr,
-                                                    self.biasadd_op.item_sz,
+                                                    self[i].item_sz,
                                                     EngineEnum.ACT,
                                                     )
                     list_of_accessors_wr += writers # writers for WAW dependencies 
                 #x = DBG_DUMP_PSUM_COL("PSUM col0 before BiasAdd (FP32): ", psum_temp, 0)
-                psum_temp = tpb.activate.biasadd(psum_temp, bias_extracted[bias_chan_mid_part*PEArray.NUM_COLS : (bias_chan_mid_part+1)*PEArray.NUM_COLS])
+                psum_temp = tpb.activate.biasadd(psum_temp, bias_extracted)
                 #y = DBG_DUMP_PSUM_COL("PSUM col0 after BiasAdd: ", psum_temp, 0)
                 dst_is_psum = False
                 if (i+1 < len(op_list) and re.search(self.act_ops_regex, op_list[i+1].data['layer_type'])):
@@ -2208,12 +2213,16 @@ class FusedOp(list):
                 mul_scalar = first_op.data['mul_scalar']
                 tile_data_flatten = tpb.pool.tensor_scalar_op(layer_type, ifmaps_data_extract, mul_scalar)
         elif (layer_type == "BiasAdd"):
-            bias_chan_start = ofmap_tile.m_id * PEArray.NUM_COLS
-            bias_chan_end = min(bias_chan_start + PEArray.NUM_COLS, first_op.M)
-            bias_temp = self.biasadd_op.bias_file_params.dram_data
-            bias = bias_temp.flatten()
+            bias_chan_start = first_op.bias_file_c_fold_offset * PEArray.NUM_ROWS + ofmap_tile.m_id * PEArray.NUM_COLS
+            bias_chan_end = min(bias_chan_start + PEArray.NUM_COLS, first_op.bias_file_c_fold_offset * PEArray.NUM_ROWS + first_op.M)
+            bias_chan_mid_part = (ofmap_tile.m_id%2) == 1
             #x = DBG_DUMP_PSUM_COL("BiasAdd: ", ifmaps_data_extract, 0)
-            tile_data_flatten = tpb.activate.biasadd(ifmaps_data_extract, bias[bias_chan_start : bias_chan_end])
+            bias_extracted = np.zeros(bias_chan_end - bias_chan_start)
+            for chan in range(bias_chan_start, bias_chan_end):
+                fold = chan // PEArray.NUM_ROWS
+                part = chan % PEArray.NUM_ROWS
+                bias_extracted[chan - bias_chan_start] = first_op.parent.zero_bias_file_params.dram_data[part, 0, fold, 0, 0]
+            tile_data_flatten = tpb.activate.biasadd(ifmaps_data_extract, bias_extracted)
             #x = DBG_DUMP_PSUM_COL("BiasAdd: ", tile_data_flatten, 0)
         elif (layer_type == "ClipByValue"):
             min_val = self.first_op.data['clip_value_min']
@@ -2388,7 +2397,7 @@ class FusedOp(list):
                         waveop        = waveop)
                 #print(waveop)
         else:   
-            bias_start = 0
+            bias_addr = 0
             biasadd_op = None
             act_op = None
             ifmap_tile_subtile \
@@ -2412,10 +2421,10 @@ class FusedOp(list):
                 (writers, readers, dram_bias_waveops, reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
                                                 tpb.waveop_stream.waveop_count + len(dram_ifmaps_waveops),
                                                 tpb.waveop_stream,
-                                                tpb.statebuffer.zero_bias_file_params,
+                                                first_op.parent.zero_bias_file_params,
                                                 0,  # batch_item is not needed for bias
-                                                tpb.statebuffer.zero_bias_file_params.mapped_params.start_addr,
-                                                tpb.statebuffer.zero_bias_file_params.item_sz,
+                                                0,
+                                                first_op.item_sz,
                                                 EngineEnum.ACT,
                                                 )
                 dram_ifmaps_waveops += dram_bias_waveops
@@ -2432,13 +2441,17 @@ class FusedOp(list):
                         prev_waveops.append(i)
                 act_op = first_op
             elif (first_op.data['layer_type'] == "BiasAdd"): 
-                bias_start = ofmap_tile.m_id * PEArray.NUM_COLS * first_op.item_sz
+                bias_chan_start         = first_op.bias_file_c_fold_offset * PEArray.NUM_ROWS + ofmap_tile.m_id * PEArray.NUM_COLS
+                if first_op.parent.zero_bias_file_params.file_dims.has_c:
+                    bias_addr           = (bias_chan_start // PEArray.NUM_ROWS) * first_op.item_sz
+                else:                    
+                    bias_addr           = bias_chan_start * self[i].item_sz
                 (writers, readers, dram_bias_waveops, reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
                                                 tpb.waveop_stream.waveop_count + len(dram_ifmaps_waveops),
                                                 tpb.waveop_stream,
-                                                first_op.bias_file_params,
+                                                first_op.parent.zero_bias_file_params,
                                                 0,  # batch_item is not needed for bias
-                                                bias_start,
+                                                bias_addr,
                                                 first_op.item_sz,
                                                 reader_engine)
                 #print(first_op.data['layer_name'], writers)
@@ -2485,10 +2498,10 @@ class FusedOp(list):
                         (writers, readers, dram_bias_waveops, zeros_reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
                                                         tpb.waveop_stream.waveop_count + len(dram_ifmaps_waveops),
                                                         tpb.waveop_stream,
-                                                        tpb.statebuffer.zero_bias_file_params,
+                                                        first_op.parent.zero_bias_file_params,
                                                         0,  # batch_item is not needed for bias
-                                                        tpb.statebuffer.zero_bias_file_params.mapped_params.start_addr,
-                                                        tpb.statebuffer.zero_bias_file_params.item_sz,
+                                                        0,  # zeros are located in first fold of bias-constants file
+                                                        first_op.item_sz,
                                                         EngineEnum.ACT,
                                                         )
                         first_waveop = self.gen_act_waveop_inline(
@@ -2503,7 +2516,7 @@ class FusedOp(list):
                                 dst_is_psum       = psum_bank_residue >= 0,
                                 psum_bank_dst     = psum_bank_residue, 
                                 dram_bias_waveops = dram_resadd_waveops + dram_bias_waveops, 
-                                bias_start        = tpb.statebuffer.zero_bias_file_params.mapped_params.start_addr,
+                                bias_start        = 0,  # zeros are located in first fold of bias-constants file
                                 new_reader_morsels = residue_reader_morsels + zeros_reader_morsels)
                         prev_wr_waveops = extract_predecessors(
                                 list_of_accessors_wr = writers, 
@@ -2581,7 +2594,7 @@ class FusedOp(list):
                         dst_is_psum       = first_op.dst_is_psum, 
                         psum_bank_dst     = psum_bank_id if first_op.dst_is_psum else -1, 
                         dram_bias_waveops = dram_ifmaps_waveops, 
-                        bias_start        = bias_start,
+                        bias_start        = bias_addr,
                         new_reader_morsels = new_reader_morsels)
             attach_predecessors(last_waveop, prev_waveops)
             self.mark_producers_for_subtile_region(
@@ -3050,14 +3063,8 @@ class FusedOp(list):
                                 r_id += s_id//self.conv_op.S
                                 s_id = s_id%self.conv_op.S
                         # tile is done                                   
-                        #x = DBG_DUMP_PSUM_COL("PSUM after PEArray: ", psum_temp, 0)
                         # go through the remaining operations, using ofmap_tile as ifmap_tile (TODO: compute new shapes per operation)
                         psum_temp = self.execute_postconv_tile_ops(tpb, ofmap_tile, ofmap_tile, psum_bank_id)
-                        #x = DBG_DUMP_PSUM_COL("PSUM after PEArray: ", psum_temp, 0)
-                        # if operation is the last one, dump current result into a portion of final result
-                        output_params_op = self.conv_op
-                        if (self.has_pool):
-                            output_params_op = self.pool_op
                         if self.conv_op.is_conv_transpose:
                             ofmap_tile.set_tile_data_in_file(psum_temp)
                         else:

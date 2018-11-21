@@ -18,6 +18,7 @@ from me_utils import *
 from me_graph import *
 from me_models import *
 from me_batch import *
+from me_foldfile import *
 from graphviz import Digraph
 
 DEBUG_LEVEL_DEFAULT=2
@@ -68,11 +69,25 @@ class StateBuffer:
                                     contain_weights = True)
         bias_file_params.layer_name = op.data['layer_name']
         bias_file_params.load_file()
+        self.zero_bias_file_params = bias_file_params
+
+    def add_bias_to_constants_file(self, bias_file):
+        try:
+            data = np.load(bias_file)
+        except Exception as e:
+            print(e)
+            exit(1)
+        (new_folded, _) = fold_data(data, "NCHW", "temp_folded_bias_unused.npy", True)
+        c_fold_offset = add_folded_data_to_file(new_folded, self.zero_bias_file_params.file_name)
+        return c_fold_offset
+
+    def map_constants_file(self):
+        bias_file_params = self.zero_bias_file_params
+        bias_file_params.load_file()
         bias_file_start_addr = 0
         bias_file_sz = bias_file_params.tot_partition_usage_sz_padded
         self.file_mapper.map_file(bias_file_params, bias_file_start_addr, wrap_around=False, region_sz=bias_file_sz)
         self.next_bias_file_start = align_addr_8B(bias_file_sz)
-        self.zero_bias_file_params = bias_file_params
 
     """Advance next bias allocation pointer.
         Args: 
@@ -244,6 +259,7 @@ class TPBSched:
         last_pairup_batch_count = 1
         while (not kgraph.walk_ended()
                 and (args.stop_after_layer_num == 0 or fused_op_count <= args.stop_after_layer_num)):
+           
             op_list = kgraph.get_fused_ops(fused_op_count)
             if (args.stop_after_layer_num > 0 and fused_op_count == args.stop_after_layer_num):
                 op_list[-1].next = []
@@ -257,10 +273,10 @@ class TPBSched:
 
             # kaena-452: create a file of zeros for use with Activation instruction without BiasAdd
             # Format matches existing bias formats, but it should be more like CRSM to match weights
-            if tpb.statebuffer.zero_bias_file_params is None:
-                tpb.statebuffer.create_constants_file(first_op, args)
-            
-            # Dissolve Input of Placeholder types
+            if kgraph.zero_bias_file_params is None:
+                kgraph.create_constants_file(first_op)
+
+             # Dissolve Input of Placeholder types
             if first_op.is_placeholder:
                 assert(len(op_list) == 1)
                 first_op.result_avail = True
@@ -298,7 +314,7 @@ class TPBSched:
                             print("INFO: Pad and split input FMAPs due to replication")
                             # Populate OFMAP params                        
                             first_op.populate_ofmaps_file_params()
-                            first_op.ofmaps_file_params.compute_params(first_op, args, repl_multiple_of_C = i.repl_multiple_of_C, stride = i.stride.x)
+                            first_op.ofmaps_file_params.compute_params(i.stride, args, repl_multiple_of_C = i.repl_multiple_of_C)
             else:       
                 # maintain a linked-list of fused_ops
                 # grab the current batch count from previous fused_ops
@@ -379,6 +395,8 @@ class TPBSched:
 
             # increment count of fused ops (for ID purpose)
             fused_op_count += 1
+
+        kgraph.map_constants_file(file_mapper = tpb.statebuffer.file_mapper, region_sz = tpb.statebuffer.batcher.sb_bias_sz[0])
         print("INFO: Number of fused operations: ", fused_op_count)            
 
     """ Fix order of first 2 convolutions right after a fork
