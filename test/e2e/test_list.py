@@ -95,6 +95,9 @@ testConfigMap = {
   "0-rtl-resadd_h16c128_wave"      : [ "trivnet_add",    "tfloat16-b1-h16-c128-wmin2.19-wmax2.2-imin-0.1-imax0.2", "add", MEv2("Generic")],
   "0-rtl-resadd_h32c256_wave"      : [ "trivnet_add",    "tfloat16-b1-h32-c256-wmin2.19-wmax2.2-imin-0.1-imax0.2", "add", MEv2("Generic")],
 
+# Batching
+  "0-1conv1maxpool_b4h1c128m1_wave"        : [ "trivnet_conv_pool","tfloat16-b4-h1-r1-s1-c128-m1-VALID-MaxPool-k1-d1-wmin0.2-wmax2.2-imin-1-imax2", "1conv1pool", MEv2("Generic")],
+
 # Multiple convolves
   "0-4conv_multiout_wave"      : [
     "trivnet_lin",

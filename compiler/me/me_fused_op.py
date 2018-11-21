@@ -642,7 +642,7 @@ class FusedOp(list):
         single_ofmap_start = 0
         single_ofmap_sz = ofmaps_file_params.batch_item_partition_usage_sz_padded
         ofmaps_region_start_addr  = 0
-        ofmaps_region_sz = single_ofmap_sz
+        ofmaps_region_sz = single_ofmap_sz * self.last_op.N
 
         # Bias region:
         #   - keep in contiguous region to help DMA perf: an optimizer (TBD) will need to coalesce the bias files
