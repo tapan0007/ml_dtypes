@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "wave/inc/waveconsts.hpp"
 #include "serialize/inc/serwaveop.hpp"
 
@@ -7,7 +9,7 @@ namespace serialize {
 
 SerWaveOp::SerWaveOp()
 {
-    m_RefFileShape.resize(4, -1);
+    m_RefFileShape.resize(utils::TensorParams::NUM_DIMS, 1);
     m_TileId.resize(4, -1);
 }
 
@@ -35,12 +37,12 @@ SerWaveOp::verifySbAtom () const
     if (m_RefFile == "") {
         RETURN_ASSERT(false);
     }
-    if (m_RefFileFormat != "NCHW" && m_RefFileFormat != "CRSM" && m_RefFileFormat != "HNWC") {
+    if (m_RefFileFormat != "NCHW" && m_RefFileFormat != "CRSM" && m_RefFileFormat != "HNWC" && m_RefFileFormat != "CNcHW") {
         RETURN_ASSERT(false);
     }
-    if (m_RefFileShape.size() != 4) {
-        RETURN_ASSERT(false);
-    }
+    //if (m_RefFileShape.size() != 4) {
+    //    RETURN_ASSERT(false);
+    //}
     for (const auto n : m_RefFileShape) {
         if (n <= 0) {
             RETURN_ASSERT(false);

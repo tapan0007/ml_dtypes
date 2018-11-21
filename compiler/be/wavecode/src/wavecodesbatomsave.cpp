@@ -284,7 +284,7 @@ void
 WaveCodeSbAtomSave::calcOutputSize(const wave::SbAtomSaveWaveOp* sbAtomSaveWaveop)
 {
     const utils::DataType&    dtype(sbAtomSaveWaveop->gDataType());
-    const std::array<kcc_int32,4>& shape(sbAtomSaveWaveop->gRefFileShape ());
+    const utils::TensorParams::ShapeType& shape(sbAtomSaveWaveop->gRefFileShape ());
     kcc_int64 sz = dtype.gSizeInBytes();
     for (auto n : shape) {
         sz *= n;

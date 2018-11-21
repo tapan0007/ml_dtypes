@@ -61,7 +61,7 @@ SbAtomWaveOp::verify() const
     if (m_RefFileFormat == "") {
         ASSERT_RETURN(false);
     }
-    if (m_RefFileShape.size() != 4) {
+    if (m_RefFileShape.size() != m_RefFileFormat.size()) {
         ASSERT_RETURN(false);
     }
     for (const auto n : m_RefFileShape) {

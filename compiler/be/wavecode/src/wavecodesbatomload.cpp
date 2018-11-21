@@ -1049,7 +1049,7 @@ WaveCodeSbAtomLoad::calcInputSize(const wave::SbAtomLoadWaveOp* sbAtomLoadWaveop
     kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
     kelfDma.recordInFile(sbAtomLoadWaveop->gRefFileName());
     const utils::DataType&    dtype(sbAtomLoadWaveop->gDataType());
-    const std::array<kcc_int32,4>& shape(sbAtomLoadWaveop->gRefFileShape ());
+    const utils::TensorParams::ShapeType& shape(sbAtomLoadWaveop->gRefFileShape ());
     kcc_int64 sz = dtype.gSizeInBytes();
     for (auto n : shape) {
         sz *= n;

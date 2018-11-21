@@ -167,10 +167,10 @@ Network::gInTensorFormat() const
 }
 
 //--------------------------------------------------------
-const std::array<kcc_int32, 4>&
+const utils::TensorParams::ShapeType&
 Network::gInTensorDimensions() const
 {
-    static const std::array<kcc_int32, 4> badDim = {{ -1, -1, -1, -1 }};
+    static const utils::TensorParams::ShapeType badDim = {{ -1, -1, -1, -1, -1 }};
 
     for (auto waveop : m_WaveOps) {
         const auto sbLoadWaveop =

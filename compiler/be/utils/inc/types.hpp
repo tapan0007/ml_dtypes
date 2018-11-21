@@ -227,8 +227,7 @@ class MemAccessPatternXYZW {
 
 class TensorParams {
 public:
-    enum { NUM_DIMS = 4 };
-private:
+    enum { NUM_DIMS = 5 };
     using ShapeType = std::array<kcc_int32, NUM_DIMS>;
 public:
     TensorParams(const ShapeType& shape, const char* format)

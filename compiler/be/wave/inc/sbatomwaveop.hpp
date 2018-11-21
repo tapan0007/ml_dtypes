@@ -79,7 +79,7 @@ public:
         return m_RefFileFormat;
     }
 
-    const std::array<kcc_int32,4>& gRefFileShape () const {
+    const utils::TensorParams::ShapeType& gRefFileShape () const {
         return m_RefFileShape;
     }
 
@@ -123,7 +123,7 @@ private:
     kcc_int64       m_PartitionStepBytes= -1;
     std::string     m_RefFileName       = "";
     std::string     m_RefFileFormat     = "";
-    std::array<kcc_int32,4> m_RefFileShape;
+    utils::TensorParams::ShapeType m_RefFileShape;
 };
 
 
@@ -143,7 +143,7 @@ public:
     kcc_int64       m_PartitionStepBytes= -1;
     std::string     m_RefFileName       = "";
     std::string     m_RefFileFormat     = "";
-    std::array<kcc_int32,4> m_RefFileShape;
+    utils::TensorParams::ShapeType m_RefFileShape;
 };
 
 }}

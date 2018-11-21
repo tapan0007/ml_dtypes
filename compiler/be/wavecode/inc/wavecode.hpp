@@ -60,7 +60,7 @@ public:
         kcc_int64                   m_FileDramOffset    = -1;
         bool                        m_Dirty             = false;
         TONGA_ISA_TPB_DTYPE         m_SimTypeId         = TONGA_ISA_TPB_DTYPE_INVALID;
-        std::array<kcc_int32, 4>    m_RefFileShape;
+        utils::TensorParams::ShapeType    m_RefFileShape;
     };
 public:
 
