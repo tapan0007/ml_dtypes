@@ -419,6 +419,9 @@ class Zebu(BePlat):
     self.grpcPort = zebuGrpcHost[self.zebuHost]
     print("INFO: using port %d for grpc" % self.grpcPort)
 
+  def checkHeartBeat(self, cmd):
+    return(self.sshCmd(cmd, opt="-o ConnectTimeout=10"))
+
   def startTonga(self):
     # Boot Tonga
     tongaOk = False
@@ -509,6 +512,7 @@ class Zebu(BePlat):
     return guestOk
 
   def start(self, restartId):
+    self.heartBeatFail = 0
     self.restartId = restartId
     if self.startTonga():
       if self.startVm():
@@ -1048,20 +1052,27 @@ class ZebuPool:
       zebu = Zebu(host)
       krt = Krtd(zebu, inklingTimeout)
       self.zebus.append((host, zebu, krt))
+  def startZebu(self, host, zebu, krt, logDir):
+    os.chdir(logDir)
+    for qemuRestartId in range(2):
+      if zebu.start(qemuRestartId):
+        krt.install()
+        #krt.scrub_dram()
+        break
+      else:
+        zebu.stop()
+    os.chdir("..")
+  def getLogDir(self, host):
+    return("pool_%s" % host)
   def startPool(self):
     for host, zebu, krt in self.zebus:
-      d = "pool_%s" % host
-      os.mkdir(d)
-      os.chdir(d)
-      for qemuRestartId in range(2):
-        if zebu.start(qemuRestartId):
-          krt.install()
-          #krt.scrub_dram()
-          break
-        else:
-          zebu.stop()
-      os.chdir("..")
+      os.mkdir(self.getLogDir(host))
+      self.startZebu(host,zebu,krt, self.getLogDir(host))
     return len(self.zebus) == len(self.zebuHosts)
+  def restartZebu(self, host, zebu, krt):
+    zebu.stop() #cleanup the prev zebu file handles etc
+    self.startZebu(host,zebu,krt,self.getLogDir(host))
+
   def getAvailZebu(self):
     found = False
     while not found:
@@ -1114,7 +1125,10 @@ if args.zebu != None and args.zebu.startswith('pool'):
       i += 1
       # Zebu heartbeet
       for  host, zebu, krt in qp.zebus:
-        zebu.sshCmd('echo -n "  Zebu pool heartbeat on %s ";  TZ=America/Los_Angeles uptime' % host)
+        ret = zebu.checkHeartBeat('echo -n "  Zebu pool heartbeat on %s ";  TZ=America/Los_Angeles uptime' % host)
+        if ret != 0:
+          qp.restartZebu(host, zebu, krt)
+
   elif args.action == 'cleanup_pool':
     qp.cleanup()
     if os.path.isfile(poolPidFileName):
