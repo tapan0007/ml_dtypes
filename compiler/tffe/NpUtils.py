@@ -48,6 +48,8 @@ class NpUtils:
       else:
         if mode == 'py':
           bRange = abs(bval)
+        aval = float(aval)
+        bval = float(bval)
         if not (abs(aval - bval) <= (atol + rtol * bRange)):
           if verbose:
             print("INFO: NpUtils::allclose comparison failed  abs(%g - %g) <= (%g + %g * %g)" % (aval, bval, atol, rtol, bRange))
