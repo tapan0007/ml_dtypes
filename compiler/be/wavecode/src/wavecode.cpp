@@ -263,19 +263,19 @@ WaveCode::saveAllNpyFiles ()
             continue;
         }
         compisa::SimRdNpyInstr simDramToNpyInstr;
-        simDramToNpyInstr.inst_events.wait_event_idx    = 0;
-        simDramToNpyInstr.inst_events.wait_event_mode   = eventWaitMode2Isa(events::EventWaitMode::DontWait);
-        simDramToNpyInstr.inst_events.set_event_idx     = 0;
-        simDramToNpyInstr.inst_events.set_event_mode    = eventSetMode2Isa(events::EventSetMode::DontSet);
+        AssignWithSizeCheck(simDramToNpyInstr.inst_events.wait_event_idx, 0);
+        AssignWithSizeCheck(simDramToNpyInstr.inst_events.wait_event_mode, eventWaitMode2Isa(events::EventWaitMode::DontWait));
+        AssignWithSizeCheck(simDramToNpyInstr.inst_events.set_event_idx, 0);
+        AssignWithSizeCheck(simDramToNpyInstr.inst_events.set_event_mode, eventSetMode2Isa(events::EventSetMode::DontSet));
 
         strcpy(simDramToNpyInstr.dst_fname, (*it).first.c_str());
         const NpyFileInfo& npyFileInfo((*it).second);
-        simDramToNpyInstr.src_addr         = npyFileInfo.m_FileDramOffset;
-        simDramToNpyInstr.dst_ndims        = 4;
+        AssignWithSizeCheck(simDramToNpyInstr.src_addr, npyFileInfo.m_FileDramOffset);
+        AssignWithSizeCheck(simDramToNpyInstr.dst_ndims, 4);
         for (int i = 0; i < simDramToNpyInstr.dst_ndims; ++i) {
-            simDramToNpyInstr.dst_dims[i]  = npyFileInfo.m_RefFileShape[i];
+            AssignWithSizeCheck(simDramToNpyInstr.dst_dims[i], npyFileInfo.m_RefFileShape[i]);
         }
-        simDramToNpyInstr.dtype            = npyFileInfo.m_SimTypeId;
+        AssignWithSizeCheck(simDramToNpyInstr.dtype, npyFileInfo.m_SimTypeId);
         this->writeInstruction(simDramToNpyInstr);
     }
 }
@@ -387,8 +387,8 @@ WaveCode::writeWaitOrWaitClearInstr(
     case WAIT_CLEAR_MODE: {
         // Not sure whether wait_event_mode works in SIM.
         compisa::WaitInstr waitInstr;
-        waitInstr.event_idx         = evntId;
-        waitInstr.wait_event_mode   = eventWaitMode2Isa(waitEventMode);
+        AssignWithSizeCheck(waitInstr.event_idx, evntId);
+        AssignWithSizeCheck(waitInstr.wait_event_mode, eventWaitMode2Isa(waitEventMode));
 
         SaveName(waitInstr, dbgTxt);
         writeInstruction(waitInstr, engineId);
@@ -397,10 +397,10 @@ WaveCode::writeWaitOrWaitClearInstr(
     case NOP: {
         // New Nop instruction can wait and set (should use for barrier too)
         compisa::NopInstr nopInstr;
-        nopInstr.inst_events.wait_event_idx   = evntId;
-        nopInstr.inst_events.wait_event_mode  = events::eventWaitMode2Isa(waitEventMode);
-        nopInstr.inst_events.set_event_idx    = 0;
-        nopInstr.inst_events.set_event_mode   = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+        AssignWithSizeCheck(nopInstr.inst_events.wait_event_idx, evntId);
+        AssignWithSizeCheck(nopInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(waitEventMode));
+        AssignWithSizeCheck(nopInstr.inst_events.set_event_idx, 0);
+        AssignWithSizeCheck(nopInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
 
         SaveName(nopInstr, dbgTxt);
         writeInstruction(nopInstr, engineId);
@@ -410,8 +410,8 @@ WaveCode::writeWaitOrWaitClearInstr(
         {
         // old style: Wait(wait-only); Clear
             compisa::WaitInstr waitInstr;
-            waitInstr.event_idx         = evntId;
-            waitInstr.wait_event_mode   = eventWaitMode2Isa(events::EventWaitMode::WaitOnly);
+            AssignWithSizeCheck(waitInstr.event_idx, evntId);
+            AssignWithSizeCheck(waitInstr.wait_event_mode, eventWaitMode2Isa(events::EventWaitMode::WaitOnly));
 
             SaveName(waitInstr, dbgTxt);
             writeInstruction(waitInstr, engineId);
@@ -419,7 +419,7 @@ WaveCode::writeWaitOrWaitClearInstr(
 
         if (waitEventMode == events::EventWaitMode::WaitThenClear) {
             compisa::ClearInstr clearInstr;
-            clearInstr.event_idx  = evntId;
+            AssignWithSizeCheck(clearInstr.event_idx, evntId);
 
             SaveName(clearInstr, dbgTxt);
             writeInstruction(clearInstr, engineId);

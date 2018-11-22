@@ -46,16 +46,17 @@ WaveCodeTensorScalarConst::generate(wave::WaveOp* waveOp)
     TONGA_ISA_TPB_MEM_ACCESS_3D& srcPat(tensorscalarInstr.src_mem_pattern);
     initMemAccess(srcPat);
 
-    tensorscalarInstr.in_dtype = srcDtype.gSimTypeId();
+    AssignWithSizeCheck(tensorscalarInstr.in_dtype, srcDtype.gSimTypeId());
 
     if (tensorscalarconstWaveop->qSrcIsPsum()) {
-        srcPat.start_addr  = psumBuf.gEntryTpbAddress(tensorscalarconstWaveop->gSrcPsumBankId(),
-                                                       tensorscalarconstWaveop->gSrcPsumBankOffset(),
-                                                       srcDtype);
+        AssignWithSizeCheck(srcPat.start_addr,
+                            psumBuf.gEntryTpbAddress(tensorscalarconstWaveop->gSrcPsumBankId(),
+                                                     tensorscalarconstWaveop->gSrcPsumBankOffset(),
+                                                     srcDtype));
     } else {
-        srcPat.start_addr  = stateBuf.gEntryTpbAddress(
-                                        arch.gNumberPeArrayRows()/2 * tensorscalarconstWaveop->gSrcStartAtMidPart(),
-                                        tensorscalarconstWaveop->gSrcSbAddress());
+        AssignWithSizeCheck(srcPat.start_addr,
+                            stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * tensorscalarconstWaveop->gSrcStartAtMidPart(),
+                                                      tensorscalarconstWaveop->gSrcSbAddress()));
     }
 
     AssignWithSizeCheck(srcPat.step_elem[PatDim_X], tensorscalarconstWaveop->gSrcXStep());
@@ -67,28 +68,34 @@ WaveCodeTensorScalarConst::generate(wave::WaveOp* waveOp)
 
     //**********************************************************************
 
-    tensorscalarInstr.num_active_channels = tensorscalarconstWaveop->gNumPartitions();
+    AssignWithSizeCheck(tensorscalarInstr.num_active_channels, tensorscalarconstWaveop->gNumPartitions());
 
+#if 0
     tensorscalarInstr.op[0] = static_cast<TONGA_ISA_TPB_ALU_OP>(tensorscalarconstWaveop->gAluOp(0));
     tensorscalarInstr.op[1] = static_cast<TONGA_ISA_TPB_ALU_OP>(tensorscalarconstWaveop->gAluOp(1));
-    tensorscalarInstr.imm_val[0] = tensorscalarconstWaveop->gImmVal(0);
-    tensorscalarInstr.imm_val[1] = tensorscalarconstWaveop->gImmVal(1);
+#else
+    AssignWithSizeCheck(tensorscalarInstr.op[0], static_cast<TONGA_ISA_TPB_ALU_OP>(tensorscalarconstWaveop->gAluOp(0)));
+    AssignWithSizeCheck(tensorscalarInstr.op[1], static_cast<TONGA_ISA_TPB_ALU_OP>(tensorscalarconstWaveop->gAluOp(1)));
+#endif
+    tensorscalarInstr.imm_val[0] = tensorscalarconstWaveop->gImmVal(0); // float
+    tensorscalarInstr.imm_val[1] = tensorscalarconstWaveop->gImmVal(1); // float
 
 
 
     //-----------------------------------------------------------------
     // Dst
-    tensorscalarInstr.out_dtype           = tensorscalarconstWaveop->gOutDtype().gSimTypeId();
+    AssignWithSizeCheck(tensorscalarInstr.out_dtype, tensorscalarconstWaveop->gOutDtype().gSimTypeId());
     TONGA_ISA_TPB_MEM_ACCESS_3D& DstPat(tensorscalarInstr.dst_mem_pattern);
     initMemAccess(DstPat);
     if (tensorscalarconstWaveop->qDstIsPsum()) {
-        DstPat.start_addr  = psumBuf.gEntryTpbAddress(tensorscalarconstWaveop->gDstPsumBankId(),
-                                                      tensorscalarconstWaveop->gDstPsumBankOffset(),
-                                                      tensorscalarconstWaveop->gOutDtype());
+        AssignWithSizeCheck(DstPat.start_addr,
+                            psumBuf.gEntryTpbAddress(tensorscalarconstWaveop->gDstPsumBankId(),
+                                                 tensorscalarconstWaveop->gDstPsumBankOffset(),
+                                                 tensorscalarconstWaveop->gOutDtype()));
     } else {
-        DstPat.start_addr  = stateBuf.gEntryTpbAddress(
-                                        arch.gNumberPeArrayRows()/2 * tensorscalarconstWaveop->gDstStartAtMidPart(),
-                                        tensorscalarconstWaveop->gDstSbAddress());
+        AssignWithSizeCheck(DstPat.start_addr,
+                            stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * tensorscalarconstWaveop->gDstStartAtMidPart(),
+                                                  tensorscalarconstWaveop->gDstSbAddress()));
     }
     AssignWithSizeCheck(DstPat.step_elem[PatDim_X], tensorscalarconstWaveop->gDstXStep());
     AssignWithSizeCheck(DstPat.num_elem[PatDim_X], tensorscalarconstWaveop->gDstXNum());
@@ -98,10 +105,10 @@ WaveCodeTensorScalarConst::generate(wave::WaveOp* waveOp)
     AssignWithSizeCheck(DstPat.num_elem[PatDim_Z], tensorscalarconstWaveop->gDstZNum());
 
     //-----------------------------------------------------------------
-    tensorscalarInstr.inst_events.wait_event_idx     = 0;
-    tensorscalarInstr.inst_events.wait_event_mode    = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    tensorscalarInstr.inst_events.set_event_idx      = 0;
-    tensorscalarInstr.inst_events.set_event_mode     = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    AssignWithSizeCheck(tensorscalarInstr.inst_events.wait_event_idx, 0);
+    AssignWithSizeCheck(tensorscalarInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
+    AssignWithSizeCheck(tensorscalarInstr.inst_events.set_event_idx, 0);
+    AssignWithSizeCheck(tensorscalarInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
 
     //************************************************************************
     if (qParallelStreams()) { // incoming events

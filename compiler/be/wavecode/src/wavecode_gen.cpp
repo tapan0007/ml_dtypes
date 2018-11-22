@@ -287,12 +287,12 @@ void WaveCode::writeInstruction<compisa::WaitInstr>(const compisa::WaitInstr& wa
     const auto& instruction(waitInstr);
 #else
     compisa::NopInstr instruction;
-    instruction.inst_events.wait_event_mode    = events::eventWaitMode2Isa(events::EventWaitMode::WaitThenClear);
-    instruction.inst_events.wait_event_idx     = waitInstr.event_idx;
-    instruction.inst_events.set_event_mode     = events::eventSetMode2Isa(events::EventSetMode::DontSet);
-    instruction.inst_events.set_event_idx      = 0;
+    AssignWithSizeCheck(instruction.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::WaitThenClear));
+    AssignWithSizeCheck(instruction.inst_events.wait_event_idx, waitInstr.event_idx);
+    AssignWithSizeCheck(instruction.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
+    AssignWithSizeCheck(instruction.inst_events.set_event_idx, 0);
 
-    instruction.cycle_cnt                      = 1;
+    AssignWithSizeCheck(instruction.cycle_cnt, 1);
     strcpy(
         reinterpret_cast<char*>(instruction.reserved),
         reinterpret_cast<const char*>(waitInstr.reserved));
@@ -336,12 +336,12 @@ void WaveCode::writeInstruction<compisa::SetInstr>(const compisa::SetInstr& setI
 #else
     compisa::NopInstr instruction;
     // TONGA_ISA_TPB_INST_EVENTS
-    instruction.inst_events.wait_event_mode    = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    instruction.inst_events.wait_event_idx     = 0;
-    instruction.inst_events.set_event_mode     = events::eventSetMode2Isa(events::EventSetMode::OnEndInstr);
-    instruction.inst_events.set_event_idx      = setInstr.event_idx;
+    AssignWithSizeCheck(instruction.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
+    AssignWithSizeCheck(instruction.inst_events.wait_event_idx, 0);
+    AssignWithSizeCheck(instruction.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::OnEndInstr));
+    AssignWithSizeCheck(instruction.inst_events.set_event_idx, setInstr.event_idx);
 
-    instruction.cycle_cnt                      = 1;
+    AssignWithSizeCheck(instruction.cycle_cnt, 1);
     strcpy(
         reinterpret_cast<char*>(instruction.reserved),
         reinterpret_cast<const char*>(setInstr.reserved));

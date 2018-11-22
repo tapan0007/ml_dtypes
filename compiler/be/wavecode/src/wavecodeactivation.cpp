@@ -45,23 +45,23 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
 
     kelfDma.addActivationFunc(activationWaveop->gActivationFunc());
 
-    activationInstr.activation_func     = activationWaveop->gSimActivationFunc();
-    activationInstr.in_dtype            = activationWaveop->gInDtype().gSimTypeId();
-    activationInstr.bias_dtype          = activationWaveop->gBiasDtype().gSimTypeId();
-    activationInstr.out_dtype           = activationWaveop->gOutDtype().gSimTypeId();
+    AssignWithSizeCheck(activationInstr.activation_func, activationWaveop->gSimActivationFunc());
+    AssignWithSizeCheck(activationInstr.in_dtype, activationWaveop->gInDtype().gSimTypeId());
+    AssignWithSizeCheck(activationInstr.bias_dtype, activationWaveop->gBiasDtype().gSimTypeId());
+    AssignWithSizeCheck(activationInstr.out_dtype, activationWaveop->gOutDtype().gSimTypeId());
 
 
     // TODO: for now Activation reads from 0 elem in bank.
     initMemAccess(activationInstr.src_mem_pattern);
     if (activationWaveop->qSrcIsPsum()) {
-        activationInstr.src_mem_pattern.start_addr  = psumBuf.gEntryTpbAddress(
-                                                            activationWaveop->gSrcPsumBankId(),
-                                                            activationWaveop->gSrcPsumBankOffset(),
-                                                            activationWaveop->gInDtype());
+        AssignWithSizeCheck(activationInstr.src_mem_pattern.start_addr,
+                            psumBuf.gEntryTpbAddress(activationWaveop->gSrcPsumBankId(),
+                                                     activationWaveop->gSrcPsumBankOffset(),
+                                                     activationWaveop->gInDtype()));
     } else {
-        activationInstr.src_mem_pattern.start_addr  = stateBuf.gEntryTpbAddress(
-                                                            arch.gNumberPeArrayRows()/2 * activationWaveop->gSrcStartAtMidPart(),
-                                                            activationWaveop->gSrcSbAddress());
+        AssignWithSizeCheck(activationInstr.src_mem_pattern.start_addr,
+                            stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * activationWaveop->gSrcStartAtMidPart(),
+                                                      activationWaveop->gSrcSbAddress()));
     }
     AssignWithSizeCheck(activationInstr.src_mem_pattern.step_elem[PatDim_X], activationWaveop->gSrcXStep());
     AssignWithSizeCheck(activationInstr.src_mem_pattern.num_elem[PatDim_X], activationWaveop->gSrcXNum());
@@ -73,14 +73,14 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
 
     initMemAccess(activationInstr.dst_mem_pattern);
     if (activationWaveop->qDstIsPsum()) {
-        activationInstr.dst_mem_pattern.start_addr  = psumBuf.gEntryTpbAddress(
-                                                                  activationWaveop->gDstPsumBankId(),
-                                                                  activationWaveop->gDstPsumBankOffset(),
-                                                                  activationWaveop->gOutDtype());
+        AssignWithSizeCheck(activationInstr.dst_mem_pattern.start_addr,
+                            psumBuf.gEntryTpbAddress(activationWaveop->gDstPsumBankId(),
+                                                     activationWaveop->gDstPsumBankOffset(),
+                                                     activationWaveop->gOutDtype()));
     } else {
-        activationInstr.dst_mem_pattern.start_addr  = stateBuf.gEntryTpbAddress(
-                                                            arch.gNumberPeArrayRows()/2 * activationWaveop->gDstStartAtMidPart(),
-                                                            activationWaveop->gDstSbAddress());
+        AssignWithSizeCheck(activationInstr.dst_mem_pattern.start_addr,
+                            stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * activationWaveop->gDstStartAtMidPart(),
+                                                      activationWaveop->gDstSbAddress()));
     }
     AssignWithSizeCheck(activationInstr.dst_mem_pattern.step_elem[PatDim_X], activationWaveop->gDstXStep());
     AssignWithSizeCheck(activationInstr.dst_mem_pattern.num_elem[PatDim_X], activationWaveop->gDstXNum());
@@ -89,18 +89,18 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
     AssignWithSizeCheck(activationInstr.dst_mem_pattern.step_elem[PatDim_Z], activationWaveop->gDstZStep());
     AssignWithSizeCheck(activationInstr.dst_mem_pattern.num_elem[PatDim_Z], activationWaveop->gDstZNum());
 
-    activationInstr.scale_value = activationWaveop->gScale();
+    activationInstr.scale_value = activationWaveop->gScale(); // float
 
-    activationInstr.bias_addr   = stateBuf.gEntryTpbAddress(
-                                      arch.gNumberPeArrayRows()/2 * activationWaveop->gBiasStartAtMidPart(),
-                                      activationWaveop->gBiasSbAddress());
+    AssignWithSizeCheck(activationInstr.bias_addr,
+                        stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * activationWaveop->gBiasStartAtMidPart(),
+                                                  activationWaveop->gBiasSbAddress()));
 
-    activationInstr.num_active_channels = activationWaveop->gNumPartitions();
+    AssignWithSizeCheck(activationInstr.num_active_channels, activationWaveop->gNumPartitions());
 
-    activationInstr.inst_events.wait_event_idx  = 0;
-    activationInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    activationInstr.inst_events.set_event_idx   = 0;
-    activationInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    AssignWithSizeCheck(activationInstr.inst_events.wait_event_idx, 0);
+    AssignWithSizeCheck(activationInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
+    AssignWithSizeCheck(activationInstr.inst_events.set_event_idx, 0);
+    AssignWithSizeCheck(activationInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
 
     //************************************************************************
     if (qParallelStreams()) { // incoming events

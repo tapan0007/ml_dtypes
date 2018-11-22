@@ -76,17 +76,18 @@ WaveCodeTensorTensor::generateDiffBufSrc(wave::TensorTensorWaveOp* tensortensorW
     initMemAccess(srcAPat);
     initMemAccess(srcBPat);
 
-    tensortensorInstr.in_dtype[srcAIdx] = srcADtype.gSimTypeId();
-    tensortensorInstr.in_dtype[srcBIdx] = srcBDtype.gSimTypeId();
+    AssignWithSizeCheck(tensortensorInstr.in_dtype[srcAIdx], srcADtype.gSimTypeId());
+    AssignWithSizeCheck(tensortensorInstr.in_dtype[srcBIdx], srcBDtype.gSimTypeId());
 
     if (tensortensorWaveop->qSrcAIsPsum()) {
-        srcAPat.start_addr  = psumBuf.gEntryTpbAddress(tensortensorWaveop->gSrcAPsumBankId(),
-                                                       tensortensorWaveop->gSrcAPsumBankOffset(),
-                                                       srcADtype);
+        AssignWithSizeCheck(srcAPat.start_addr,
+                            psumBuf.gEntryTpbAddress(tensortensorWaveop->gSrcAPsumBankId(),
+                                                     tensortensorWaveop->gSrcAPsumBankOffset(),
+                                                     srcADtype));
     } else {
-        srcAPat.start_addr  = stateBuf.gEntryTpbAddress(
-                                        arch.gNumberPeArrayRows()/2 * tensortensorWaveop->gSrcAStartAtMidPart(),
-                                        tensortensorWaveop->gSrcASbAddress());
+        AssignWithSizeCheck(srcAPat.start_addr,
+                            stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * tensortensorWaveop->gSrcAStartAtMidPart(),
+                                                      tensortensorWaveop->gSrcASbAddress()));
     }
 
     AssignWithSizeCheck(srcAPat.step_elem[PatDim_X], tensortensorWaveop->gSrcAXStep());
@@ -97,13 +98,14 @@ WaveCodeTensorTensor::generateDiffBufSrc(wave::TensorTensorWaveOp* tensortensorW
     AssignWithSizeCheck(srcAPat.num_elem[PatDim_Z], tensortensorWaveop->gSrcAZNum());
 
     if (tensortensorWaveop->qSrcBIsPsum()) {
-        srcBPat.start_addr  = psumBuf.gEntryTpbAddress(tensortensorWaveop->gSrcBPsumBankId(),
-                                                       tensortensorWaveop->gSrcBPsumBankOffset(),
-                                                       srcBDtype);
+        AssignWithSizeCheck(srcBPat.start_addr,
+                            psumBuf.gEntryTpbAddress(tensortensorWaveop->gSrcBPsumBankId(),
+                                                     tensortensorWaveop->gSrcBPsumBankOffset(),
+                                                     srcBDtype));
     } else {
-        srcBPat.start_addr  = stateBuf.gEntryTpbAddress(
-                                        arch.gNumberPeArrayRows()/2 * tensortensorWaveop->gSrcBStartAtMidPart(),
-                                        tensortensorWaveop->gSrcBSbAddress());
+        AssignWithSizeCheck(srcBPat.start_addr,
+                            stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * tensortensorWaveop->gSrcBStartAtMidPart(),
+                                                      tensortensorWaveop->gSrcBSbAddress()));
     }
 
     AssignWithSizeCheck(srcBPat.step_elem[PatDim_X], tensortensorWaveop->gSrcBXStep());
@@ -115,22 +117,23 @@ WaveCodeTensorTensor::generateDiffBufSrc(wave::TensorTensorWaveOp* tensortensorW
 
     //**********************************************************************
 
-    tensortensorInstr.num_active_channels = tensortensorWaveop->gNumPartitions();
-    tensortensorInstr.op = static_cast<TONGA_ISA_TPB_ALU_OP>(tensortensorWaveop->gAluOp());
+    AssignWithSizeCheck(tensortensorInstr.num_active_channels, tensortensorWaveop->gNumPartitions());
+    AssignWithSizeCheck(tensortensorInstr.op, static_cast<TONGA_ISA_TPB_ALU_OP>(tensortensorWaveop->gAluOp()));
 
     //-----------------------------------------------------------------
     // Dst
-    tensortensorInstr.out_dtype           = tensortensorWaveop->gOutDtype().gSimTypeId();
+    AssignWithSizeCheck(tensortensorInstr.out_dtype, tensortensorWaveop->gOutDtype().gSimTypeId());
     TONGA_ISA_TPB_MEM_ACCESS_3D& DstPat(tensortensorInstr.dst_mem_pattern);
     initMemAccess(DstPat);
     if (tensortensorWaveop->qDstIsPsum()) {
-        DstPat.start_addr  = psumBuf.gEntryTpbAddress(tensortensorWaveop->gDstPsumBankId(),
-                                                      tensortensorWaveop->gDstPsumBankOffset(),
-                                                      tensortensorWaveop->gOutDtype());
+        AssignWithSizeCheck(DstPat.start_addr,
+                            psumBuf.gEntryTpbAddress(tensortensorWaveop->gDstPsumBankId(),
+                                                     tensortensorWaveop->gDstPsumBankOffset(),
+                                                     tensortensorWaveop->gOutDtype()));
     } else {
-        DstPat.start_addr  = stateBuf.gEntryTpbAddress(
-                                        arch.gNumberPeArrayRows()/2 * tensortensorWaveop->gDstStartAtMidPart(),
-                                        tensortensorWaveop->gDstSbAddress());
+        AssignWithSizeCheck(DstPat.start_addr,
+                            stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * tensortensorWaveop->gDstStartAtMidPart(),
+                                                      tensortensorWaveop->gDstSbAddress()));
     }
     AssignWithSizeCheck(DstPat.step_elem[PatDim_X], tensortensorWaveop->gDstXStep());
     AssignWithSizeCheck(DstPat.num_elem[PatDim_X], tensortensorWaveop->gDstXNum());
@@ -140,10 +143,10 @@ WaveCodeTensorTensor::generateDiffBufSrc(wave::TensorTensorWaveOp* tensortensorW
     AssignWithSizeCheck(DstPat.num_elem[PatDim_Z], tensortensorWaveop->gDstZNum());
 
     //-----------------------------------------------------------------
-    tensortensorInstr.inst_events.wait_event_idx     = 0;
-    tensortensorInstr.inst_events.wait_event_mode    = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    tensortensorInstr.inst_events.set_event_idx      = 0;
-    tensortensorInstr.inst_events.set_event_mode     = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    AssignWithSizeCheck(tensortensorInstr.inst_events.wait_event_idx, 0);
+    AssignWithSizeCheck(tensortensorInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
+    AssignWithSizeCheck(tensortensorInstr.inst_events.set_event_idx, 0);
+    AssignWithSizeCheck(tensortensorInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
 
     //************************************************************************
     if (qParallelStreams()) { // incoming events
@@ -195,13 +198,13 @@ WaveCodeTensorTensor::generateSameBufSrc(wave::TensorTensorWaveOp* tensortensorW
 
     //-----------------------------------------------------------------
     const utils::DataType& inDtype(tensortensorWaveop->gInADtype());
-    tensorReduceInstr.in_dtype  = inDtype.gSimTypeId();
-    tensorReduceInstr.out_dtype = tensortensorWaveop->gOutDtype().gSimTypeId();
-    tensorReduceInstr.num_active_channels = tensortensorWaveop->gNumPartitions();
-    tensorReduceInstr.op = static_cast<TONGA_ISA_TPB_ALU_OP>(tensortensorWaveop->gAluOp());
+    AssignWithSizeCheck(tensorReduceInstr.in_dtype, inDtype.gSimTypeId());
+    AssignWithSizeCheck(tensorReduceInstr.out_dtype, tensortensorWaveop->gOutDtype().gSimTypeId());
+    AssignWithSizeCheck(tensorReduceInstr.num_active_channels, tensortensorWaveop->gNumPartitions());
+    AssignWithSizeCheck(tensorReduceInstr.op, static_cast<TONGA_ISA_TPB_ALU_OP>(tensortensorWaveop->gAluOp()));
 
     //-----------------------------------------------------------------
-    tensorReduceInstr.op_dim = TONGA_ISA_TPB_TENSOR_SUBDIM_X;
+    AssignWithSizeCheck(tensorReduceInstr.op_dim, TONGA_ISA_TPB_TENSOR_SUBDIM_X);
 
     //-----------------------------------------------------------------
     TONGA_ISA_TPB_MEM_ACCESS_4D& srcPat(tensorReduceInstr.src_mem_pattern);
@@ -210,17 +213,17 @@ WaveCodeTensorTensor::generateSameBufSrc(wave::TensorTensorWaveOp* tensortensorW
     kcc_int64 addrA;
     kcc_int64 addrB;
     if (tensortensorWaveop->qSrcAIsPsum()) {
-        addrA = psumBuf.gEntryTpbAddress(tensortensorWaveop->gSrcAPsumBankId(),
+        AssignWithSizeCheck(addrA, psumBuf.gEntryTpbAddress(tensortensorWaveop->gSrcAPsumBankId(),
                                                          tensortensorWaveop->gSrcAPsumBankOffset(),
-                                                         tensortensorWaveop->gInADtype());
-        addrB = psumBuf.gEntryTpbAddress(tensortensorWaveop->gSrcBPsumBankId(),
+                                                         tensortensorWaveop->gInADtype()));
+        AssignWithSizeCheck(addrB, psumBuf.gEntryTpbAddress(tensortensorWaveop->gSrcBPsumBankId(),
                                                          tensortensorWaveop->gSrcBPsumBankOffset(),
-                                                         tensortensorWaveop->gInBDtype());
+                                                         tensortensorWaveop->gInBDtype()));
     } else {
-        addrA = stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * tensortensorWaveop->gSrcAStartAtMidPart(),
-                                          tensortensorWaveop->gSrcASbAddress());
-        addrB = stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * tensortensorWaveop->gSrcBStartAtMidPart(),
-                                          tensortensorWaveop->gSrcBSbAddress());
+        AssignWithSizeCheck(addrA, stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * tensortensorWaveop->gSrcAStartAtMidPart(),
+                                          tensortensorWaveop->gSrcASbAddress()));
+        AssignWithSizeCheck(addrB, stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * tensortensorWaveop->gSrcBStartAtMidPart(),
+                                          tensortensorWaveop->gSrcBSbAddress()));
     }
     kcc_int64 deltaAddr;
     if (addrA < addrB) {
@@ -268,10 +271,10 @@ WaveCodeTensorTensor::generateSameBufSrc(wave::TensorTensorWaveOp* tensortensorW
 
 
     //-----------------------------------------------------------------
-    tensorReduceInstr.inst_events.wait_event_idx     = 0;
-    tensorReduceInstr.inst_events.wait_event_mode    = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    tensorReduceInstr.inst_events.set_event_idx      = 0;
-    tensorReduceInstr.inst_events.set_event_mode     = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    AssignWithSizeCheck(tensorReduceInstr.inst_events.wait_event_idx, 0);
+    AssignWithSizeCheck(tensorReduceInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
+    AssignWithSizeCheck(tensorReduceInstr.inst_events.set_event_idx, 0);
+    AssignWithSizeCheck(tensorReduceInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
 
     //************************************************************************
     if (qParallelStreams()) { // incoming events

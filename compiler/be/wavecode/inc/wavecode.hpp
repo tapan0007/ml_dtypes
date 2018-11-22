@@ -9,6 +9,8 @@
 #include <cstdio>
 #include <memory>
 #include <limits>
+#include <type_traits>
+#include <typeinfo>
 
 
 
@@ -208,21 +210,46 @@ private:
 };
 
 
+
+
+
+/* **************************************************************** */
+template <typename T, bool IsEnum>
+struct UnderlyingType;
+
+template <typename T>
+struct UnderlyingType<T, true> {
+    using Type = typename std::underlying_type<T>::type;
+};
+
+template <typename T>
+struct UnderlyingType<T, false> {
+    using Type = T;
+};
+
+/* **************************************************************** */
 template<typename TypeTo, typename TypeFrom>
 void
 AssignWithSizeCheckTempl(TypeTo& to, const TypeFrom from, const char* fileName, int lineNum)
 {
-    const long Min = std::numeric_limits<TypeTo>::min();
-    const long Max = std::numeric_limits<TypeTo>::max();
-    const long From = from;
-    Assert(Min <= From && From <= Max,
-        "File='", fileName, "', line=", lineNum, 
-        ", Value out of limits: min=", Min, ", max=", Max, ", val=", From);
+    using UnderlyingTypeFrom = typename UnderlyingType<TypeFrom, std::is_enum<TypeFrom>::value>::Type;
+    using UnderlyingTypeTo   = typename UnderlyingType<TypeTo,   std::is_enum<TypeTo>::value>::Type;
 
-    // Assignment
+    const UnderlyingTypeFrom from1(static_cast<UnderlyingTypeFrom>(from));
+    const UnderlyingTypeTo   to1(from1);
+    const UnderlyingTypeFrom from2(to1);
+
+    Assert( ((to1 > 0) == (from1 > 0))  && ((from1 > 0) == (from2 > 0)) 
+            && (from1 == from2) && (static_cast<long long>(from1) == static_cast<long long>(to1)),
+            "File='", fileName, "', line=", lineNum,
+            ", TypeTo=", typeid(to).name(), ", TypeFrom=", typeid(from).name(), ", ValueFrom=", from );
+
     to = from;
 }
+
 #define AssignWithSizeCheck(To, From) AssignWithSizeCheckTempl(To, From, __FILE__, __LINE__)
+
+
 
 }}
 

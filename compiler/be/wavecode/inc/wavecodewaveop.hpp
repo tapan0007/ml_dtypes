@@ -184,22 +184,22 @@ bool WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop, INST& instr)
                 // multiple SETs (multiple dependencies), so to properly trigger a dependent load,
                 // there must be an event from MM to a WAIT followed by the first SETs (no longer embedded)
                 // 1. MatMul sets a reserved event
-                instr.inst_events.set_event_idx  = events::EventMgr::EventId_MMStartMultiSet();
-                instr.inst_events.set_event_mode = events::eventSetMode2Isa(succWaveEdge->gSetEventMode());
+                AssignWithSizeCheck(instr.inst_events.set_event_idx, events::EventMgr::EventId_MMStartMultiSet());
+                AssignWithSizeCheck(instr.inst_events.set_event_mode, events::eventSetMode2Isa(succWaveEdge->gSetEventMode()));
                 m_WaveCode.SaveName(instr, oss.str().c_str());
                 m_WaveCode.writeInstruction(instr); // this requires template
                 // 2. Wait for reserved event
                 {
                     compisa::WaitInstr waitEventInstr;
-                    waitEventInstr.event_idx         = events::EventMgr::EventId_MMStartMultiSet();
-                    waitEventInstr.wait_event_mode   = events::eventWaitMode2Isa(events::EventWaitMode::WaitThenClear);
+                    AssignWithSizeCheck(waitEventInstr.event_idx, events::EventMgr::EventId_MMStartMultiSet());
+                    AssignWithSizeCheck(waitEventInstr.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::WaitThenClear));
                     m_WaveCode.SaveName(waitEventInstr, oss.str().c_str());
                     m_WaveCode.writeInstruction(waitEventInstr, waveop->gEngineId());
                 }
                 // 3. Set the actual event scheduled
                 if (succWaveEdge->qSyncedWithEvent()) {
                     compisa::SetInstr setEventInstr;
-                    setEventInstr.event_idx          = succWaveEdge->gEventId();
+                    AssignWithSizeCheck(setEventInstr.event_idx, succWaveEdge->gEventId());
                     m_WaveCode.SaveName(setEventInstr, oss.str().c_str());
                     m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
                 } else if (succWaveEdge->qSyncedWithSemaphore()) {
@@ -211,9 +211,9 @@ bool WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop, INST& instr)
             }
             else {
                 if (succWaveEdge->qSyncedWithEvent()) {
-                    instr.inst_events.set_event_idx    = succWaveEdge->gEventId();
-                    instr.inst_events.set_event_mode  = events::eventSetMode2Isa(
-                                                            succWaveEdge->gSetEventMode());
+                    AssignWithSizeCheck(instr.inst_events.set_event_idx, succWaveEdge->gEventId());
+                    AssignWithSizeCheck(instr.inst_events.set_event_mode,
+                                        events::eventSetMode2Isa(succWaveEdge->gSetEventMode()));
                     m_WaveCode.SaveName(instr, oss.str().c_str());
                     m_WaveCode.writeInstruction(instr); // this requires template
                 } else if (succWaveEdge->qSyncedWithSemaphore()) {
@@ -230,7 +230,7 @@ bool WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop, INST& instr)
                 std::ostringstream oss;
                 oss << waveop->gOrder() << "-" <<  waveop->gName();
                 compisa::SetInstr setEventInstr;
-                setEventInstr.event_idx = succWaveEdge->gEventId();
+                AssignWithSizeCheck(setEventInstr.event_idx, succWaveEdge->gEventId());
                 m_WaveCode.SaveName(setEventInstr, oss.str().c_str());
                 m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
                 //std::cout << waveop->gName() << " (not embedded) " << succWaveEdge->gEventId()

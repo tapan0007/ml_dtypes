@@ -100,7 +100,7 @@ WaveCodeWaveOp::GenerateSemaphoreInstr(const wave::WaveEdge* prevWaveEdge)
     // condition arrives to the semaphore.wait, misses the condition, and gets stuck.
     compisa::SemaphoreInstr semInstr;
     AssignWithSizeCheck(semInstr.semaphore_id, prevSbAtomWaveop->gDmaQueue()->gSemaphoreId());
-    semInstr.wait_cond = TONGA_ISA_TPB_SEMAPHORE_WAIT_COND_GREATER_EQUAL;
+    AssignWithSizeCheck(semInstr.wait_cond, TONGA_ISA_TPB_SEMAPHORE_WAIT_COND_GREATER_EQUAL);
     AssignWithSizeCheck(semInstr.wait_value, prevSbAtomWaveop->gTriggerOrd());
 
     const auto succWaveop = prevWaveEdge->gToOp();
@@ -208,7 +208,7 @@ WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop)
 
         ++numSyncs;
         compisa::SetInstr setEventInstr;
-        setEventInstr.event_idx = evtId;
+        AssignWithSizeCheck(setEventInstr.event_idx, evtId);
 
         std::ostringstream oss;
         oss << waveop->gOrder() << "-" << waveop->gName();

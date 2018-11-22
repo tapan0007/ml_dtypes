@@ -95,16 +95,16 @@ WaveCodeSbAtomLoad::generateForSimNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
     kcc_int64 npyFileDramOffset = m_WaveCode.getDramForNpyFile(sbAtomLoadWaveop->gRefFileName());
     if (npyFileDramOffset < 0) { // Load whole numpy file to DRAM
         compisa::SimWrNpyInstr simNpyToDramInstr;
-        simNpyToDramInstr.inst_events.wait_event_idx   = 0;
-        simNpyToDramInstr.inst_events.wait_event_mode  = eventWaitMode2Isa(events::EventWaitMode::DontWait);
-        simNpyToDramInstr.inst_events.set_event_idx    = 0;
-        simNpyToDramInstr.inst_events.set_event_mode   = eventSetMode2Isa(events::EventSetMode::DontSet);
+        AssignWithSizeCheck(simNpyToDramInstr.inst_events.wait_event_idx, 0);
+        AssignWithSizeCheck(simNpyToDramInstr.inst_events.wait_event_mode, eventWaitMode2Isa(events::EventWaitMode::DontWait));
+        AssignWithSizeCheck(simNpyToDramInstr.inst_events.set_event_idx, 0);
+        AssignWithSizeCheck(simNpyToDramInstr.inst_events.set_event_mode, eventSetMode2Isa(events::EventSetMode::DontSet));
 
         const kcc_int64 numPySize = sbAtomLoadWaveop->gLoadDataSizeInBytes();
         strcpy(simNpyToDramInstr.src_fname, sbAtomLoadWaveop->gRefFileName().c_str());
         npyFileDramOffset           = m_WaveCode.gCurrentDramAddress(numPySize);
 
-        simNpyToDramInstr.dst_addr     = npyFileDramOffset;
+        AssignWithSizeCheck(simNpyToDramInstr.dst_addr, npyFileDramOffset);
         m_WaveCode.writeInstruction(simNpyToDramInstr);
 
         WaveCode::NpyFileInfo npyFileInfo;
@@ -117,10 +117,10 @@ WaveCodeSbAtomLoad::generateForSimNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
 
     //************************************************************************
     compisa::SimMemCpyInstr simDramToStateBufInstr;
-    simDramToStateBufInstr.inst_events.wait_event_idx  = 0;
-    simDramToStateBufInstr.inst_events.wait_event_mode = eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    simDramToStateBufInstr.inst_events.set_event_idx   = 0;
-    simDramToStateBufInstr.inst_events.set_event_mode  = eventSetMode2Isa(events::EventSetMode::DontSet);
+    AssignWithSizeCheck(simDramToStateBufInstr.inst_events.wait_event_idx, 0);
+    AssignWithSizeCheck(simDramToStateBufInstr.inst_events.wait_event_mode, eventWaitMode2Isa(events::EventWaitMode::DontWait));
+    AssignWithSizeCheck(simDramToStateBufInstr.inst_events.set_event_idx, 0);
+    AssignWithSizeCheck(simDramToStateBufInstr.inst_events.set_event_mode, eventSetMode2Isa(events::EventSetMode::DontSet));
 
     events::EventId setEventId = 0; // events::EventId_Invalid();
     events::EventSetMode setEventMode = events::EventSetMode::DontSet;
@@ -146,29 +146,29 @@ WaveCodeSbAtomLoad::generateForSimNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
     const kcc_int64 stepSize        = sbAtomLoadWaveop->gPartitionStepBytes();
     const kcc_int64 startPart       = sbAtomLoadWaveop->gStartAtMidPart() ? arch::Arch::gArch().gNumberPeArrayRows()/2 : 0;
 
-    simDramToStateBufInstr.nbytes      = numBytesPerPart;
+    AssignWithSizeCheck(simDramToStateBufInstr.nbytes, numBytesPerPart);
 
     for (kcc_int32 partIdx = startPart; partIdx < startPart + numPartitions; ++partIdx) {
         if (qParallelStreams()) {
             const bool first = 0 == partIdx;
             const bool last =  numPartitions-1 == partIdx;
-            simDramToStateBufInstr.inst_events.wait_event_idx      = 0;
-            simDramToStateBufInstr.inst_events.wait_event_mode     = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-            simDramToStateBufInstr.inst_events.set_event_idx       = 0;
-            simDramToStateBufInstr.inst_events.set_event_mode      = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+            AssignWithSizeCheck(simDramToStateBufInstr.inst_events.wait_event_idx, 0);
+            AssignWithSizeCheck(simDramToStateBufInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
+            AssignWithSizeCheck(simDramToStateBufInstr.inst_events.set_event_idx, 0);
+            AssignWithSizeCheck(simDramToStateBufInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
 
             if (first) { // only the first reading waits for predecessors
-                simDramToStateBufInstr.inst_events.wait_event_idx  = waitEventId;
-                simDramToStateBufInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(waitEventMode);
+            AssignWithSizeCheck(simDramToStateBufInstr.inst_events.wait_event_idx, waitEventId);
+            AssignWithSizeCheck(simDramToStateBufInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(waitEventMode));
             }
             if (last) { // only the last reading informs successors
-                simDramToStateBufInstr.inst_events.set_event_idx   = setEventId;
-                simDramToStateBufInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(setEventMode);
+            AssignWithSizeCheck(simDramToStateBufInstr.inst_events.set_event_idx, setEventId);
+            AssignWithSizeCheck(simDramToStateBufInstr.inst_events.set_event_mode, events::eventSetMode2Isa(setEventMode));
             }
         }
 
-        simDramToStateBufInstr.src_addr = npyFileDramOffset + sbAtomLoadWaveop->gOffsetInFile() + (partIdx * stepSize);
-        simDramToStateBufInstr.dst_addr = stateBuf.gEntryTongaAddress(partIdx, addressInPart);
+            AssignWithSizeCheck(simDramToStateBufInstr.src_addr, npyFileDramOffset + sbAtomLoadWaveop->gOffsetInFile() + (partIdx * stepSize));
+            AssignWithSizeCheck(simDramToStateBufInstr.dst_addr, stateBuf.gEntryTongaAddress(partIdx, addressInPart));
 
         {
             std::ostringstream oss;
@@ -191,17 +191,17 @@ WaveCodeSbAtomLoad::setInstructionEvents(compisa::SimMemCpyInstr& simDramToState
                     events::EventId waitEventId, events::EventWaitMode waitEventMode,
                     events::EventId setEventId, events::EventSetMode setEventMode)
 {
-    simDramToStateBufInstr.inst_events.wait_event_idx  = 0;
-    simDramToStateBufInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    simDramToStateBufInstr.inst_events.set_event_idx  = 0;
-    simDramToStateBufInstr.inst_events.set_event_mode = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    AssignWithSizeCheck(simDramToStateBufInstr.inst_events.wait_event_idx, 0);
+    AssignWithSizeCheck(simDramToStateBufInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
+    AssignWithSizeCheck(simDramToStateBufInstr.inst_events.set_event_idx, 0);
+    AssignWithSizeCheck(simDramToStateBufInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
     if (first) { // only the first reading waits for predecessors
-        simDramToStateBufInstr.inst_events.wait_event_idx  = waitEventId;
-        simDramToStateBufInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(waitEventMode);
+        AssignWithSizeCheck(simDramToStateBufInstr.inst_events.wait_event_idx, waitEventId);
+        AssignWithSizeCheck(simDramToStateBufInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(waitEventMode));
     }
     if (last) { // only the last reading informs successors
-        simDramToStateBufInstr.inst_events.set_event_idx   = setEventId;
-        simDramToStateBufInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(setEventMode);
+        AssignWithSizeCheck(simDramToStateBufInstr.inst_events.set_event_idx, setEventId);
+        AssignWithSizeCheck(simDramToStateBufInstr.inst_events.set_event_mode, events::eventSetMode2Isa(setEventMode));
     }
 }
 
@@ -219,16 +219,16 @@ WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     kcc_int64 npyFileDramOffset = m_WaveCode.getDramForNpyFile(refFileName);
     if (npyFileDramOffset < 0) { // Load whole numpy file to DRAM
         compisa::SimWrNpyInstr simNpyToDramInstr;
-        simNpyToDramInstr.inst_events.wait_event_idx   = 0;
-        simNpyToDramInstr.inst_events.wait_event_mode  = eventWaitMode2Isa(events::EventWaitMode::DontWait);
-        simNpyToDramInstr.inst_events.set_event_idx    = 0;
-        simNpyToDramInstr.inst_events.set_event_mode   = eventSetMode2Isa(events::EventSetMode::DontSet);
+        AssignWithSizeCheck(simNpyToDramInstr.inst_events.wait_event_idx, 0);
+        AssignWithSizeCheck(simNpyToDramInstr.inst_events.wait_event_mode, eventWaitMode2Isa(events::EventWaitMode::DontWait));
+        AssignWithSizeCheck(simNpyToDramInstr.inst_events.set_event_idx, 0);
+        AssignWithSizeCheck(simNpyToDramInstr.inst_events.set_event_mode, eventSetMode2Isa(events::EventSetMode::DontSet));
 
         const kcc_int64 numPySize = sbAtomLoadWaveop->gLoadDataSizeInBytes();
         strcpy(simNpyToDramInstr.src_fname, refFileName.c_str());
         npyFileDramOffset           = m_WaveCode.gCurrentDramAddress(numPySize);
 
-        simNpyToDramInstr.dst_addr     = npyFileDramOffset;
+        AssignWithSizeCheck(simNpyToDramInstr.dst_addr, npyFileDramOffset);
         m_WaveCode.writeInstruction(simNpyToDramInstr);
 
         WaveCode::NpyFileInfo npyFileInfo;
@@ -241,10 +241,10 @@ WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
 
     //************************************************************************
     compisa::SimMemCpyInstr simDramToStateBufInstr;
-    simDramToStateBufInstr.inst_events.wait_event_idx  = 0;
-    simDramToStateBufInstr.inst_events.wait_event_mode = eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    simDramToStateBufInstr.inst_events.set_event_idx   = 0;
-    simDramToStateBufInstr.inst_events.set_event_mode  = eventSetMode2Isa(events::EventSetMode::DontSet);
+    AssignWithSizeCheck(simDramToStateBufInstr.inst_events.wait_event_idx, 0);
+    AssignWithSizeCheck(simDramToStateBufInstr.inst_events.wait_event_mode, eventWaitMode2Isa(events::EventWaitMode::DontWait));
+    AssignWithSizeCheck(simDramToStateBufInstr.inst_events.set_event_idx, 0);
+    AssignWithSizeCheck(simDramToStateBufInstr.inst_events.set_event_mode, eventSetMode2Isa(events::EventSetMode::DontSet));
 
     events::EventId setEventId = 0; // events::EventId_Invalid();
     events::EventSetMode setEventMode = events::EventSetMode::DontSet;
@@ -280,7 +280,7 @@ WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
         Assert(numBytesPerPart == ifmapReplStepBytes, "Replication step bytes should be equal to length");
         const kcc_uint32 numChans = replResolution;
 
-        simDramToStateBufInstr.nbytes   = ifmapReplStepBytes;
+        AssignWithSizeCheck(simDramToStateBufInstr.nbytes, ifmapReplStepBytes);
 
         TongaAddress  fileAddress = sbAtomLoadWaveop->gOffsetInFile();
         TongaAddress  sbTongaAddress = stateBuf.gEntryTongaAddress(startPart, addressInPart);
@@ -293,9 +293,9 @@ WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
                 setInstructionEvents(simDramToStateBufInstr, first, last,
                         waitEventId, waitEventMode, setEventId, setEventMode);
 
-                simDramToStateBufInstr.src_addr = npyFileDramOffset + fileAddress + c_idx * partStepBytes;
+                AssignWithSizeCheck(simDramToStateBufInstr.src_addr, npyFileDramOffset + fileAddress + c_idx * partStepBytes);
                                                                             // + c_idx * 6272
-                simDramToStateBufInstr.dst_addr = sbTongaAddress;
+                AssignWithSizeCheck(simDramToStateBufInstr.dst_addr, sbTongaAddress);
                 {
                     std::ostringstream oss;
                     oss << sbAtomLoadWaveop->gOrder()
@@ -382,10 +382,10 @@ WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
                                 std::cout << "\n";
                             }
                         }
-                        simDramToStateBufInstr.nbytes   = numBytesToWrite;
+                        AssignWithSizeCheck(simDramToStateBufInstr.nbytes, numBytesToWrite);
 
-                        simDramToStateBufInstr.src_addr = npyFileDramOffset + filePartAddress;
-                        simDramToStateBufInstr.dst_addr = sbTongaAddress;
+                        AssignWithSizeCheck(simDramToStateBufInstr.src_addr, npyFileDramOffset + filePartAddress);
+                        AssignWithSizeCheck(simDramToStateBufInstr.dst_addr, sbTongaAddress);
                         {
                             std::ostringstream oss;
                             oss << sbAtomLoadWaveop->gOrder()
@@ -552,13 +552,13 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelf(wave::SbAtomLoadWaveOp*
     strncpy(dmaTriggerInstr.dma_queue_name,
             dmaBlockToTpb.gDmaQueue()->gName().c_str(),
             ArraySizeof(dmaTriggerInstr.dma_queue_name) - 1);
-    dmaTriggerInstr.use_raw_count = 0; // get from JSON
-    dmaTriggerInstr.block_id = dmaBlockToTpb.gBlockId();
+    AssignWithSizeCheck(dmaTriggerInstr.use_raw_count, 0); // get from JSON
+    AssignWithSizeCheck(dmaTriggerInstr.block_id, dmaBlockToTpb.gBlockId());
 
-    dmaTriggerInstr.inst_events.wait_event_idx  = 0;
-    dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ evt is in the descriptor block
-    dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_idx, 0);
+    AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
+    AssignWithSizeCheck(dmaTriggerInstr.inst_events.set_event_idx, 0); // succ evt is in the descriptor block
+    AssignWithSizeCheck(dmaTriggerInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
     {
         std::ostringstream oss;
         oss << sbAtomLoadWaveop->gOrder()
@@ -708,14 +708,14 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
     strncpy(dmaTriggerInstr.dma_queue_name,
             dmaInBlock.gDmaQueue()->gName().c_str(),
             ArraySizeof(dmaTriggerInstr.dma_queue_name) - 1);
-    dmaTriggerInstr.use_raw_count = 0; // get from JSON
-    dmaTriggerInstr.block_id = dmaInBlock.gBlockId();
+    AssignWithSizeCheck(dmaTriggerInstr.use_raw_count, 0); // get from JSON
+    AssignWithSizeCheck(dmaTriggerInstr.block_id, dmaInBlock.gBlockId());
 
-    dmaTriggerInstr.inst_events.wait_event_idx  = 0;
-    dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
+    AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_idx, 0);
+    AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
 
-    dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ evt is in the descriptor block
-    dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    AssignWithSizeCheck(dmaTriggerInstr.inst_events.set_event_idx, 0); // succ evt is in the descriptor block
+    AssignWithSizeCheck(dmaTriggerInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
     {
         std::ostringstream oss;
         oss << sbAtomLoadWaveop->gOrder()
@@ -770,14 +770,14 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     strncpy(dmaTriggerInstr.dma_queue_name,
             dmaInBlock.gDmaQueue()->gName().c_str(),
             ArraySizeof(dmaTriggerInstr.dma_queue_name) - 1);
-    dmaTriggerInstr.use_raw_count = 0; // get from JSON
-    dmaTriggerInstr.block_id = dmaInBlock.gBlockId();
+    AssignWithSizeCheck(dmaTriggerInstr.use_raw_count, 0); // get from JSON
+    AssignWithSizeCheck(dmaTriggerInstr.block_id, dmaInBlock.gBlockId());
 
-    dmaTriggerInstr.inst_events.wait_event_idx  = 0;
-    dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
+    AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_idx, 0);
+    AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
 
-    dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ evt in the descr. block
-    dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    AssignWithSizeCheck(dmaTriggerInstr.inst_events.set_event_idx, 0); // succ evt in the descr. block
+    AssignWithSizeCheck(dmaTriggerInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
     {
         std::ostringstream oss;
         oss << sbAtomLoadWaveop->gOrder()
@@ -914,13 +914,13 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::Sb
     strncpy(dmaTriggerInstr.dma_queue_name,
             dmaBlockToTpb.gDmaQueue()->gName().c_str(),
             ArraySizeof(dmaTriggerInstr.dma_queue_name) - 1);
-    dmaTriggerInstr.use_raw_count = 0; // get from JSON
-    dmaTriggerInstr.block_id = dmaBlockToTpb.gBlockId();
+    AssignWithSizeCheck(dmaTriggerInstr.use_raw_count, 0); // get from JSON
+    AssignWithSizeCheck(dmaTriggerInstr.block_id, dmaBlockToTpb.gBlockId());
 
-    dmaTriggerInstr.inst_events.wait_event_idx  = 0;
-    dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ evt is in the descriptor block
-    dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_idx, 0);
+    AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
+    AssignWithSizeCheck(dmaTriggerInstr.inst_events.set_event_idx, 0); // succ evt is in the descriptor block
+    AssignWithSizeCheck(dmaTriggerInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
     {
         std::ostringstream oss;
         oss << sbAtomLoadWaveop->gOrder()
@@ -958,16 +958,16 @@ WaveCodeSbAtomLoad::generateDmaCopySimKelf(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     kcc_int64 npyFileDramOffset = m_WaveCode.getDramForNpyFile(sbAtomLoadWaveop->gRefFileName());
     if (npyFileDramOffset < 0) { // Load whole numpy file to DRAM
         compisa::SimWrNpyInstr simNpyToDramInstr;
-        simNpyToDramInstr.inst_events.wait_event_idx   = 0;
-        simNpyToDramInstr.inst_events.wait_event_mode  = eventWaitMode2Isa(events::EventWaitMode::DontWait);
-        simNpyToDramInstr.inst_events.set_event_idx    = 0;
-        simNpyToDramInstr.inst_events.set_event_mode   = eventSetMode2Isa(events::EventSetMode::DontSet);
+        AssignWithSizeCheck(simNpyToDramInstr.inst_events.wait_event_idx, 0);
+        AssignWithSizeCheck(simNpyToDramInstr.inst_events.wait_event_mode, eventWaitMode2Isa(events::EventWaitMode::DontWait));
+        AssignWithSizeCheck(simNpyToDramInstr.inst_events.set_event_idx, 0);
+        AssignWithSizeCheck(simNpyToDramInstr.inst_events.set_event_mode, eventSetMode2Isa(events::EventSetMode::DontSet));
 
         const kcc_int64 numPySize = sbAtomLoadWaveop->gLoadDataSizeInBytes();
         strcpy(simNpyToDramInstr.src_fname, sbAtomLoadWaveop->gRefFileName().c_str());
         npyFileDramOffset           = m_WaveCode.gCurrentDramAddress(numPySize);
 
-        simNpyToDramInstr.dst_addr     = npyFileDramOffset;
+        AssignWithSizeCheck(simNpyToDramInstr.dst_addr, npyFileDramOffset);
         m_WaveCode.writeInstruction(simNpyToDramInstr);
 
         WaveCode::NpyFileInfo npyFileInfo;
@@ -980,10 +980,10 @@ WaveCodeSbAtomLoad::generateDmaCopySimKelf(wave::SbAtomLoadWaveOp* sbAtomLoadWav
 
 
     compisa::SimDmaCopyInstr simDmaCopyInstr;
-    simDmaCopyInstr.inst_events.wait_event_idx  = 0;
-    simDmaCopyInstr.inst_events.wait_event_mode = eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    simDmaCopyInstr.inst_events.set_event_idx   = 0;
-    simDmaCopyInstr.inst_events.set_event_mode  = eventSetMode2Isa(events::EventSetMode::DontSet);
+    AssignWithSizeCheck(simDmaCopyInstr.inst_events.wait_event_idx, 0);
+    AssignWithSizeCheck(simDmaCopyInstr.inst_events.wait_event_mode, eventWaitMode2Isa(events::EventWaitMode::DontWait));
+    AssignWithSizeCheck(simDmaCopyInstr.inst_events.set_event_idx, 0);
+    AssignWithSizeCheck(simDmaCopyInstr.inst_events.set_event_mode, eventSetMode2Isa(events::EventSetMode::DontSet));
 
     events::EventId setEventId = 0; // events::EventId_Invalid();
     events::EventSetMode setEventMode = events::EventSetMode::DontSet;
@@ -995,8 +995,8 @@ WaveCodeSbAtomLoad::generateDmaCopySimKelf(wave::SbAtomLoadWaveOp* sbAtomLoadWav
         processIncomingEdges(sbAtomLoadWaveop, waitEventId, waitEventMode);
     } // end incoming events
 
-    simDmaCopyInstr.inst_events.wait_event_idx  = waitEventId;
-    simDmaCopyInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(waitEventMode);
+    AssignWithSizeCheck(simDmaCopyInstr.inst_events.wait_event_idx, waitEventId);
+    AssignWithSizeCheck(simDmaCopyInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(waitEventMode));
 
     if (qParallelStreams()) { // Find first successor for embedded
         findFirstSetEventIdMode(sbAtomLoadWaveop, setEventId,  setEventMode);
@@ -1007,14 +1007,14 @@ WaveCodeSbAtomLoad::generateDmaCopySimKelf(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     const TongaAddress sbStartTongaAddress = stateBuf.gEntryTongaAddress(startPart, addressInPart);
 
     // DRAM
-    simDmaCopyInstr.src_start_addr   = fileAddress;
+    AssignWithSizeCheck(simDmaCopyInstr.src_start_addr, fileAddress);
     AssignWithSizeCheck(simDmaCopyInstr.src_num_elem[0], numPartitions * numBytesPerPart);
     AssignWithSizeCheck(simDmaCopyInstr.src_step_elem[0], 1);
     AssignWithSizeCheck(simDmaCopyInstr.src_num_elem[1], 1);
     AssignWithSizeCheck(simDmaCopyInstr.src_step_elem[1], 0);
 
     // SB
-    simDmaCopyInstr.dst_start_addr   = sbStartTongaAddress;
+    AssignWithSizeCheck(simDmaCopyInstr.dst_start_addr, sbStartTongaAddress);
     AssignWithSizeCheck(simDmaCopyInstr.dst_num_elem[0], numBytesPerPart);
     AssignWithSizeCheck(simDmaCopyInstr.dst_step_elem[0], 1);
     AssignWithSizeCheck(simDmaCopyInstr.dst_num_elem[1], numPartitions);
@@ -1022,9 +1022,9 @@ WaveCodeSbAtomLoad::generateDmaCopySimKelf(wave::SbAtomLoadWaveOp* sbAtomLoadWav
 
     // Should we assert that size <= 1?
     if (succEventIds.size() > 0) {
-        simDmaCopyInstr.queue_idx        = succEventIds[0];
+        AssignWithSizeCheck(simDmaCopyInstr.queue_idx, succEventIds[0]);
     } else {
-        simDmaCopyInstr.queue_idx    = 0;
+        AssignWithSizeCheck(simDmaCopyInstr.queue_idx, 0);
     }
 
     {

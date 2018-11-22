@@ -47,29 +47,29 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     /* pool args */
     switch (poolWaveop->gPoolFunc()) {
     case PoolType::Max:
-        poolInstr.pool_func = TONGA_ISA_TPB_POOL_TYPE_MAXPOOL;
+        AssignWithSizeCheck(poolInstr.pool_func, TONGA_ISA_TPB_POOL_TYPE_MAXPOOL);
         break;
     case PoolType::Avg:
-        poolInstr.pool_func = TONGA_ISA_TPB_POOL_TYPE_AVGPOOL;
+        AssignWithSizeCheck(poolInstr.pool_func, TONGA_ISA_TPB_POOL_TYPE_AVGPOOL);
         break;
     default:
         assert(false && "Bad PoolType in PoolWaveOp");
         break;
     }
 
-    poolInstr.in_dtype          = poolWaveop->gInDtype().gSimTypeId();
-    poolInstr.out_dtype         = poolWaveop->gOutDtype().gSimTypeId();
+    AssignWithSizeCheck(poolInstr.in_dtype, poolWaveop->gInDtype().gSimTypeId());
+    AssignWithSizeCheck(poolInstr.out_dtype, poolWaveop->gOutDtype().gSimTypeId());
 
     initMemAccess(poolInstr.src_mem_pattern);
     if (poolWaveop->qSrcIsPsum()) {
-        poolInstr.src_mem_pattern.start_addr = psumBuf.gEntryTpbAddress(
-                                                    poolWaveop->gSrcPsumBankId(),
-                                                    poolWaveop->gSrcPsumBankOffset(),
-                                                    poolWaveop->gInDtype());
+        AssignWithSizeCheck(poolInstr.src_mem_pattern.start_addr,
+                            psumBuf.gEntryTpbAddress(poolWaveop->gSrcPsumBankId(),
+                                                     poolWaveop->gSrcPsumBankOffset(),
+                                                     poolWaveop->gInDtype()));
     } else { // State buffer
-        poolInstr.src_mem_pattern.start_addr = stateBuf.gEntryTpbAddress(
-                                                    arch.gNumberPeArrayRows()/2 * poolWaveop->gSrcStartAtMidPart(),
-                                                    poolWaveop->gSrcSbAddress());
+        AssignWithSizeCheck(poolInstr.src_mem_pattern.start_addr,
+                            stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * poolWaveop->gSrcStartAtMidPart(),
+                                                      poolWaveop->gSrcSbAddress()));
     }
 
     AssignWithSizeCheck(poolInstr.src_mem_pattern.step_elem[PatDim_X], poolWaveop->gSrcXStep());
@@ -83,18 +83,18 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     AssignWithSizeCheck(poolInstr.src_mem_pattern.step_elem[PatDim_W], poolWaveop->gSrcWStep());
     AssignWithSizeCheck(poolInstr.src_mem_pattern.num_elem[PatDim_W], poolWaveop->gSrcWNum());
 
-    poolInstr.num_active_channels   = poolWaveop->gNumPartitions();
+    AssignWithSizeCheck(poolInstr.num_active_channels, poolWaveop->gNumPartitions());
 
-    //poolInstr.pool_frequency        = poolWaveop->gPoolFrequency();
-    poolInstr.pool_dim              = TONGA_ISA_TPB_TENSOR_SUBDIM_XY;
-    poolInstr.pool_scale            = static_cast<float>(1.0/poolWaveop->gPoolFrequency());
+    // AssignWithSizeCheck(poolInstr.pool_frequency, poolWaveop->gPoolFrequency());
+    AssignWithSizeCheck(poolInstr.pool_dim, TONGA_ISA_TPB_TENSOR_SUBDIM_XY);
+    poolInstr.pool_scale            = static_cast<float>(1.0/poolWaveop->gPoolFrequency()); // float
 
     /* Pool  */
     initMemAccess(poolInstr.dst_mem_pattern);
     // For now DST is always StateBuf
-    poolInstr.dst_mem_pattern.start_addr    = stateBuf.gEntryTpbAddress(
-                                                    arch.gNumberPeArrayRows()/2 * poolWaveop->gDstStartAtMidPart(),
-                                                    poolWaveop->gDstSbAddress());
+    AssignWithSizeCheck(poolInstr.dst_mem_pattern.start_addr,
+                        stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * poolWaveop->gDstStartAtMidPart(),
+                                                  poolWaveop->gDstSbAddress()));
 
     AssignWithSizeCheck(poolInstr.dst_mem_pattern.step_elem[PatDim_X], poolWaveop->gDstXStep());
     AssignWithSizeCheck(poolInstr.dst_mem_pattern.num_elem[PatDim_X], poolWaveop->gDstXNum());
@@ -105,10 +105,10 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     AssignWithSizeCheck(poolInstr.dst_mem_pattern.step_elem[PatDim_W], 0);
     AssignWithSizeCheck(poolInstr.dst_mem_pattern.num_elem[PatDim_W], 1);
 
-    poolInstr.inst_events.wait_event_idx    = 0;
-    poolInstr.inst_events.wait_event_mode   = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    poolInstr.inst_events.set_event_idx     = 0;
-    poolInstr.inst_events.set_event_mode    = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    AssignWithSizeCheck(poolInstr.inst_events.wait_event_idx, 0);
+    AssignWithSizeCheck(poolInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
+    AssignWithSizeCheck(poolInstr.inst_events.set_event_idx, 0);
+    AssignWithSizeCheck(poolInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
 
     //************************************************************************
     if (qParallelStreams()) { // incoming events

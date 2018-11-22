@@ -42,21 +42,21 @@ WaveCodeClipByValue::generate(wave::WaveOp* waveop)
 
     compisa::TensorScalarOpInstr tensorScalarOpInstr;
 
-    tensorScalarOpInstr.in_dtype            = clipByValueWaveop->gInDtype().gSimTypeId();
-    tensorScalarOpInstr.out_dtype           = clipByValueWaveop->gOutDtype().gSimTypeId();
+    AssignWithSizeCheck(tensorScalarOpInstr.in_dtype, clipByValueWaveop->gInDtype().gSimTypeId());
+    AssignWithSizeCheck(tensorScalarOpInstr.out_dtype, clipByValueWaveop->gOutDtype().gSimTypeId());
 
 
     // TODO: for now Activation reads from 0 elem in bank.
     initMemAccess(tensorScalarOpInstr.src_mem_pattern);
     if (clipByValueWaveop->qSrcIsPsum()) {
-        tensorScalarOpInstr.src_mem_pattern.start_addr  = psumBuf.gEntryTpbAddress(
-                                                            clipByValueWaveop->gSrcPsumBankId(),
-                                                            clipByValueWaveop->gSrcPsumBankOffset(),
-                                                            clipByValueWaveop->gInDtype());
+        AssignWithSizeCheck(tensorScalarOpInstr.src_mem_pattern.start_addr,
+                            psumBuf.gEntryTpbAddress(clipByValueWaveop->gSrcPsumBankId(),
+                                                     clipByValueWaveop->gSrcPsumBankOffset(),
+                                                     clipByValueWaveop->gInDtype()));
     } else {
-        tensorScalarOpInstr.src_mem_pattern.start_addr  = stateBuf.gEntryTpbAddress(
-                                                            arch.gNumberPeArrayRows()/2 * clipByValueWaveop->gSrcStartAtMidPart(),
-                                                            clipByValueWaveop->gSrcSbAddress());
+        AssignWithSizeCheck(tensorScalarOpInstr.src_mem_pattern.start_addr,
+                            stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * clipByValueWaveop->gSrcStartAtMidPart(),
+                                                      clipByValueWaveop->gSrcSbAddress()));
     }
     AssignWithSizeCheck(tensorScalarOpInstr.src_mem_pattern.step_elem[PatDim_X], clipByValueWaveop->gSrcXStep());
     AssignWithSizeCheck(tensorScalarOpInstr.src_mem_pattern.num_elem[PatDim_X], clipByValueWaveop->gSrcXNum());
@@ -68,14 +68,14 @@ WaveCodeClipByValue::generate(wave::WaveOp* waveop)
 
     initMemAccess(tensorScalarOpInstr.dst_mem_pattern);
     if (clipByValueWaveop->qDstIsPsum()) {
-        tensorScalarOpInstr.dst_mem_pattern.start_addr  = psumBuf.gEntryTpbAddress(
-                                                                  clipByValueWaveop->gDstPsumBankId(),
-                                                                  clipByValueWaveop->gDstPsumBankOffset(),
-                                                                  clipByValueWaveop->gOutDtype());
+        AssignWithSizeCheck(tensorScalarOpInstr.dst_mem_pattern.start_addr,
+                            psumBuf.gEntryTpbAddress(clipByValueWaveop->gDstPsumBankId(),
+                                                     clipByValueWaveop->gDstPsumBankOffset(),
+                                                     clipByValueWaveop->gOutDtype()));
     } else {
-        tensorScalarOpInstr.dst_mem_pattern.start_addr  = stateBuf.gEntryTpbAddress(
-                                                            arch.gNumberPeArrayRows()/2 * clipByValueWaveop->gDstStartAtMidPart(),
-                                                            clipByValueWaveop->gDstSbAddress());
+        AssignWithSizeCheck(tensorScalarOpInstr.dst_mem_pattern.start_addr,
+                            stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * clipByValueWaveop->gDstStartAtMidPart(),
+                                                      clipByValueWaveop->gDstSbAddress()));
     }
     AssignWithSizeCheck(tensorScalarOpInstr.dst_mem_pattern.step_elem[PatDim_X], clipByValueWaveop->gDstXStep());
     AssignWithSizeCheck(tensorScalarOpInstr.dst_mem_pattern.num_elem[PatDim_X], clipByValueWaveop->gDstXNum());
@@ -84,20 +84,20 @@ WaveCodeClipByValue::generate(wave::WaveOp* waveop)
     AssignWithSizeCheck(tensorScalarOpInstr.dst_mem_pattern.step_elem[PatDim_Z], clipByValueWaveop->gDstZStep());
     AssignWithSizeCheck(tensorScalarOpInstr.dst_mem_pattern.num_elem[PatDim_Z], clipByValueWaveop->gDstZNum());
 
-    tensorScalarOpInstr.num_active_channels = clipByValueWaveop->gNumPartitions();
+    AssignWithSizeCheck(tensorScalarOpInstr.num_active_channels, clipByValueWaveop->gNumPartitions());
 
-    tensorScalarOpInstr.op[0] = TONGA_ISA_TPB_ALU_OP_MIN;
-    tensorScalarOpInstr.imm_val[0] = clipByValueWaveop->gMaxValue();
+    AssignWithSizeCheck(tensorScalarOpInstr.op[0], TONGA_ISA_TPB_ALU_OP_MIN);
+    tensorScalarOpInstr.imm_val[0] =  clipByValueWaveop->gMaxValue(); // float
 
-    tensorScalarOpInstr.op[1] = TONGA_ISA_TPB_ALU_OP_MAX;
-    tensorScalarOpInstr.imm_val[1] = clipByValueWaveop->gMinValue();
+    AssignWithSizeCheck(tensorScalarOpInstr.op[1], TONGA_ISA_TPB_ALU_OP_MAX);
+    tensorScalarOpInstr.imm_val[1] = clipByValueWaveop->gMinValue(); // float
 
 
 
-    tensorScalarOpInstr.inst_events.wait_event_idx  = 0;
-    tensorScalarOpInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    tensorScalarOpInstr.inst_events.set_event_idx   = 0;
-    tensorScalarOpInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    AssignWithSizeCheck(tensorScalarOpInstr.inst_events.wait_event_idx, 0);
+    AssignWithSizeCheck(tensorScalarOpInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
+    AssignWithSizeCheck(tensorScalarOpInstr.inst_events.set_event_idx, 0);
+    AssignWithSizeCheck(tensorScalarOpInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
 
     //************************************************************************
     if (qParallelStreams()) { // incoming events

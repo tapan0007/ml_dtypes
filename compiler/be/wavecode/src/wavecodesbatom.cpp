@@ -44,7 +44,7 @@ WaveCodeSbAtom::processOutgoingEdgesAlreadyEmb(wave::SbAtomWaveOp* waveop, event
             eventIds.insert(evtId);
 
             compisa::SetInstr setInstr;
-            setInstr.event_idx  = evtId;
+            AssignWithSizeCheck(setInstr.event_idx, evtId);
 
             std::ostringstream oss;
             oss << waveop->gOrder() << "-" << waveop->gName();
@@ -60,11 +60,11 @@ WaveCodeSbAtom::addDmaBarrier(EngineId engId)
 {
     const arch::PeArray& peArray(arch::Arch::gArch().gPeArray());
     compisa::NopInstr nopInstr;
-    nopInstr.inst_events.wait_event_mode    = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    nopInstr.inst_events.wait_event_idx     = 0;
-    nopInstr.inst_events.set_event_mode     = events::eventSetMode2Isa(events::EventSetMode::DontSet);
-    nopInstr.inst_events.set_event_idx      = 0;
-    nopInstr.cycle_cnt                      = std::max(peArray.gNumberRows(), peArray.gNumberColumns());
+    AssignWithSizeCheck(nopInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
+    AssignWithSizeCheck(nopInstr.inst_events.wait_event_idx, 0);
+    AssignWithSizeCheck(nopInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
+    AssignWithSizeCheck(nopInstr.inst_events.set_event_idx, 0);
+    AssignWithSizeCheck(nopInstr.cycle_cnt, std::max(peArray.gNumberRows(), peArray.gNumberColumns()));
     std::ostringstream oss;
     m_WaveCode.SaveName(nopInstr, "Delay before DMA due to END-WRITE signal being set at end of partition 0");
     m_WaveCode.writeInstruction(nopInstr, engId);
@@ -81,10 +81,10 @@ WaveCodeSbAtom::addSecondDmaTrigger(
 
     if (TWO_DMA_TRIGGER_INST) {
         // dummy
-        dmaTriggerInstr.inst_events.wait_event_idx  = 0;
-        dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-        dmaTriggerInstr.inst_events.set_event_idx   = 0;
-        dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+        AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_idx, 0);
+        AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
+        AssignWithSizeCheck(dmaTriggerInstr.inst_events.set_event_idx, 0);
+        AssignWithSizeCheck(dmaTriggerInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
         m_WaveCode.SaveName(dmaTriggerInstr, "Second DMA_TRIGGER for non-atomic double WRITE");
         m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
     }

@@ -87,7 +87,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     compisa::LdWeightsInstr ldweightsInstr;
 
     const utils::DataType& inDtype(matmulWaveop->gInDtype());
-    ldweightsInstr.in_dtype                 = inDtype.gSimTypeId();
+    AssignWithSizeCheck(ldweightsInstr.in_dtype, inDtype.gSimTypeId());
     const kcc_int64 addressInSbPart     = matmulWaveop->gWeightsSbAddress();
 
     initMemAccess(ldweightsInstr.src_mem_pattern);
@@ -122,13 +122,13 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
             newNumWeights, ", exceeds the number PE columns ", peArray.gNumberColumns(),
             ". Waveop ", matmulWaveop->gName());
 
-        ldweightsInstr.src_mem_pattern.start_addr           = newLastAddressInSbPart;
+        AssignWithSizeCheck(ldweightsInstr.src_mem_pattern.start_addr, newLastAddressInSbPart);
         AssignWithSizeCheck(ldweightsInstr.src_mem_pattern.step_elem[PatDim_X], -1); // last column goes first, so decrement
         AssignWithSizeCheck(ldweightsInstr.src_mem_pattern.num_elem[PatDim_X], newNumWeights);
-        ldweightsInstr.num_active_cols                      = newNumWeights;
+        AssignWithSizeCheck(ldweightsInstr.num_active_cols, newNumWeights);
     }
 
-    ldweightsInstr.num_active_rows              = matmulWaveop->gNumRowPartitions();
+    AssignWithSizeCheck(ldweightsInstr.num_active_rows, matmulWaveop->gNumRowPartitions());
 
     if (kcc::utils::DataTypeId::Uint8 == matmulWaveop->gInDtype().gDataTypeId()) {
         ldweightsInstr.quant_offset_uint8[0] = static_cast<uint8_t>(matmulWaveop->gQuantOffsetWeights());
@@ -136,10 +136,10 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
         ldweightsInstr.quant_offset_uint16 = matmulWaveop->gQuantOffsetWeights();
     }
 
-    ldweightsInstr.inst_events.wait_event_idx   = 0;
-    ldweightsInstr.inst_events.wait_event_mode  = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    ldweightsInstr.inst_events.set_event_idx    = 0;
-    ldweightsInstr.inst_events.set_event_mode   = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    AssignWithSizeCheck(ldweightsInstr.inst_events.wait_event_idx, 0);
+    AssignWithSizeCheck(ldweightsInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
+    AssignWithSizeCheck(ldweightsInstr.inst_events.set_event_idx, 0);
+    AssignWithSizeCheck(ldweightsInstr.inst_events.set_event_mode,events::eventSetMode2Isa(events::EventSetMode::DontSet));
 
     //************************************************************************
     // incoming events
@@ -164,8 +164,8 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
 
                 if (firstEmbEvt) {
                     firstEmbEvt = false;
-                    ldweightsInstr.inst_events.wait_event_idx     = evtId;
-                    ldweightsInstr.inst_events.wait_event_mode    = eventWaitMode2Isa(prevWaveEdge->gWaitEventMode());
+                    AssignWithSizeCheck(ldweightsInstr.inst_events.wait_event_idx, evtId);
+                    AssignWithSizeCheck(ldweightsInstr.inst_events.wait_event_mode, eventWaitMode2Isa(prevWaveEdge->gWaitEventMode()));
                 } else {
                     m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
                 }
@@ -223,12 +223,12 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
     Assert(EngineId::PeArray == engineId, "Engine id for MatMul should be PeArray");
 
     compisa::MatMulInstr matmulInstr;
-    matmulInstr.in_dtype        = matmulWaveop->gInDtype().gSimTypeId();
-    matmulInstr.num_active_rows = matmulWaveop->gNumRowPartitions();
-    matmulInstr.num_active_cols = matmulWaveop->gNumColumnPartitions();
+    AssignWithSizeCheck(matmulInstr.in_dtype, matmulWaveop->gInDtype().gSimTypeId());
+    AssignWithSizeCheck(matmulInstr.num_active_rows, matmulWaveop->gNumRowPartitions());
+    AssignWithSizeCheck(matmulInstr.num_active_cols, matmulWaveop->gNumColumnPartitions());
 
     initMemAccess(matmulInstr.src_mem_pattern);
-    matmulInstr.src_mem_pattern.start_addr      = matmulWaveop->gIfmapsSbAddress();
+    AssignWithSizeCheck(matmulInstr.src_mem_pattern.start_addr, matmulWaveop->gIfmapsSbAddress());
 
     AssignWithSizeCheck(matmulInstr.src_mem_pattern.num_elem[PatDim_X], matmulWaveop->gFmapXNum());
     AssignWithSizeCheck(matmulInstr.src_mem_pattern.step_elem[PatDim_X], matmulWaveop->gFmapXStep());
@@ -240,10 +240,10 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
 
 
     initMemAccess(matmulInstr.dst_mem_pattern);
-    matmulInstr.dst_mem_pattern.start_addr         = psumBuf.gEntryTpbAddress(
-                                                        matmulWaveop->gPsumBankId(),
-                                                        matmulWaveop->gPsumBankOffset(),
-                                                        matmulWaveop->gOutDtype());
+    AssignWithSizeCheck(matmulInstr.dst_mem_pattern.start_addr,
+                        psumBuf.gEntryTpbAddress(matmulWaveop->gPsumBankId(),
+                                                 matmulWaveop->gPsumBankOffset(),
+                                                 matmulWaveop->gOutDtype()));
     AssignWithSizeCheck(matmulInstr.dst_mem_pattern.num_elem[PatDim_X], matmulWaveop->gPsumXNum());
     AssignWithSizeCheck(matmulInstr.dst_mem_pattern.step_elem[PatDim_X], matmulWaveop->gPsumXStep());
     AssignWithSizeCheck(matmulInstr.dst_mem_pattern.num_elem[PatDim_Y], matmulWaveop->gPsumYNum());
@@ -258,7 +258,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
     }
 
 
-    matmulInstr.timing_flags = 0;
+    AssignWithSizeCheck(matmulInstr.timing_flags, 0);
     if (matmulWaveop->qStartTensorCalc()) {
         matmulInstr.timing_flags |= TONGA_ISA_TPB_MATMUL_TIMING_FLAG_BEGIN_TENSOR_CALC;
     }
@@ -266,10 +266,10 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
         matmulInstr.timing_flags |= TONGA_ISA_TPB_MATMUL_TIMING_FLAG_END_TENSOR_CALC;
     }
 
-    matmulInstr.inst_events.wait_event_idx  = 0;
-    matmulInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    matmulInstr.inst_events.set_event_idx   = 0;
-    matmulInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    AssignWithSizeCheck(matmulInstr.inst_events.wait_event_idx, 0);
+    AssignWithSizeCheck(matmulInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
+    AssignWithSizeCheck(matmulInstr.inst_events.set_event_idx, 0);
+    AssignWithSizeCheck(matmulInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
 
     //************************************************************************
     if (qParallelStreams()) { // incoming events
@@ -292,9 +292,9 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
 
                 if (firstEmb) {
                     firstEmb = false;
-                    matmulInstr.inst_events.wait_event_idx  = evtId;
-                    matmulInstr.inst_events.wait_event_mode = eventWaitMode2Isa(
-                                                    prevWaveEdge->gWaitEventMode());
+                    AssignWithSizeCheck(matmulInstr.inst_events.wait_event_idx, evtId);
+                    AssignWithSizeCheck(matmulInstr.inst_events.wait_event_mode,
+                                        eventWaitMode2Isa(prevWaveEdge->gWaitEventMode()));
                 } else {
                     m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
                 }
@@ -308,9 +308,9 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
     } // end incoming events
 
     //************************************************************************
-    matmulInstr.ifmap_replication_num_rows      = matmulWaveop->gIfmapReplicationNumRows();
-    matmulInstr.ifmap_replication_resolution    = matmulWaveop->gIfmapReplicationResolution();
-    matmulInstr.ifmap_replication_shift_amnt    = matmulWaveop->gIfmapReplicationShiftAmnt();
+    AssignWithSizeCheck(matmulInstr.ifmap_replication_num_rows, matmulWaveop->gIfmapReplicationNumRows());
+    AssignWithSizeCheck(matmulInstr.ifmap_replication_resolution, matmulWaveop->gIfmapReplicationResolution());
+    AssignWithSizeCheck(matmulInstr.ifmap_replication_shift_amnt, matmulWaveop->gIfmapReplicationShiftAmnt());
 
     //************************************************************************
     bool instructionWritten = false;
