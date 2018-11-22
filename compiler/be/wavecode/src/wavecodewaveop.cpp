@@ -99,9 +99,9 @@ WaveCodeWaveOp::GenerateSemaphoreInstr(const wave::WaveEdge* prevWaveEdge)
     // could both finish before the engine(s) that is(are) waiting on the first
     // condition arrives to the semaphore.wait, misses the condition, and gets stuck.
     compisa::SemaphoreInstr semInstr;
-    semInstr.semaphore_id = prevSbAtomWaveop->gDmaQueue()->gSemaphoreId();
-    semInstr.wait_cond    = TONGA_ISA_TPB_SEMAPHORE_WAIT_COND_GREATER_EQUAL;
-    semInstr.wait_value   = prevSbAtomWaveop->gTriggerOrd();
+    AssignWithSizeCheck(semInstr.semaphore_id, prevSbAtomWaveop->gDmaQueue()->gSemaphoreId());
+    semInstr.wait_cond = TONGA_ISA_TPB_SEMAPHORE_WAIT_COND_GREATER_EQUAL;
+    AssignWithSizeCheck(semInstr.wait_value, prevSbAtomWaveop->gTriggerOrd());
 
     const auto succWaveop = prevWaveEdge->gToOp();
     std::ostringstream oss;

@@ -224,7 +224,7 @@ public:
     {
         char buf[512];
         sprintf(buf, "%s: wait=%d  event=%d  set=%d",
-            WaveOpKey_SemaphoreSync,
+            WaveOpKey_EventSync,
             static_cast<kcc_int32>(waitMode),
             static_cast<kcc_int32>(eventId),
             static_cast<kcc_int32>(setMode));
