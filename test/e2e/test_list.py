@@ -1230,3 +1230,10 @@ qemuTestWaiver = [
     ['7-rn50_nne_fp16_wave-no_repl-all-layers', 'WAIVE-ManyDescr-SIM742'],
     ['0-300conv_tanh_wave-all-layers', 'WAIVE-TooManyOfmaps-SIM746'],
 ]
+
+
+import test_list_uint8
+testConfigMap.update(test_list_uint8.testConfigMap)
+testWaiver.extend(test_list_uint8.testWaiver)
+noGpuTestWaiver.extend(test_list_uint8.noGpuTestWaiver)
+qemuTestWaiver.extend(test_list_uint8.qemuTestWaiver)

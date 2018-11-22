@@ -130,6 +130,12 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
 
     ldweightsInstr.num_active_rows              = matmulWaveop->gNumRowPartitions();
 
+    if (kcc::utils::DataTypeId::Uint8 == matmulWaveop->gInDtype().gDataTypeId()) {
+        ldweightsInstr.quant_offset_uint8[0] = static_cast<uint8_t>(matmulWaveop->gQuantOffsetWeights());
+    } else if (kcc::utils::DataTypeId::Uint16 == matmulWaveop->gInDtype().gDataTypeId()) {
+        ldweightsInstr.quant_offset_uint16 = matmulWaveop->gQuantOffsetWeights();
+    }
+
     ldweightsInstr.inst_events.wait_event_idx   = 0;
     ldweightsInstr.inst_events.wait_event_mode  = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
     ldweightsInstr.inst_events.set_event_idx    = 0;
@@ -244,6 +250,12 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
     AssignWithSizeCheck(matmulInstr.dst_mem_pattern.step_elem[PatDim_Y], matmulWaveop->gPsumYStep());
     AssignWithSizeCheck(matmulInstr.dst_mem_pattern.num_elem[PatDim_Z], matmulWaveop->gPsumZNum());
     AssignWithSizeCheck(matmulInstr.dst_mem_pattern.step_elem[PatDim_Z], matmulWaveop->gPsumZStep());
+
+    if (kcc::utils::DataTypeId::Uint8 == matmulWaveop->gInDtype().gDataTypeId()) {
+        matmulInstr.quant_offset_uint8[0] = static_cast<uint8_t>(matmulWaveop->gQuantOffsetIfmaps());
+    } else if (kcc::utils::DataTypeId::Uint16 == matmulWaveop->gInDtype().gDataTypeId()) {
+        matmulInstr.quant_offset_uint16 = matmulWaveop->gQuantOffsetIfmaps();
+    }
 
 
     matmulInstr.timing_flags = 0;

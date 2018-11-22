@@ -39,6 +39,9 @@ constexpr const char* const LayerTypeStr_Pad            = "Pad";
 constexpr const char* const LayerTypeStr_Transpose      = "Transpose";
 constexpr const char* const LayerTypeStr_SpaceToBatchND = "SpaceToBatchND";
 constexpr const char* const LayerTypeStr_BatchToSpaceND = "BatchToSpaceND";
+constexpr const char* const LayerTypeStr_Dequantize     = "Dequantize";
+constexpr const char* const LayerTypeStr_Quantize       = "QuantizeV2";
+constexpr const char* const LayerTypeStr_QuantizedConv  = "QuantizedConv";
 
 }}
 

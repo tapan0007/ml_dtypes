@@ -137,8 +137,12 @@ public:
                 || m_LayerType == layers::LayerTypeStr_Transpose
                 || m_LayerType == layers::LayerTypeStr_SpaceToBatchND
                 || m_LayerType == layers::LayerTypeStr_BatchToSpaceND
-                || m_LayerType == layers::LayerTypeStr_Concat) {
-            // nothing specific to ResAdd layer
+                || m_LayerType == layers::LayerTypeStr_Concat
+                || m_LayerType == layers::LayerTypeStr_Dequantize
+                || m_LayerType == layers::LayerTypeStr_Quantize
+                || m_LayerType == layers::LayerTypeStr_QuantizedConv
+                ) {
+            // nothing specific to these layers
         } else {
             assert(false && "Serialization: unsupported layer");
         }

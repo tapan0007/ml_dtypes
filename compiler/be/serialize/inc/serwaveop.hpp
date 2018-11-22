@@ -188,6 +188,9 @@ constexpr static const char* WaveOpKey_MaxValue             = "max_val";
 constexpr static const char* WaveOpKey_Add                  = "add";
 constexpr static const char* WaveOpKey_Scale                = "scale";
 
+constexpr static const char* WaveOpKey_QuantOffsetIfmaps    = "quant_offset_ifmaps";
+constexpr static const char* WaveOpKey_QuantOffsetWeights   = "quant_offset_weights";
+
 //constexpr static const char* WaveOpKey_MulScalar            = "mul_scalar";
 //constexpr static const char* WaveOpKey_AddScalar            = "add_scalar";
 constexpr static const char* WaveOpKey_IsScalarOp           = "is_scalar_op";
@@ -456,6 +459,10 @@ public:
     // ScaleAdd
     kcc_float32                 m_Add;
     kcc_float32                 m_Scale;
+
+    // Quantize
+    kcc_uint16                  m_QuantOffsetIfmaps             = 0;
+    kcc_uint16                  m_QuantOffsetWeights            = 0;
 
     // Everyone
     kcc_int32                   m_Order                         = -1;

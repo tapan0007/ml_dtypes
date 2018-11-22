@@ -19,6 +19,7 @@ from google.protobuf import text_format
 from graphviz import Digraph
 import re
 import KaenaOpGraph as kog
+import KaenaOpQuantize as kog_qu
 from PIL import Image
 import csv
 
@@ -198,7 +199,14 @@ class TfFe:
         add_attrs["tfop"] = tfop
         numOps += 1
         node = None
-        if (re.search("Conv2DBackpropInput", tfop.op, re.I) != None):
+        if ("QuantizedConv2D" == tfop.op):
+          numConv += 1
+          node = kog_qu.NodeQuantizedConv2D(tfNode.name, tfop.op, add_attrs)
+        elif ("QuantizeV2" == tfop.op):
+          node = kog_qu.NodeQuantize(tfNode.name, tfop.op, add_attrs)
+        elif ("Dequantize" == tfop.op):
+          node = kog_qu.NodeDequantize(tfNode.name, tfop.op, add_attrs)
+        elif (re.search("Conv2DBackpropInput", tfop.op, re.I) != None):
           numConv += 1
           node = kog.NodeConv2DTranspose(tfNode.name, tfop.op, add_attrs)
         elif (re.search("conv", tfop.op, re.I) != None):
@@ -480,6 +488,8 @@ class TfFe:
           #print("ImageFile=", weightFile,
           #      "  Dtype=", nd.dtype,
           #      "  Size=", nd.size)
+          if nd.dtype.fields is not None and 'quint8' in nd.dtype.fields:
+            nd = nd.astype(nd.dtype[0])
           np.save(imageFile, np.ascontiguousarray(nd))
           numImages += 1
           if numImages % perDot == 0:

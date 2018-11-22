@@ -147,6 +147,11 @@ SerWaveOp::loadMatMul(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(IfmapReplicationNumRows);
     KCC_ARCHIVE(IfmapReplicationResolution);
     KCC_ARCHIVE(IfmapReplicationShiftAmnt);
+
+    if (!m_InDtype.compare("uint8") || !m_InDtype.compare("uint16")) {
+        KCC_ARCHIVE(QuantOffsetIfmaps);
+        KCC_ARCHIVE(QuantOffsetWeights);
+    }
 }
 
 void

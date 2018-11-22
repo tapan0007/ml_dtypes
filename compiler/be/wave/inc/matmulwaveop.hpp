@@ -153,6 +153,12 @@ public:
     kcc_int32 gIfmapReplicationShiftAmnt() const {
         return m_IfmapReplicationShiftAmnt;
     }
+    kcc_uint16 gQuantOffsetIfmaps() const {
+        return m_QuantOffsetIfmaps;
+    }
+    kcc_uint16 gQuantOffsetWeights() const {
+        return m_QuantOffsetWeights;
+    }
 
 private:
     MatMulWaveOp() = delete;
@@ -191,6 +197,9 @@ private:
     kcc_int32       m_IfmapReplicationNumRows     = -1;
     kcc_int32       m_IfmapReplicationResolution  = -1;
     kcc_int32       m_IfmapReplicationShiftAmnt   = -1;
+
+    kcc_uint16      m_QuantOffsetIfmaps     = 0;
+    kcc_uint16      m_QuantOffsetWeights    = 0;
 }; // class MatMulWaveOp : public WaveOp
 
 
@@ -232,6 +241,9 @@ public:
     kcc_int32       m_IfmapReplicationNumRows     = -1;
     kcc_int32       m_IfmapReplicationResolution  = -1;
     kcc_int32       m_IfmapReplicationShiftAmnt   = -1;
+
+    kcc_uint16      m_QuantOffsetIfmaps     = 0;
+    kcc_uint16      m_QuantOffsetWeights    = 0;
 };
 
 }}

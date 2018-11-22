@@ -131,6 +131,8 @@ struct MemInfo {
     else if (!dtype.compare("float32")) es = 4;
     else if (!dtype.compare("int16")) es = 2;
     else if (!dtype.compare("bfloat16")) es = 2;
+    else if (!dtype.compare("uint8")) es = 1;
+    else if (!dtype.compare("int32")) es = 4;
     else assert(0);
     return es;
   }

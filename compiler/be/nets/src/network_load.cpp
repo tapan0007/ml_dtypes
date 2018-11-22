@@ -275,6 +275,9 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 || serLayer.gTypeStr() == layers::LayerTypeStr_SpaceToBatchND
                 || serLayer.gTypeStr() == layers::LayerTypeStr_BatchToSpaceND
                 || serLayer.gTypeStr() == layers::LayerTypeStr_Concat
+                || serLayer.gTypeStr() == layers::LayerTypeStr_Dequantize
+                || serLayer.gTypeStr() == layers::LayerTypeStr_Quantize
+                || serLayer.gTypeStr() == layers::LayerTypeStr_QuantizedConv
                 )
         {   // FIXME: placeholder
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
@@ -515,6 +518,12 @@ Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(IfmapReplicationNumRows);
     KCC_UNSERIALIZE(IfmapReplicationResolution);
     KCC_UNSERIALIZE(IfmapReplicationShiftAmnt);
+
+    if (kcc::utils::DataTypeId::Uint8 == PARAMS.m_InDtypeId ||
+        kcc::utils::DataTypeId::Uint16 == PARAMS.m_InDtypeId) {
+        KCC_UNSERIALIZE(QuantOffsetIfmaps);
+        KCC_UNSERIALIZE(QuantOffsetWeights);
+    }
 
     auto waveOp = new wave::MatMulWaveOp(PARAMS, prevWaveOps);
     Assert(waveOp->gName() == PARAMS.m_WaveOpName, "Wrong waveop name ", waveOp->gName());

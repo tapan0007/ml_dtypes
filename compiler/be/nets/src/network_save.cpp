@@ -383,6 +383,12 @@ Network::Save::saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
     KCC_SERIALIZE(IfmapReplicationNumRows);
     KCC_SERIALIZE(IfmapReplicationResolution);
     KCC_SERIALIZE(IfmapReplicationShiftAmnt);
+
+    if (kcc::utils::DataTypeId::Uint8 == matmulWaveOp->gInDtype().gDataTypeId() ||
+        kcc::utils::DataTypeId::Uint16 == matmulWaveOp->gInDtype().gDataTypeId()) {
+        KCC_SERIALIZE(QuantOffsetIfmaps);
+        KCC_SERIALIZE(QuantOffsetWeights);
+    }
 #undef WAVE_OP
 } // Network::Save::saveMatmul
 

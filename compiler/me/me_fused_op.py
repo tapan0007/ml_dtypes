@@ -329,12 +329,14 @@ class FusedOp(list):
     """
     act_ops_regex = "Relu|Softplus|Sigmoid|Tanh|^Exp$|Identity|Lrelu|Prelu"
     bias_ops_regex = "BiasAdd"
-    pool_ops_regex = ".*Pool|Sub|Add|Multiply|ResAdd|Maximum|Minimum"
+    pool_ops_regex = ".*Pool|Sub|Add|Multiply|ResAdd|Maximum|Minimum|QuantizeV2|Dequantize"
     identity_ops_regex = "Reshape|Squeeze|ExpandDims"
     next_is_fusable_regex = bias_ops_regex + "|" + act_ops_regex + "|" + pool_ops_regex # + "|" + identity_ops_regex
     next_is_fusable = {
             'Conv'     : next_is_fusable_regex,
             'ConvTranspose': next_is_fusable_regex,
+            'QuantizedConv': next_is_fusable_regex,
+            'Dequantize': next_is_fusable_regex,
             'MatMul'   : next_is_fusable_regex,
             'BiasAdd'  : next_is_fusable_regex,
             'Add'      : next_is_fusable_regex,
@@ -418,7 +420,7 @@ class FusedOp(list):
             else:
                 self.pool_op = op
                 self.has_pool = not self.pool_op.is_id_pool
-        elif (op.data['layer_type'] == 'Conv' or op.data['layer_type'] == 'ConvTranspose' or op.data['layer_type'] == 'MatMul' or op.data['layer_type'] == 'Softmax2'):
+        elif (op.data['layer_type'] == 'Conv' or op.data['layer_type'] == 'ConvTranspose' or op.data['layer_type'] == 'MatMul' or op.data['layer_type'] == 'Softmax2' or op.data['layer_type'] == 'QuantizedConv'):
             if (len(self) != 0):
                 if (self.args.debug > 2):
                     print("DBG: refusing to add layer_type ", op.data["layer_type"], " layer_name ", op.data["layer_name"])
@@ -970,6 +972,12 @@ class FusedOp(list):
         first_op_type = self.first_op.data['layer_type']
         if (first_op_type == "Conv" or first_op_type == "ConvTranspose" or first_op_type == "MatMul"):
             self.execute_conv_ops(tpb, batch_item)
+        elif first_op_type == "Dequantize":
+            self.execute_dequantize_op(tpb, batch_item)
+        elif first_op_type == "QuantizeV2":
+            self.execute_quantize_op(tpb, batch_item)
+        elif first_op_type == "QuantizedConv":
+            self.execute_conv_ops(tpb, batch_item)
         elif (first_op_type == "AvgPool" or first_op_type == "MaxPool" or first_op_type == "ClipByValue"):
             self.execute_unfused_pool_op(tpb, batch_item)
         elif (first_op_type == "Softmax2"):
@@ -1060,7 +1068,14 @@ class FusedOp(list):
             repl_multiple_of_C=1, 
             conv_transpose=False):
         batch_item = ofmap_pewave.tile.n_id * ofmap_pewave.tile.Tn
-        if (self.first_op.item_sz == 2):
+        quant_offset_ifmaps = 0
+        quant_offset_weights = 0
+        if (self.first_op.item_sz == 1):
+            in_dtype = 'uint8'
+            out_dtype = 'int32'
+            quant_offset_ifmaps = int(self.first_op.data['zero_point_input'])
+            quant_offset_weights = int(self.first_op.data['zero_point_filter'])
+        elif (self.first_op.item_sz == 2):
             in_dtype = "float16"
             out_dtype = "float32"
         elif (self.first_op.item_sz == 4):
@@ -1199,6 +1214,8 @@ class FusedOp(list):
                   'ifmap_replication_resolution' : ifmap_replication_resolution, 
                   'ifmap_replication_num_rows' : ifmap_replication_num_rows,
                   'ifmap_replication_shift_amnt' : ifmap_replication_shift_amnt,
+                  'quant_offset_ifmaps'     : quant_offset_ifmaps,
+                  'quant_offset_weights'    : quant_offset_weights,
                 })
             start_tensor_calc = False   # this is only true for the first MatMul, even when there's a break
         return matmul_waveop
@@ -1342,7 +1359,12 @@ class FusedOp(list):
                         , self.conv_op.stride)         
             else:
                 #assert(self.conv_op.psum_bank_offset == ofmap_pewave.subtile_psum_offset)
-                tpb.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, psum_bank_id, psum_add)
+                if self.conv_op.data_type == 'uint8':
+                    tpb.pearray.wave_uint8_mm(pearray_packed_ifmaps, pearray_packed_weights, psum_bank_id, psum_add,
+                        offset_ifmaps=self.conv_op.data['zero_point_input'],
+                        offset_weights=self.conv_op.data['zero_point_filter'])
+                else:
+                    tpb.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, psum_bank_id, psum_add)
             # Generate weights waveops
             load_weights_into_pearray = not tpb.pearray.check_loaded_weights(
                                             self.conv_op.weights_file_params, 
@@ -1663,6 +1685,46 @@ class FusedOp(list):
                 ifmap_subtile = PoolSubtile(ifmap_tile, ifmap_tile.tile_rect, self[i].pool_window)
                 ofmap_subtile = PoolSubtile(ofmap_tile, ofmap_tile.tile_rect, None)
                 waveop = self.gen_fused_pool_waveop_inline(tpb, ifmap_subtile, ofmap_subtile, psum_bank_id, (ofmap_tile.m_id%2) == 1)
+                attach_predecessors(waveop, prev_waveops)
+            elif ('Dequantize' == layer_type):
+                dequant_scale = self[i].data['dequant_scale']
+                zero_point = self[i].data['zero_point']
+                psum_temp = tpb.pool.dequantize(psum_temp, dequant_scale, zero_point)
+                dst_is_psum = self[i].dst_is_psum
+                if dst_is_psum:
+                    tpb.pearray.write_psum(psum_bank_id, 0, psum_temp.shape[0], psum_temp)
+                waveop = self.gen_dequantize_waveop_inline(
+                            tpb              = tpb,
+                            op               = self[i],
+                            ifmap_tile       = ifmap_tile,
+                            ofmap_tile       = ofmap_tile,
+                            src_is_psum      = True,
+                            psum_bank_src    = psum_bank_id,
+                            dst_is_psum      = dst_is_psum,
+                            psum_bank_dst    = psum_bank_id if dst_is_psum else -1,
+                            dram_waveops     = [],
+                            dequant_scale    = dequant_scale,
+                            zero_point       = zero_point)
+                attach_predecessors(waveop, prev_waveops)
+            elif ('QuantizeV2' == layer_type):
+                quant_scale = self[i].data['quant_scale']
+                zero_point = self[i].data['zero_point']
+                psum_temp = tpb.pool.quantize_uint8(psum_temp, quant_scale, zero_point)
+                dst_is_psum = self[i].dst_is_psum
+                if dst_is_psum:
+                    tpb.pearray.write_psum(psum_bank_id, 0, psum_temp.shape[0], psum_temp)
+                waveop = self.gen_quantize_waveop_inline(
+                            tpb              = tpb,
+                            op               = self[i],
+                            ifmap_tile       = ifmap_tile,
+                            ofmap_tile       = ofmap_tile,
+                            src_is_psum      = True,
+                            psum_bank_src    = psum_bank_id,
+                            dst_is_psum      = dst_is_psum,
+                            psum_bank_dst    = psum_bank_id if dst_is_psum else -1,
+                            dram_waveops     = [],
+                            quant_scale      = quant_scale,
+                            zero_point       = zero_point)
                 attach_predecessors(waveop, prev_waveops)
             else:
                 raise RuntimeError("ERROR: %s is currently not yet implemented"%layer_type)
@@ -3075,3 +3137,16 @@ class FusedOp(list):
                         self.mark_producers_for_subtile_region(tpb, ofmap_tile.make_pewave(), waveop)
                         psum_add = False
 
+    # placeholders for quantization related functions
+    def execute_dequantize_op(self, *args, **kwargs):
+        from me_fused_op_quantize import execute_dequantize_op
+        return execute_dequantize_op(self, *args, **kwargs)
+    def execute_quantize_op(self, *args, **kwargs):
+        from me_fused_op_quantize import execute_quantize_op
+        return execute_quantize_op(self, *args, **kwargs)
+    def gen_dequantize_waveop_inline(self, *args, **kwargs):
+        from me_fused_op_quantize import gen_dequantize_waveop_inline
+        return gen_dequantize_waveop_inline(self, *args, **kwargs)
+    def gen_quantize_waveop_inline(self, *args, **kwargs):
+        from me_fused_op_quantize import gen_quantize_waveop_inline
+        return gen_quantize_waveop_inline(self, *args, **kwargs)

@@ -29,6 +29,7 @@ class PEArray:
     PSUM_NUM_BANKS = 4
     MAX_WAVE_SIZE = 256
     num_wave_fp16_mm = 0
+    num_wave_uint8_mm = 0
     num_of_ops_executed = 0
     total_pearray_latency_cycles = 0
     total_pearray_wave_elems = 0
@@ -110,6 +111,28 @@ class PEArray:
             self.psum_buf[psum_bank][0:shape[0], 0:shape[1]] = result
         self.num_wave_fp16_mm += 1
 
+    # Do wave uint8->int32 matrix-multiply
+    #   packed_ifmaps: must be 256x128 matrix, float16
+    #   packet_weights: must be 128x64 matrix, float16
+    #   psum_bank: the PSUM bank number to write result to
+    #   psum_add: if True, add to PSUM value in buffer; if False, replace with new value
+    def wave_uint8_mm(self, packed_ifmaps, packet_weights, psum_bank, psum_add, offset_ifmaps, offset_weights):
+        #assert (packed_ifmaps.shape == (self.MAX_WAVE_SIZE, self.NUM_ROWS))
+        #assert (packet_weights.shape == (self.NUM_ROWS, self.NUM_COLS))
+        assert(psum_bank >= 0)
+        assert(psum_bank < self.PSUM_NUM_BANKS)
+        a = packed_ifmaps.astype(np.int32)
+        b = packet_weights.astype(np.int32)
+        #print(a.dtype, b.dtype, self.psum_buf.dtype)
+        result = np.matmul(a - offset_ifmaps, b - offset_weights)
+        shape = result.shape
+        if psum_add:
+            self.psum_buf[psum_bank][0:shape[0], 0:shape[1]] += result
+        else:
+            self.psum_buf[psum_bank] = np.zeros((self.MAX_WAVE_SIZE, self.NUM_COLS), dtype=np.int32)
+            self.psum_buf[psum_bank][0:shape[0], 0:shape[1]] = result
+        self.num_wave_uint8_mm += 1
+
     # Unpack the OFMAPs in columns to add to psum in strided pattern (for conv_tranpose/deconv)
     #   packed_ofmaps: Packed OFMAPs in columns 
     #   pewave: current output tile wave, IDed by [n_id, m_id, h_id, w_id, c_id, r_id, s_id]
@@ -188,6 +211,18 @@ class Pool:
 
     def clipbyvalue(self, array_a, min_val, max_val):
         return np.clip(array_a, min_val, max_val)
+
+    """Dequantize uint8 or int32 into float32
+    quantization equation: real_value = scale * (quantized_value - zero_point)
+    """
+    def dequantize(self, quantized_value, dequant_scale, zero_point):
+        return (dequant_scale * (quantized_value - zero_point)).astype(np.float32)
+
+    """Quantize float32 into uint8
+    quantization equation: real_value = scale * (quantized_value - zero_point)
+    """
+    def quantize_uint8(self, real_value, quant_scale, zero_point):
+        return (quant_scale * real_value + zero_point).astype(np.uint8)
 
     def pool(self, type, in_array, stride, pool_window, Tn, ifmap_tilex_sz, ifmap_tiley_sz, ofmap_tilex_sz, ofmap_tiley_sz):
         num_cols = in_array.shape[1]

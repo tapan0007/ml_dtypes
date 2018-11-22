@@ -48,6 +48,8 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
     , m_IfmapReplicationNumRows(params.m_IfmapReplicationNumRows)
     , m_IfmapReplicationResolution(params.m_IfmapReplicationResolution)
     , m_IfmapReplicationShiftAmnt(params.m_IfmapReplicationShiftAmnt)
+    , m_QuantOffsetIfmaps(params.m_QuantOffsetIfmaps)
+    , m_QuantOffsetWeights(params.m_QuantOffsetWeights)
 {
     assert(params.verify());
     assert(verify());
