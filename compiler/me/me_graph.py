@@ -938,6 +938,18 @@ class KGraph:
                                     new_node.data['layer_type'] = 'Lrelu'
                                 else:
                                     new_node.add_prev(self.node_dict[i])
+                            elif (prev_node.data['layer_type'] == "Dequantize"
+                                    and (l['layer_type'] == "BiasAdd" or
+                                        re.search(FusedOp.act_ops_regex, l['layer_type']))
+                                    and prev_node.data['zero_point'] == 0):
+                                dequant_scale = prev_node.data['dequant_scale']
+                                previous_layers = prev_node.data['previous_layers'].copy()
+                                if len(prev_layers) == 2: # bias
+                                    previous_layers.append(prev_layers[1])
+                                new_node.dissolve_node(prev_node)
+                                new_node.data['scale'] = dequant_scale
+                                new_node.data['previous_layers'] = previous_layers
+                                new_node.data['layer_type'] = l['layer_type']
                             else:
                                 new_node.add_prev(self.node_dict[i])
                         else:
@@ -1297,7 +1309,7 @@ class KGraph:
         bias_file_params = FileParams(
                                     file_name       = bias_file,
                                     file_dims       = bias_shape_dims, 
-                                    data_type       = self.data_type,
+                                    data_type       = 'float32' if 'uint8' == self.data_type else self.data_type,
                                     op_params       = op,
                                     args            = self.args,
                                     contain_weights = True)

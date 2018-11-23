@@ -295,13 +295,15 @@ class Pool:
 """
 class BiasAddAct:
 
-    def biasadd(self, in_array, bias_array):
+    def biasadd(self, in_array, bias_array, scale = 1.0):
+        in_array = scale * in_array
         result = in_array
         num_chan = bias_array.shape[0]
         result[:, 0:num_chan] += bias_array
         return result
 
-    def act(self, type, in_array, alpha = 1.0):
+    def act(self, type, in_array, alpha = 1.0, scale = 1.0):
+        in_array = scale * in_array
         if (type == 'Relu'):
             return self.__relu(in_array)
         elif (type == 'Lrelu'):

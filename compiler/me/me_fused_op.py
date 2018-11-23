@@ -1474,10 +1474,11 @@ class FusedOp(list):
                 alpha = 1.0
                 if layer_type == 'Lrelu':
                     alpha = self[i].data['mul_scalar']
-                psum_temp = tpb.activate.act(op_list[i].data['layer_type'], psum_temp, alpha)
+                scale = self[i].data['scale'] if 'scale' in self[i].data else 1.0
+                psum_temp = tpb.activate.act(op_list[i].data['layer_type'], psum_temp, alpha, scale)
                 dst_is_psum = self[i].dst_is_psum 
                 if dst_is_psum:
-                    tpb.pearray.write_psum(psum_bank_dst, 0, psum_temp.shape[0], psum_temp)
+                    tpb.pearray.write_psum(psum_bank_id, 0, psum_temp.shape[0], psum_temp)
                 waveop = self.gen_act_waveop_inline(tpb, None, op_list[i], self.first_op, ifmap_tile, ofmap_tile, 
                                           True, psum_bank_id, dst_is_psum, psum_bank_id, dram_bias_waveops, 
                                           self[i].parent.zero_bias_file_params.mapped_params.start_addr, new_reader_morsels)
@@ -1515,12 +1516,13 @@ class FusedOp(list):
                                                     self[i].parent.zero_bias_file_params,
                                                     0,  # batch_item is not needed for bias
                                                     bias_addr,
-                                                    self[i].item_sz,
+                                                    self[i].parent.zero_bias_file_params.item_sz,
                                                     EngineEnum.ACT,
                                                     )
                     list_of_accessors_wr += writers # writers for WAW dependencies 
                 #x = DBG_DUMP_PSUM_COL("PSUM col0 before BiasAdd (FP32): ", psum_temp, 0)
-                psum_temp = tpb.activate.biasadd(psum_temp, bias_extracted)
+                scale = self[i].data['scale'] if 'scale' in self[i].data else 1.0
+                psum_temp = tpb.activate.biasadd(psum_temp, bias_extracted, scale)
                 #y = DBG_DUMP_PSUM_COL("PSUM col0 after BiasAdd: ", psum_temp, 0)
                 dst_is_psum = False
                 if (i+1 < len(op_list) and re.search(self.act_ops_regex, op_list[i+1].data['layer_type'])):
@@ -1900,6 +1902,12 @@ class FusedOp(list):
                 raise RuntimeError("ERROR: item_sz %d not yet supported"%act_op.item_sz)
             if act_type == 'Lrelu':
                 alpha = act_op.data['mul_scalar']
+        if act_or_biasadd_op.data_type == 'uint8':
+            in_dtype = 'int32'
+            out_dtype = 'float32'
+        if biasadd_op is not None and 'scale' in biasadd_op.data: # pass scale to act op
+            act_or_biasadd_op.data['scale'] = biasadd_op.data['scale']
+        scale = act_or_biasadd_op.data['scale'] if 'scale' in act_or_biasadd_op.data else 1.0
         # Two combinations possible: conv + biasadd/act or just biasadd/act                
         # In either cases, biasadd and/or act exists
         assert(act_or_biasadd_op != None)
@@ -1955,8 +1963,9 @@ class FusedOp(list):
               'activation_func'         : act_type,
               'alpha'                   : alpha,
               'in_dtype'                : in_dtype,
-              'bias_dtype'              : act_or_biasadd_op.ifmaps_file_params.data_type, 
+              'bias_dtype'              : act_or_biasadd_op.parent.zero_bias_file_params.data_type,
               'out_dtype'               : out_dtype,
+              'scale'                   : scale,
               'src_is_psum'             : src_is_psum,
               'src_x_step'              : 1,
               'src_x_num'               : dst_x_num,

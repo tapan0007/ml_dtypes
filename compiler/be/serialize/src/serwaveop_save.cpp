@@ -163,6 +163,7 @@ SerWaveOp::saveActivation(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(BiasAddEn);
     KCC_ARCHIVE(BiasSbAddress);
     KCC_ARCHIVE(BiasStartAtMidPart);
+    KCC_ARCHIVE(Scale);
 
     KCC_ARCHIVE(BiasDtype);
     KCC_ARCHIVE(NumPartitions);

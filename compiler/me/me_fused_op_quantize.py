@@ -279,4 +279,3 @@ def gen_quantize_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_psu
         instr['dst_start_at_mid_part'] = ofmap_tile.m_id%2 == 1
     tpb.waveop_stream.add_linked(instr, dram_waveops, psum_bank_src if src_is_psum else -1)
     return instr
-

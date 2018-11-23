@@ -479,6 +479,7 @@ Network::Save::saveActivation(const wave::ActivationWaveOp* activationWaveOp,
 
     KCC_SERIALIZE(BiasSbAddress);
     KCC_SERIALIZE(BiasStartAtMidPart);
+    KCC_SERIALIZE(Scale);
     serWaveOp.m_BiasDtype           = activationWaveOp->gBiasDtype().gName();
 
 

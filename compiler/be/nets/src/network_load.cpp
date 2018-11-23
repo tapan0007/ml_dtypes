@@ -546,6 +546,7 @@ Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(BiasAddEn);
     KCC_UNSERIALIZE(BiasSbAddress);
     KCC_UNSERIALIZE(BiasStartAtMidPart);
+    KCC_UNSERIALIZE(Scale);
 
     loadSrc(PARAMS, serWaveOp, Dims::XYZ);
     loadDst(PARAMS, serWaveOp, Dims::XYZ);

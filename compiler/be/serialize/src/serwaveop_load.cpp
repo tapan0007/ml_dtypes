@@ -163,6 +163,7 @@ SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(BiasAddEn);
     KCC_ARCHIVE(BiasSbAddress);
     KCC_ARCHIVE(BiasStartAtMidPart);
+    KCC_ARCHIVE(Scale);
 
     loadDst(archive, Dims::XYZ);
     loadSrc(archive, Dims::XYZ);

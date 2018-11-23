@@ -175,7 +175,7 @@ private:
     bool                        m_BiasAddEn;
     kcc_int64                   m_BiasSbAddress         = -1;
     bool                        m_BiasStartAtMidPart    = false;
-    kcc_float32                 m_Scale                 = 1.0; // TODO: deserialize when available in wavegraph.json
+    kcc_float32                 m_Scale                 = -1.0;
     bool                        m_DstIsPsum;
     kcc_int32                   m_DstPsumBankId         = -1;
     kcc_int32                   m_DstPsumBankOffset     = -1;
@@ -217,6 +217,7 @@ public:
     bool                        m_BiasAddEn;
     kcc_int64                   m_BiasSbAddress         = -1;
     bool                        m_BiasStartAtMidPart    = false;
+    kcc_float32                 m_Scale                 = -1.0;
     bool                        m_DstIsPsum;
     kcc_int32                   m_DstPsumBankId         = -1;
     kcc_int32                   m_DstPsumBankOffset     = -1;
