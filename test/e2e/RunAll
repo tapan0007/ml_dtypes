@@ -559,8 +559,9 @@ class Ktests:
   # Convert jenkins URL to ssh sioptvpc URL to allow scp or rsync
   def https2sshUrl(self, httpsUrl):
     sshUrl0 = re.sub('/(\d+)/artifact/', r'/builds/\1/archive/', httpsUrl)
-    sshUrl = re.sub('https://siopt-294228977.us-east-1.elb.amazonaws.com/ci-server-tonga-sw/job/',
-                    'siopt.vpc:/proj/jenkins/servers/tonga-sw/home/jobs/', sshUrl0)
+    sshUrl1 = re.sub('https://siopt-294228977.us-east-1.elb.amazonaws.com/ci-server-tonga-sw/',
+                    'siopt.vpc:/proj/jenkins/servers/tonga-sw/home/', sshUrl0)
+    sshUrl = re.sub('job/', 'jobs/', sshUrl1)
     if httpsUrl != sshUrl:
       print('INFO: translated  %s  to  %s' % (httpsUrl, sshUrl))
     assert not 'https:' in sshUrl
