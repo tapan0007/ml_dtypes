@@ -236,7 +236,12 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     self.grpcHost = grpcHost
     self.grpcPort = newgrpcPort
     print("INFO: using ssh port %d and grpc port %d" % (self.port, self.grpcPort))
+    signal.signal(signal.SIGINT, self.signal_handler)
+    signal.signal(signal.SIGTERM, self.signal_handler)
 
+  def signal_handler(self, signum, frame):
+    print("INFO: received a signal:%d" % (signum))
+    self.unlock()
 
   def __del__(self):
     self.cmdFh.close()
@@ -512,7 +517,6 @@ class Zebu(BePlat):
     return guestOk
 
   def start(self, restartId):
-    self.heartBeatFail = 0
     self.restartId = restartId
     if self.startTonga():
       if self.startVm():
@@ -589,10 +593,8 @@ class PythonTest:
       print("INFO: pytest ran fine")
 
   def parsePytestResultXml(self):
-    binDir = self.krtd.tempBinDir
-    workingDir = self.krtd.tempWorkingDir
-    pyResultFile = "%s/%s" % (workingDir, self.pytestResultXml)
-    tree = ET.parse(self.pytestResultXml)
+    pyResultFile = "%s/%s" % (self.krtd.cwd, self.pytestResultXml)
+    tree = ET.parse(pyResultFile)
     root = tree.getroot()
     # in nc tests today lots of tests are marked as skipped
     # for ex, semaphore tests are skipped in qemu but run on emu
@@ -607,7 +609,7 @@ class PythonTest:
         root.attrib['tests'] = str(test-skip)
         root.attrib['skips'] = '0'
         tree = ET.ElementTree(root)
-        tree.write(self.pytestResultXml)
+        tree.write(pyResultFile)
     if root.attrib['errors'] != '0' or root.attrib['failures'] != '0':
         return 0
     return 1
