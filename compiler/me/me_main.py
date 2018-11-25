@@ -443,7 +443,10 @@ class TPBSched:
                         batch_item = b - j, 
                         live_mapped_file_params = live_mapped_file_params)
                     op_list.execute(tpb, b - j)
-                    if args.nname != "resnet50":
+
+                if args.nname != "resnet50":
+                    # Only free live mapped tensor after processing the last Tn group (sub-batch that fits in PSUM).
+                    if b + current_Tn >= batch_count:
                         op_list.mark_ifmaps_are_consumed(live_mapped_file_params)
                 # kaena-409: the marker must be qualified with the condition that the fused-op contains a join or fork, 
                 # because the marker is set for both branches before the join 
