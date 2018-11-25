@@ -840,11 +840,10 @@ class FileParams():
         self.tot_num_chunks                 = self.batch_item_num_chunks * self.file_dims.N
         # Default unpadded sizes for internal FMAPs (see compute_padded_sizes for weights/input/output FMAPs)
         self.chunk_sz_padded                = self.chunk_sz                
-        if (args is not None and args.nname == 'generic'):
-          self.fmap_data_len_padded           = align_addr_NB(self.fmap_data_len,4)
-        else:
-          self.fmap_data_len_padded           = self.fmap_data_len
-        print("INFO: file %s shape %s chunk_sz %d chunk_sz_padded %d batch_item_num_chunks %d tot_num_chunks %d partition_step_bytes %d fmap_channels_folds %d fmap_channels_folds_in_chunk %d"%(self.file_name, str(self.file_dims.shape_tuple), self.chunk_sz, self.chunk_sz_padded, self.batch_item_num_chunks, self.tot_num_chunks, self.partition_step_bytes, self.fmap_channels_folds, self.fmap_channels_folds_in_chunk))
+        #if (args is not None and args.nname == 'generic'): # Was a hack for eviction, but that effort is postponed
+        #  self.fmap_data_len_padded           = align_addr_NB(self.fmap_data_len,4)
+        #else:
+        self.fmap_data_len_padded           = self.fmap_data_len
         self.compute_padded_sizes()
 
     def compute_padded_sizes(self):

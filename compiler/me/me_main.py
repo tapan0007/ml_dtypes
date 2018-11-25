@@ -368,6 +368,13 @@ class TPBSched:
 
             #print("Fused op #%d, fmap data len %d"%(fused_op_count, op_list.last_op.ofmaps_file_params.fmap_data_len))                
 
+            # For pass-through ops, pad OFMAP the same way as IFMAP
+            for i in op_list:
+                if i.is_nop:
+                    for j in first_op.prev:
+                        if j.ofmaps_file_params.input_layer_ifmap:
+                            i.ofmaps_file_params.input_layer_ifmap = True
+
             # Mark the last node of the fused-op as output node
             if last_op.next == []:
                 last_op.ofmaps_file_params.final_layer_ofmap = True

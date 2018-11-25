@@ -58,7 +58,7 @@ class KNode:
         self.dilation = Dim2D(1,1)
         self.padWN = Dim2D(0,0)
         self.padES = Dim2D(0,0)
-        self.is_nop = False
+        self.is_nop = False     # indicates pass-through; so make sure to transfer padded geometries to next consumer
         self.is_placeholder = False
         self.is_input = False
         self.is_const = False
