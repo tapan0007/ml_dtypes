@@ -512,13 +512,51 @@ class FusedOp(list):
                                              , region_sz=file_sz\
                                             )
         tpb.statebuffer.next_nonbias_file_start = file_start_addr\
-                + file_params.tot_partition_usage_sz_padded
+                + align_addr_8B(file_params.tot_partition_usage_sz_padded)
         return
 
     def print_SB_addr (self, file_params):
         print ("file_name = %s"%file_params.file_name)
         print ("\tstart_addr = %d"%file_params.mapped_params.start_addr)
         print ("\tend_addr = %d"%file_params.mapped_params.end_addr)
+
+    """Get list of free sections
+    """
+    def get_list_of_free_sections(self
+                                , file_mapper
+                                , min_region_start
+                                , live_mapped_file_params
+                                ):
+        live_mapped_file_params.sort(key = lambda x : x.mapped_params.start_addr, reverse=False)
+        num_live_tensors = len(live_mapped_file_params)
+        item_sz = live_mapped_file_params[0].item_sz
+        # get list of free segments (start, length)
+        list_of_seg = []
+        for i in range(num_live_tensors):
+            mapped_cur = live_mapped_file_params[i].mapped_params
+            end_of_cur = align_addr_8B(mapped_cur.start_addr + mapped_cur.region_sz)
+            if (self.args.debug > 3):
+                print("%d: (current) start %d size %d (%s)"%(i, mapped_cur.start_addr, mapped_cur.region_sz, live_mapped_file_params[i].file_name))
+            if i+1 < num_live_tensors:
+                mapped_nxt = live_mapped_file_params[i+1].mapped_params
+                if (self.args.debug > 3):
+                    print("%d: (next) start %d size %d (%s)"%(i, mapped_nxt.start_addr, mapped_nxt.region_sz, live_mapped_file_params[i+1].file_name))
+            else:
+                mapped_nxt = None
+            if len(list_of_seg) == 0:
+                list_of_seg.append((align_addr_8B(min_region_start), mapped_cur.start_addr - min_region_start))
+            if mapped_nxt is None:
+                list_of_seg.append((end_of_cur, 96*1024 - end_of_cur))
+            else:
+                if not file_mapper.check_overlap(
+                        mapped_cur.start_addr, mapped_cur.region_sz,
+                        mapped_nxt.start_addr, mapped_nxt.region_sz):
+                    list_of_seg.append((end_of_cur, mapped_nxt.start_addr - end_of_cur))
+        #for i in list_of_seg:
+        #    print("free (start, len) = (%d, %d), next start = %d"%(i[0], i[1], i[0]+i[1]))
+        # sort list of free segments            
+        list_of_seg.sort(key = lambda x: x[1], reverse = False)
+        return list_of_seg
 
     """Map tensors to SB
         args:
@@ -689,7 +727,7 @@ class FusedOp(list):
                 live_mapped_file_params.append(ifmaps_file_params)
                 # obtain the adjusted region size
                 ifmaps_region_sz = ifmaps_file_params.mapped_params.region_sz
-                start_addr       += ifmaps_region_sz
+                start_addr       += align_addr_8B(ifmaps_region_sz)
             else:            
                 assert(ifmaps_file_params.mapped_params != None)
                 ifmaps_region_start_addr = ifmaps_file_params.mapped_params.start_addr
@@ -716,7 +754,7 @@ class FusedOp(list):
                     map_file(residue_file_params, start_addr, wrap_around=True, region_sz=residue_region_sz)
                     live_mapped_file_params.append(residue_file_params)
                     residue_region_sz = residue_file_params.mapped_params.region_sz
-                    start_addr += residue_region_sz
+                    start_addr += align_addr_8B(residue_region_sz)
 
             # Weights region, align to 8B
             if self.has_conv:
@@ -746,7 +784,7 @@ class FusedOp(list):
                     live_mapped_file_params.append(weights_file_params)
                     # obtain the adjusted region size
                     weights_region_sz = weights_file_params.mapped_params.region_sz
-                    start_addr = weights_file_start_addr + weights_region_sz
+                    start_addr = weights_file_start_addr + align_addr_8B(weights_region_sz)
                 else:                    
                     # also in case that file is already mapped, keep the mapped values
                     weights_file_start_addr = weights_file_params.mapped_params.start_addr
@@ -781,7 +819,7 @@ class FusedOp(list):
                 # obtain the adjusted region size
                 ofmaps_region_sz = ofmaps_file_params.mapped_params.region_sz
                 single_ofmap_start = ofmaps_region_start_addr 
-                start_addr = single_ofmap_start + ofmaps_region_sz
+                start_addr = single_ofmap_start + align_addr_8B(ofmaps_region_sz)
                 if single_ofmap_start == single_ifmap_start:
                     #assert(not self.first_op.is_input)
                     # Allow modifying in place for IFMAPs which overlap the same region as OFMAPs
@@ -792,7 +830,7 @@ class FusedOp(list):
                 ofmaps_region_sz = ofmaps_file_params.mapped_params.region_sz
                 single_ofmap_start = ofmaps_region_start_addr
             # Save current start address pointer for next layer
-            tpb.statebuffer.next_nonbias_file_start = ofmaps_region_start_addr + ofmaps_region_sz
+            tpb.statebuffer.next_nonbias_file_start = ofmaps_region_start_addr + align_addr_8B(ofmaps_region_sz)
 
         # Trace printout
         if (self.args.debug > 2 and not tpb.statebuffer.printed_map_trace_header): 
