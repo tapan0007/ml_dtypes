@@ -26,6 +26,8 @@ kPath = os.environ.get('KAENA_PATH')
 kePath = os.environ.get('KAENA_EXT_PATH')
 iPath = os.environ.get('INKLING_PATH')
 
+buggyQemuSpaceJobStartInSec = 30
+buggyQemuMaxParallel = 16
 
 class Logger(object):
   def __init__(self, logFile):
@@ -71,7 +73,10 @@ parser.add_argument('--timeout', help='Timeout for each test, default 18000 seco
 parser.add_argument('--inkling_debugflags', help='Pass some arguments to sim, optional', nargs='+', default=[])
 parser.add_argument('--small_first', help='Start N small tests before next large one, default 4', type=int, default=4)
 parser.add_argument('--no_gpu', help='wave tests that require a GPU', action='store_true', default=False)
-parser.add_argument('--force_qemu', help='Apply additional --filer and various customization for Qemu flow, e.g., wave-qemu_inkling instead by auto modifying --scheduler wave.*  to  --scheduler qemu_wave.*; tests with \"fp32\", \"waveopt\", and \"host\" are filtered out.', action='store_true', default=False)
+parser.add_argument('--force_qemu', help='Apply additional --filter and various customization for Qemu flow, '
+                    'e.g., wave-qemu_inkling instead by auto modifying --scheduler wave.*  to  --scheduler qemu_wave.*; '
+                    'tests with \"fp32\", \"waveopt\", and \"host\" are filtered out. '
+                    'Due to qemu reliability issues the --parallel is limited to 16 and 30 sec spacing added between jobs', action='store_true', default=False)
 parser.add_argument('--sealife', help='Use sealife compiler instead of kcc', action='store_true', default=False)
 parser.add_argument('--waive', help='Additional test to waive', nargs='+', default=[])
 parser.add_argument('--cached_kelf', help='Instead of compiling copy test dir from here/test_name and run inference. It can be unix path, ssh URL or s3 URL. Also triggers additional comparison with tensors computed by the cached run, and qor TopEffs comparison.', default=None)
@@ -84,7 +89,7 @@ level = args.level
 ################################
 parallel = args.parallel
 if args.force_qemu and args.parallel == defaultParallel:
-  parallel = args.parallel // 2
+  parallel = max(args.parallel // 2, buggyQemuMaxParallel)
   print("INFO: using default --parallel %d due to --force_qemu" % parallel)
 select = args.select
 selectSet = set(["any", "waived_only", "not_waived"])
@@ -622,7 +627,7 @@ class Ktests:
         localStartSpacing = startSpacing
         if 'qemu' in testName:
           # Ensure stacing workaround for qemu boot bug even for non-forces qemu tests
-          localStartSpacing = 15
+          localStartSpacing = buggyQemuSpaceJobStartInSec
         while time.time() - lastStartTime < localStartSpacing:
           self.checkProcesses(0)
 
@@ -1035,7 +1040,7 @@ else:
     test_list.testWaiver += [ [t, "WAIVE_UI"] for t in args.waive]
 
   tests = Ktests(test_list.testConfigMap, testList, test_list.testWaiver, args.timeout, args.small_first)
-  elapsedTimeSec = tests.run(parallel, args.max_load, args.report_only, 15 if args.force_qemu else 0,
+  elapsedTimeSec = tests.run(parallel, args.max_load, args.report_only, buggyQemuSpaceJobStartInSec if args.force_qemu else 0,
                              args.force_qemu, args.sealife, args.cached_kelf)
   tests.report("qor_report.txt", "qor.csv", "%s\nDone in %.3f sec\n" % (startedAsStr, elapsedTimeSec))
   if args.cached_kelf:
