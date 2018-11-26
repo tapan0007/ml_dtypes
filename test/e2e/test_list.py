@@ -32,6 +32,9 @@ transformerRtIn = 'infer_x:0={0}/images/transformer_x.npy infer_y:0={0}/images/t
 transformerEncoderIn = '{0}/images/transformer_x.npy'.format(kePath)
 transformerEncoderRtIn = 'infer_x:0={0}/images/transformer_x.npy infer_y:0={0}/images/transformer_y.npy'.format(kePath)
 
+transformerEncoderLen1In = "{0}/images/transformer_x_len1.npy".format(kePath)
+
+
 def getBatchedJpgs(batchLevel):
     listExtraJpgs = [rnDogJpg, rnCatJpg, rnKoalaJpg] * ((batchLevel+3)//3)
     return ' '.join(tuple(listExtraJpgs[0:batchLevel]))
@@ -1019,19 +1022,17 @@ testConfigMap = {
     "--input_files prev:0=$KAENA_EXT_PATH/apps/tf/wavernn/prev_samp.npy cond:0=$KAENA_EXT_PATH/apps/tf/wavernn/cond.npy init_state:0=$KAENA_EXT_PATH/apps/tf/wavernn/init_state.npy "
   ],
 
-  "5-transformer-encoder": [
-    "tf_s3", "s3://kaena-nn-models",
-    "transformer_infer_encoder_v2_fp16.pb",
+  "2-transformer_reduce_sum_b1": [
+    "tf_s3", "s3://kaena-nn-models", "transformer_infer_encoder_v2_fp16_len1.pb",    
     "--input_node transformer_infer_encoder/encoder_inputs --depth 2 "
+    "--focus_to 'transformer_infer_encoder/encoder_stack/layer_0/self_attention/layer_normalization/sum' "
     "--partition from_multi '"
-      "transformer_infer_encoder/encoder_attention_bias/bias"
-      "','"
-      "transformer_infer_encoder/encoder_embedding/embedding_and_positional"
-      "' "
-      "--dot_timeout 1 "
-      "--executors host 0 wave 1 {} --images {} --wavegraph_checks structure data-race".format(MEv2("generic"), transformerEncoderIn),
-    "--input_files {}".format(transformerEncoderRtIn)
+        "transformer_infer_encoder/encoder_stack/layer_0/self_attention/layer_normalization/sum"
+        "' "
+    "--executors host 0 wave 1 {} --images {} --wavegraph_checks structure data-race".format(MEv2("generic"), transformerEncoderLen1In), 
+    "--input_files {}".format(transformerEncoderLen1In)
    ],
+
 }
 
 def gen_rn50_nne_to_act_norepl(act_num, batch):
@@ -1210,10 +1211,7 @@ testWaiver = [
     # Transformer
     # Comment calling kp.reportOpAndSizes() to see ME failure
     ['0-transformer-matmul', 'WAIVE_KAENA964'],
-    ['0-transformer-mul', 'WAIVE_KAENA961'],
-    ['5-transformer-encoder', 'WAIVE_KAENA974']
-
-
+    ['0-transformer-mul', 'WAIVE_KAENA961']
   ]
 
 noGpuTestWaiver = [

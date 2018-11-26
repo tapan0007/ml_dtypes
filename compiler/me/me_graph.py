@@ -753,12 +753,62 @@ class KGraph:
         self.node_dict[ new_layer['layer_name'] ] = new_node
         node_top_copy = new_node
 
+
+    def expand_sum_layer(self, layer, visited_nodes):
+        axes = layer['reduce_axes']
+        # - Only support reduce_sum on C axis now
+        # - For other axes, we need to expand reduce_sum to element-wise additions
+        # - Use MatMaul for C axis now but may want to use Shuffle + ReduceOp instructions later for performance
+        assert(axes[1] == 1 and axes[0] == 0 and axes[2] == 0 and axes[3] == 0)
+        assert(layer['ofmap_format'] == 'NCHW')
+        
+        # Weights
+        inputNode = visited_nodes[layer['previous_layers'][0]]
+        inputChannels = inputNode['ofmap_shape'][1]
+        ones_shape = [inputChannels, 1, 1, 1]
+        ones_tensor = np.ones(ones_shape, dtype=self.data_type)
+        # nn_executor copies *-constants.npy files
+        ones_file = layer['ref_file'].replace(".npy", "-ones-constants.npy")
+        if (not self.args.inference):
+            np.save(ones_file, ones_tensor)
+
+        # Replace the node
+        new_layer= {
+        "layer_type"      : "Conv",
+        "kernel_file"     : ones_file   ,
+        "kernel_format"   : "CRSM",
+        "kernel_shape"    : ones_shape,
+        "layer_name"      : layer['layer_name'],
+        "layer_type"      : "Conv",                    
+        "ofmap_shape"     : layer['ofmap_shape'],
+        "ofmap_format"    : layer['ofmap_format'],
+        "ref_file"        : layer['ref_file'],
+        "padding"         : [ [ 0, 0 ], [ 0, 0 ], [ 0, 0 ], [ 0, 0 ] ],
+        "previous_layers" : layer['previous_layers'],
+        "stride"          : [1,1,1,1],
+        "#comment"        : "2D Conv expanded from Sum operation"
+        }
+
+        layer.clear()
+        layer.update(new_layer)
+        
     # populate graph using layer info from JSON
     def populate_from_kgraph_json(self, kgraph_json):
         # get the lowest significant bit
         if ("data_type" in kgraph_json):
             self.data_type = kgraph_json["data_type"]
             self.item_sz = data_type_to_item_sz(self.data_type)
+
+        # Prepare k-graph
+        #  - Transform k-graph for ME to better process it
+        if ("layers" in kgraph_json):
+            layers = kgraph_json["layers"]
+            visted_layers = dict()
+            for l in layers:
+                visted_layers[l['layer_name']] = l
+
+                if (l['layer_type'] == 'Sum'):
+                    self.expand_sum_layer(l, visted_layers)
 
         # process layers
         node_number = 0
