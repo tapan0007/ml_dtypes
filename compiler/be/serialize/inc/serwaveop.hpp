@@ -139,6 +139,7 @@ constexpr static const char* WaveOpKey_ActivationFunc_Sigmoid      = "Sigmoid";
 constexpr static const char* WaveOpKey_ActivationFunc_Tanh         = "Tanh";
 constexpr static const char* WaveOpKey_ActivationFunc_Exp          = "Exp";
 constexpr static const char* WaveOpKey_ActivationFunc_Softplus     = "Softplus";
+constexpr static const char* WaveOpKey_ActivationFunc_Sqrt         = "Sqrt";
 
 
 constexpr static const char* WaveOpKey_BiasAddEn            = "bias_add_en";

@@ -26,6 +26,7 @@
 #include "layers/inc/reshapelayer.hpp"
 #include "layers/inc/relulayer.hpp"
 #include "layers/inc/tanhlayer.hpp"
+#include "layers/inc/sqrtlayer.hpp"
 #include "layers/inc/maxpoollayer.hpp"
 #include "layers/inc/avgpoollayer.hpp"
 #include "layers/inc/resaddlayer.hpp"
@@ -246,6 +247,11 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             Assert(reluLayer, "Expected Relu layer, found: ", layer->gTypeStr());
             continue;
         }
+
+        if (const auto sqrtLayer = dynamic_cast<layers::SqrtLayer*>(layer)) {
+            Assert(sqrtLayer, "Expected Sqrt layer, found: ", layer->gTypeStr());
+            continue;
+        }        
 
         if (const auto biasAddLayer = dynamic_cast<layers::BiasAddLayer*>(layer)) {
             Assert(biasAddLayer, "Expected BiasAdd layer, found: ", layer->gTypeStr());

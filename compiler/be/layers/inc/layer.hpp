@@ -133,6 +133,11 @@ public:
     }
 
     //----------------------------------------------------------------
+    virtual bool qSqrtLayer() const {
+        return false;
+    }    
+
+    //----------------------------------------------------------------
     virtual bool qBatchNormLayer() const {
         return false;
     }

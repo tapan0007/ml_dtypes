@@ -101,7 +101,9 @@ public:
         } else if (m_LayerType == layers::LayerTypeStr_Relu) {
             // nothing specific to Relu
         } else if (m_LayerType == layers::LayerTypeStr_Sigmoid) {
-            // nothing specific to Relu
+            // nothing specific to Sigmoid
+        } else if (m_LayerType == layers::LayerTypeStr_Sqrt) {            
+            // nothing specific to Sqrt
         } else if (m_LayerType == layers::LayerTypeStr_MaxPool || m_LayerType == layers::LayerTypeStr_AvgPool) {
             KCC_ARCHIVE(KernelShape);
             KCC_ARCHIVE(Stride);

@@ -13,7 +13,7 @@ import re
 # l10-relu-tanh-b1 => {"relu" : 1, "tanh" : 1}, return letover "l10-b1"
 def getConfOpts(confStr):
   conf = {}
-  for s in ["RELU", "TANH", "SOFTPLUS", "LRELU", "IDENTITY", "SIGMOID", "EXP"]:
+  for s in ["RELU", "TANH", "SOFTPLUS", "LRELU", "IDENTITY", "SIGMOID", "EXP", "SQRT"]:
     s1 = "-" + s
     if s1 in confStr:
       confStr = confStr.replace(s1, "")
@@ -83,6 +83,8 @@ elif (conf.get("IDENTITY")):
     i1 = tf.identity(i0, name=netName + "/identity")
 elif (conf.get("SOFTPLUS")):
     i1 = tf.nn.softplus(i0, name=netName + "/softplus")
+elif (conf.get("SQRT")):
+    i1 = tf.sqrt(i0, name=netName + "/sqrt")
 else:
     raise RuntimeError("No recognizable activation function; please check your test specification")
     

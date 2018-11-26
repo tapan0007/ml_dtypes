@@ -23,6 +23,7 @@
 #include "layers/inc/reshapelayer.hpp"
 #include "layers/inc/relulayer.hpp"
 #include "layers/inc/tanhlayer.hpp"
+#include "layers/inc/sqrtlayer.hpp"
 #include "layers/inc/maxpoollayer.hpp"
 #include "layers/inc/avgpoollayer.hpp"
 #include "layers/inc/resaddlayer.hpp"
@@ -231,6 +232,12 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             layers::Layer* prevLayer = findLayer(prevLayerName, true);
             ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
             layer = new layers::TanhLayer(params, prevLayer);
+        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_Sqrt) {
+            ASSERT_NUM_LAYERS(serLayer, 1);
+            const std::string& prevLayerName = serLayer.gPrevLayer(0);
+            layers::Layer* prevLayer = findLayer(prevLayerName, true);
+            ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
+            layer = new layers::SqrtLayer(params, prevLayer);            
         } else if (serLayer.gTypeStr() == layers::LayerTypeStr_ResAdd
                    || serLayer.gTypeStr() == layers::LayerTypeStr_Multiply
                    || serLayer.gTypeStr() == layers::LayerTypeStr_Sub

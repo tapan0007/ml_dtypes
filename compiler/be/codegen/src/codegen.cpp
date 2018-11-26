@@ -6,6 +6,7 @@
 #include "layers/inc/convlayer.hpp"
 #include "layers/inc/relulayer.hpp"
 #include "layers/inc/tanhlayer.hpp"
+#include "layers/inc/sqrtlayer.hpp"
 #include "layers/inc/maxpoollayer.hpp"
 #include "layers/inc/avgpoollayer.hpp"
 #include "layers/inc/constlayer.hpp"

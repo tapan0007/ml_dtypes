@@ -222,7 +222,7 @@ class TfFe:
           node = kog.NodeMatMul(tfNode.name, tfop.op, add_attrs)
         elif (re.search("Reshape", tfop.op, re.I) != None):
           node = kog.NodeReshape(tfNode.name, tfop.op, add_attrs)
-        elif  (re.search("relu|lrelu|tanh|Softplus|Sigmoid|Softmax", tfop.op, re.I) != None):
+        elif  (re.search("relu|lrelu|tanh|Softplus|Sigmoid|Softmax|sqrt|reciprocal", tfop.op, re.I) != None):
           node = kog.NodeSimple(tfNode.name, tfop.op, add_attrs)
         elif (re.search("Squeeze|Exp|Rsqrt", tfop.op, re.I) != None):
           node = kog.NodeSimple(tfNode.name, tfop.op, add_attrs)

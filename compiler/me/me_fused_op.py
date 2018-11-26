@@ -327,7 +327,7 @@ class Tile:
 class FusedOp(list):
     """RegExs to determine whether next node is fusable or not
     """
-    act_ops_regex = "Relu|Softplus|Sigmoid|Tanh|^Exp$|Identity|Lrelu|Prelu"
+    act_ops_regex = "Relu|Softplus|Sigmoid|Tanh|^Exp$|Identity|Lrelu|Prelu|Sqrt"
     bias_ops_regex = "BiasAdd"
     pool_ops_regex = ".*Pool|Sub|Add|Multiply|ResAdd|Maximum|Minimum|QuantizeV2|Dequantize"
     identity_ops_regex = "Reshape|Squeeze|ExpandDims"

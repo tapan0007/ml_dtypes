@@ -866,6 +866,9 @@ SerWaveOp::activationType2Str(ActivationFunc actType)
     case ActivationFunc::Softplus:
         return WaveOpKey_ActivationFunc_Softplus;
         break;
+    case ActivationFunc::Sqrt:
+        return WaveOpKey_ActivationFunc_Sqrt;
+        break;        
     default:
         assert(false && "Wrong activation type");
         break;
@@ -893,6 +896,8 @@ SerWaveOp::str2ActivationFunc(const std::string& actType)
         return ActivationFunc::Exp;
     } else if (actType  == WaveOpKey_ActivationFunc_Softplus) {
         return ActivationFunc::Softplus;
+    } else if (actType  == WaveOpKey_ActivationFunc_Sqrt) {
+        return ActivationFunc::Sqrt;        
     } else {
         assert(false && "Wrong activation type");
     }

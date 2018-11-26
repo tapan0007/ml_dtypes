@@ -81,6 +81,7 @@ ActivationWaveOp::verify() const
     case ActivationFunc::Tanh:
     case ActivationFunc::Exp:
     case ActivationFunc::Softplus:
+    case ActivationFunc::Sqrt:
         break;
     default:
         RETURN_ASSERT(false);
@@ -206,6 +207,9 @@ ActivationWaveOp::gSimActivationFunc() const
     case ActivationFunc::Softplus:
         return TONGA_ISA_TPB_ACTIVATION_FUNC::TONGA_ISA_TPB_ACTIVATION_FUNC_SOFTPLUS;
         break;
+    case ActivationFunc::Sqrt:
+        return TONGA_ISA_TPB_ACTIVATION_FUNC::TONGA_ISA_TPB_ACTIVATION_FUNC_SQRT;
+        break;        
     default:
         break;
     }

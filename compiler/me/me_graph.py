@@ -804,6 +804,7 @@ class KGraph:
         if ("layers" in kgraph_json):
             layers = kgraph_json["layers"]
             visted_layers = dict()
+
             for l in layers:
                 visted_layers[l['layer_name']] = l
 

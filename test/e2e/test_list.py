@@ -140,16 +140,18 @@ testConfigMap = {
 
   "0-act_exp_sweep_wave"           : [ "trivnet_act", "tfloat32-b1-h128-c64-exp-wmin2-wmax2.2-imin-5-imax5",                         "act", MEv2("Generic")],
   "0-act_lrelu_sweep_wave"         : [ "trivnet_act", "tfloat32-b1-h80-c64-lrelu-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", MEv2("Generic")],
-  "0-act_fused_lrelu_sweep_wave"         : [ "trivnet_act",      "tfloat32-b1-h80-c64-lrelu-wmin2-wmax2.2-imin-10000000-imax10000000",  "act", "--scheduler wave2  --schedule_options ' --nname=generic --fuse_lrelu ' "],
+  "0-act_fused_lrelu_sweep_wave"   : [ "trivnet_act", "tfloat32-b1-h80-c64-lrelu-wmin2-wmax2.2-imin-10000000-imax10000000",  "act", "--scheduler wave2  --schedule_options ' --nname=generic --fuse_lrelu ' "],
+  "0-act_sqrt_sweep_wave"          : [ "trivnet_act", "tfloat32-b1-h80-c64-sqrt-wmin2-wmax2.2-imin0-imax10000000", "act", MEv2("Generic")],  
 
   "0-rtl-act_tanh_minisweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c64-tanh-wmin2-wmax2.2-imin-1-imax1",          "act", MEv2("Generic")],
   "0-rtl-act_sigmoid_minisweep_wave"       : [ "trivnet_act",      "tfloat32-b1-h128-c64-sigmoid-wmin2-wmax2.2-imin-1-imax1",          "act", MEv2("Generic")],
   "0-rtl-act_relu_minisweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c64-relu-wmin2-wmax2.2-imin-1-imax1",          "act", MEv2("Generic")],
   "0-rtl-act_identity_minisweep_wave"      : [ "trivnet_biasadd",      "tfloat32-b1-h128-c64-wmin2-wmax2.2-imin-1-imax1",          "act", MEv2("Generic")],
 
-  "0-act_exp_minisweep_wave"           : [ "trivnet_act",      "tfloat32-b1-h128-c64-exp-wmin2-wmax2.2-imin-1-imin-1-imax1",          "act", MEv2("Generic")],
+  "0-act_exp_minisweep_wave"           : [ "trivnet_act", "tfloat32-b1-h128-c64-exp-wmin2-wmax2.2-imin-1-imin-1-imax1", "act", MEv2("Generic")],
   "0-act_lrelu_minisweep_wave"         : [ "trivnet_act", "tfloat32-b1-h128-c64-lrelu-wmin2-wmax2.2-imin-1-imax1", "act", MEv2("Generic")],
-  "0-act_fused_lrelu_minisweep_wave"         : [ "trivnet_act",      "tfloat32-b1-h128-c64-lrelu-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic --fuse_lrelu '"],
+  "0-act_fused_lrelu_minisweep_wave"   : [ "trivnet_act", "tfloat32-b1-h128-c64-lrelu-wmin2-wmax2.2-imin-1-imax1", "act", "--scheduler wave2  --schedule_options ' --nname=generic --fuse_lrelu '"],
+  "0-act_sqrt_minisweep_wave"      	    : [ "trivnet_act", "tfloat32-b1-h128-c64-sqrt-wmin2-wmax2.2-imin0-imax1", "act", MEv2("Generic")],  
 
   "0-1clipbyvalue_wave" : [ "trivnet_clipbyvalue",
     "tfloat16-b1-h4-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv",
@@ -307,6 +309,7 @@ testConfigMap = {
   "0-resadd_uint8_wave"   : [ "trivnet_add",    "tuint8-b1-h4-c3-wmin1-wmax4-imin5-imax53", "add", MEv2("Generic")],
   "0-resadd_2in_wave"    : [ "trivnet_add_2in",    "tfloat16-b1-h2-c1-wmin2-wmax2.2-imin3-imax6", "add", MEv2("Generic")],
   "0-subtract_psum_sb_wave"    : [ "trivnet_add",    "tfloat16-b1-h2-c1-SUB-wmin2-wmax2.2-imin3-imax6", "add", MEv2("Generic")],
+  "0-sqrt_wave"            : [ "trivnet_act", "tfloat16-b1-h2-c64-sqrt-wmin2-wmax2.2-imin0.1-imax2", "act", MEv2("Generic")],
 
   "0-3resadd_fp16_wave"  : [ "trivnet_conv_ba_add",
     "tfloat16-b1-h4-r1-s1-c1-m1-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03",

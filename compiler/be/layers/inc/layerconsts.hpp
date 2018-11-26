@@ -20,6 +20,7 @@ constexpr const char* const LayerTypeStr_Relu           = "Relu";
 constexpr const char* const LayerTypeStr_Tanh           = "Tanh";
 constexpr const char* const LayerTypeStr_Sigmoid        = "Sigmoid";
 constexpr const char* const LayerTypeStr_Softplus       = "Softplus";
+constexpr const char* const LayerTypeStr_Sqrt           = "Sqrt";
 constexpr const char* const LayerTypeStr_MaxPool        = "MaxPool";
 constexpr const char* const LayerTypeStr_AvgPool        = "AvgPool";
 constexpr const char* const LayerTypeStr_SoftMax        = "SoftMax";
