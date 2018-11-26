@@ -1011,7 +1011,7 @@ testConfigMap = {
   #WaveRNN Tests #cb-compiler bug workaround - no support for constants to Sub and Mul operators - WA to remove sub operatoins in sigmoid and change Mul constants to placeholders
   "2-wavernn_tf_ts0_w1_h02_cb"     : [
     #"tf_pb", "wavernn/wavernn_ts1_cb_seed1_f_opt_fp16.pb","wavernn",
-    "tf_s3", "s3://kaena-nn-models", "wavernn_ts1_cb_seed1_f_opt.pb",
+    "tf_s3", "s3://kaena-nn-models", "wavernn_ts1_cb_seed1_f_opt_fp16.pb",
     "--input_node prev cond init_state --depth -1 --focus_to Softmax  --show_op_name_in_kgraph "
     #"--input_node prev cond init_state --depth -1 --focus_to add_13 multinomial/Multinomial  --show_op_name_in_kgraph "
     "--images $KAENA_EXT_PATH/apps/tf/wavernn/prev_samp.npy $KAENA_EXT_PATH/apps/tf/wavernn/cond.npy $KAENA_EXT_PATH/apps/tf/wavernn/init_state.npy "
