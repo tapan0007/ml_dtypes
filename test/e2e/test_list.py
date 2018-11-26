@@ -464,10 +464,10 @@ testConfigMap = {
   "3-rn50-16_wave_repl" : [ "trivnet_conv1", "tfloat16-b1-h224-r7-s2-c3-m64-wmin-1-wmax1.1-imin-3-imax3.2", "1conv", MEv2("Generic-Repl")],
 
   ## db
-  "3-rn50-16_wave_repl-fast_dram" : [ "trivnet_conv1", "tfloat16-b1-h224-r7-s2-c3-m64-wmin-1-wmax1.1-imin-3-imax3.2", "1conv", MEv2("RN50-Repl"), 
+  "3-rn50-16_wave_repl-fast_dram" : [ "trivnet_conv1", "tfloat16-b1-h224-r7-s2-c3-m64-wmin-1-wmax1.1-imin-3-imax3.2", "1conv", MEv2("RN50-Repl"),
     "--env SIM_ADD_FLAGS=' --dram_frequency 0 --dram_latency 1 '" ],
 
-  "3-rn50-16_b2_wave_repl" : [ "trivnet_conv1",  "tfloat16-b2-h224-r7-s2-c3-m64-wmin1-wmax1-imin0-imax223", "1conv", MEv2("RN50-Repl")], 
+  "3-rn50-16_b2_wave_repl" : [ "trivnet_conv1",  "tfloat16-b2-h224-r7-s2-c3-m64-wmin1-wmax1-imin0-imax223", "1conv", MEv2("RN50-Repl")],
 
   "3-incep_amoeba_h299r3s2c3m32_wave_repl" : [ "trivnet_conv1", "tfloat16-b1-h299-r3-s2-c3-m32-VALID-wmin-1-wmax1.1-imin-3-imax3.2", "1conv", MEv2("Generic-Repl")],
   "3-h400r3s2c3m32_wave_repl" : [ "trivnet_conv1", "tfloat16-b1-h400-r3-s2-c3-m32-VALID-wmin-1-wmax1.1-imin-3-imax3.2", "1conv", MEv2("Generic-Repl")],
@@ -540,12 +540,12 @@ testConfigMap = {
     "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_4/Relu --executors wave 0 host 1 %s --images %s " %(rnPreFp16, MEv2("RN50-Repl"), rnDogJpg),
     "--input_files %s" % rnDogJpg],
 
-  "5-rn50_nne_to_act4_b8_wave-repl"  : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", 
-    "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_4/Relu --executors wave 0 host 1 %s --batch 8 --images %s "%(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(8)), 
+  "5-rn50_nne_to_act4_b8_wave-repl"  : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
+    "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_4/Relu --executors wave 0 host 1 %s --batch 8 --images %s "%(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(8)),
     "--input_files %s" % (getBatchedJpgs(8))],
 
-  "5-rn50_nne_to_act4_b16_wave-repl"  : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", 
-    "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_4/Relu --executors wave 0 host 1 %s --batch 16 --images %s "%(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(16)), 
+  "5-rn50_nne_to_act4_b16_wave-repl"  : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
+    "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_4/Relu --executors wave 0 host 1 %s --batch 16 --images %s "%(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(16)),
     "--input_files %s" % (getBatchedJpgs(16))],
 
   "5-rn50_nne_to_act13_wave-repl"     : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb", "resnet50",
@@ -982,7 +982,7 @@ testConfigMap = {
 
   # transformer tests
 
-  "0-transformer-matmul": [ 
+  "0-transformer-matmul": [
     "tf_s3", "s3://kaena-nn-models", "transformer_frozen_fp16.pb",
     "--input_node infer_x infer_y --depth 2 "
     "--focus_to 'infer_preds' "
@@ -992,10 +992,10 @@ testConfigMap = {
       "ArgMax"
       "' "
     "--dot_timeout 1 "
-    "--executors host 0 2 wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --images {} --wavegraph_checks structure data-race".format(transformerIn), "--input_files {}".format(transformerRtIn) 
+    "--executors host 0 2 wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --images {} --wavegraph_checks structure data-race".format(transformerIn), "--input_files {}".format(transformerRtIn)
   ],
 
-  "0-transformer-mul": [ 
+  "0-transformer-mul": [
     "tf_s3", "s3://kaena-nn-models", "transformer_frozen_fp16.pb",
     "--input_node infer_x --depth 2 "
     "--focus_to 'encoder/num_blocks_1/multihead_attention/Sum' "
@@ -1005,22 +1005,22 @@ testConfigMap = {
       "encoder/num_blocks_0/multihead_attention_1/ln/mul"
       "' "
     "--dot_timeout 1 "
-    "--executors host 0 2 wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --images {} --wavegraph_checks structure data-race".format(transformerInX), "--input_files {}".format(transformerRtInX) 
+    "--executors host 0 2 wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --images {} --wavegraph_checks structure data-race".format(transformerInX), "--input_files {}".format(transformerRtInX)
   ],
-  
+
   #WaveRNN Tests #cb-compiler bug workaround - no support for constants to Sub and Mul operators - WA to remove sub operatoins in sigmoid and change Mul constants to placeholders
   "2-wavernn_tf_ts0_w1_h02_cb"     : [
-    #"tf_pb", "wavernn/wave_rnn_ts0_cb_f_opt.pb","wavernn",
+    #"tf_pb", "wavernn/wavernn_ts1_cb_seed1_f_opt_fp16.pb","wavernn",
     "tf_s3", "s3://kaena-nn-models", "wavernn_ts1_cb_seed1_f_opt.pb",
     "--input_node prev cond init_state --depth -1 --focus_to Softmax  --show_op_name_in_kgraph "
     #"--input_node prev cond init_state --depth -1 --focus_to add_13 multinomial/Multinomial  --show_op_name_in_kgraph "
     "--images $KAENA_EXT_PATH/apps/tf/wavernn/prev_samp.npy $KAENA_EXT_PATH/apps/tf/wavernn/cond.npy $KAENA_EXT_PATH/apps/tf/wavernn/init_state.npy "
     " --executors host 0 2 wave 1 --scheduler qemu_wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race --parallel_streams --partition from_multi MatMul,MatMul_2,MatMul_4,MatMul_3,MatMul_1,Mul,Mul_1 Softmax ",
     "--input_files prev:0=$KAENA_EXT_PATH/apps/tf/wavernn/prev_samp.npy cond:0=$KAENA_EXT_PATH/apps/tf/wavernn/cond.npy init_state:0=$KAENA_EXT_PATH/apps/tf/wavernn/init_state.npy "
-  ],  
+  ],
 
-  "5-transformer-encoder": [ 
-    "tf_s3", "s3://kaena-nn-models", 
+  "5-transformer-encoder": [
+    "tf_s3", "s3://kaena-nn-models",
     "transformer_infer_encoder_v2_fp16.pb",
     "--input_node transformer_infer_encoder/encoder_inputs --depth 2 "
     "--partition from_multi '"
@@ -1029,7 +1029,7 @@ testConfigMap = {
       "transformer_infer_encoder/encoder_embedding/embedding_and_positional"
       "' "
       "--dot_timeout 1 "
-      "--executors host 0 wave 1 {} --images {} --wavegraph_checks structure data-race".format(MEv2("generic"), transformerEncoderIn), 
+      "--executors host 0 wave 1 {} --images {} --wavegraph_checks structure data-race".format(MEv2("generic"), transformerEncoderIn),
     "--input_files {}".format(transformerEncoderRtIn)
    ],
 }
@@ -1205,7 +1205,7 @@ testWaiver = [
     ['0-transformer-matmul', 'WAIVE_KAENA964'],
     ['0-transformer-mul', 'WAIVE_KAENA961'],
     ['5-transformer-encoder', 'WAIVE_KAENA974']
-   
+
 
   ]
 

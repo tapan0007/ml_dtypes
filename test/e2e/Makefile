@@ -199,8 +199,8 @@ TEST_ARGS_CHECK_EMU_TESTS_EXTRA = \
 6-parwavenet_10_fp16_tanh_to_add15_wave \
 6-parwavenet_10_fp16_tanh_to_add18_wave \
 6-parwavenet_10_fp16_tanh_to_add22_wave \
-7-parwavenet_10_fp16_tanh_to_add24_wave 
-
+7-parwavenet_10_fp16_tanh_to_add24_wave \
+2-wavernn_tf_ts0_w1_h02_cb
 # 0-subtract_psum_sb_wave  
 
 # Tests that we want to run on qemu but they still fails as of Oct 2018
