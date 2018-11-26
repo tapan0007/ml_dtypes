@@ -146,6 +146,7 @@ TEST_ARGS_CHECK_EMU_TESTS = \
 6-rn50_nne_to_act37_wave-repl \
 6-rn50_nne_to_act46_wave-no_repl \
 6-rn50_nne_to_act46_wave-repl \
+7-rn50_nne_bfloat16_wave \
 7-rn50_nne_fp16_b4_wave \
 7-rn50_nne_fp16_b4_wave-no_repl \
 7-rn50_nne_fp16_wave \
