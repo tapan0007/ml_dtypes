@@ -30,6 +30,8 @@ SerWaveOp::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         loadSbAtom(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Pool) {
         loadPool(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Reciprocal) {
+        loadReciprocal(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_MatMul) {
         loadMatMul(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Activation) {
@@ -108,6 +110,19 @@ SerWaveOp::loadPool(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(NumPartitions);
     KCC_ARCHIVE(PoolFrequency);
     KCC_ARCHIVE(PoolFunc);
+    // previouswaveops
+
+    KCC_ARCHIVE(TileId);
+    KCC_ARCHIVE(TileIdFormat);
+}
+
+void
+SerWaveOp::loadReciprocal(cereal::JSONInputArchive& archive)
+{
+    loadSrc(archive, Dims::XYZ);
+    loadDst(archive, Dims::XYZ);
+
+    KCC_ARCHIVE(NumPartitions);
     // previouswaveops
 
     KCC_ARCHIVE(TileId);

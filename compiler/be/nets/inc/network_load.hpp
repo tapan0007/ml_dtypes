@@ -20,6 +20,7 @@ public:
     wave::SbAtomLoadWaveOp* loadSbAtomLoad(const serialize::SerWaveOp& serWaveOp);
     wave::SbAtomSaveWaveOp* loadSbAtomSave(const serialize::SerWaveOp& serWaveOp);
     wave::PoolWaveOp* loadPool(const serialize::SerWaveOp& serWaveOp);
+    wave::ReciprocalWaveOp* loadReciprocal(const serialize::SerWaveOp& serWaveOp);
     wave::MatMulWaveOp* loadMatMul(const serialize::SerWaveOp& serWaveOp);
     wave::ActivationWaveOp* loadActivation(const serialize::SerWaveOp& serWaveOp);
     wave::ClipByValueWaveOp* loadClipByValue(const serialize::SerWaveOp& serWaveOp);

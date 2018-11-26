@@ -20,6 +20,8 @@ public:
                     serialize::SerWaveOp& serWaveOp) const;
     void savePool(const wave::PoolWaveOp* poolWaveOp,
                     serialize::SerWaveOp& serWaveOp) const;
+    void saveReciprocal(const wave::ReciprocalWaveOp* poolWaveOp,
+                    serialize::SerWaveOp& serWaveOp) const;
     void saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
                     serialize::SerWaveOp& serWaveOp) const;
     void saveActivation(const wave::ActivationWaveOp* activationWaveOp,

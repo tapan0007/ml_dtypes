@@ -29,6 +29,7 @@
 #include "wave/inc/sbatomloadwaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
+#include "wave/inc/reciprocalwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/clipbyvaluewaveop.hpp"
 #include "wave/inc/tensortensorwaveop.hpp"
@@ -42,6 +43,7 @@
 #include "wavecode/inc/wavecodesbatomsave.hpp"
 #include "wavecode/inc/wavecodematmul.hpp"
 #include "wavecode/inc/wavecodepool.hpp"
+#include "wavecode/inc/wavecodereciprocal.hpp"
 #include "wavecode/inc/wavecodeactivation.hpp"
 #include "wavecode/inc/wavecodeclipbyvalue.hpp"
 #include "wavecode/inc/wavecodetensortensor.hpp"
@@ -63,6 +65,7 @@ WaveCode::WaveCode(nets::Network& network, const arch::Arch& arch, bool useSem)
     m_CodeSbAtomLoad        = std::make_unique<WaveCodeSbAtomLoad>(*this);
     m_CodeSbAtomSave        = std::make_unique<WaveCodeSbAtomSave>(*this);
     m_CodePool              = std::make_unique<WaveCodePool>(*this);
+    m_CodeReciprocal              = std::make_unique<WaveCodeReciprocal>(*this);
     m_CodeActivation        = std::make_unique<WaveCodeActivation>(*this);
     m_CodeClipByValue       = std::make_unique<WaveCodeClipByValue>(*this);
     m_CodeBarrier           = std::make_unique<WaveCodeBarrier>(*this);
@@ -189,6 +192,8 @@ WaveCode::getCodeGen(const wave::WaveOp* waveOp)
         return *m_CodeSbAtomSave;
     } else if (dynamic_cast<const wave::PoolWaveOp*>(waveOp)) {
         return *m_CodePool;
+    } else if (dynamic_cast<const wave::ReciprocalWaveOp*>(waveOp)) {
+        return *m_CodeReciprocal;
     } else if (dynamic_cast<const wave::ActivationWaveOp*>(waveOp)) {
         return *m_CodeActivation;
     } else if (dynamic_cast<const wave::ClipByValueWaveOp*>(waveOp)) {

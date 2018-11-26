@@ -25,6 +25,7 @@
 #include "wave/inc/sbatomloadwaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
+#include "wave/inc/reciprocalwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/clipbyvaluewaveop.hpp"
 #include "wave/inc/tensortensorwaveop.hpp"
@@ -91,6 +92,10 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             m_Save->savePool(poolWaveOp, serWaveOp);
             continue;
         }
+        if (const auto reciprocalWaveOp = dynamic_cast<wave::ReciprocalWaveOp*>(waveOp)) {
+            m_Save->saveReciprocal(reciprocalWaveOp, serWaveOp);
+            continue;
+        }        
         if (const auto activationWaveOp = dynamic_cast<const wave::ActivationWaveOp*>(waveOp)) {
             m_Save->saveActivation(activationWaveOp, serWaveOp);
             continue;
@@ -204,6 +209,27 @@ Network::Save::savePool(const wave::PoolWaveOp* poolWaveOp,
     KCC_SERIALIZE(TileIdFormat);
 #undef WAVE_OP
 }
+
+void
+Network::Save::saveReciprocal(const wave::ReciprocalWaveOp* reciprocalWaveOp,
+                    serialize::SerWaveOp& serWaveOp) const
+{
+#undef WAVE_OP
+#define WAVE_OP reciprocalWaveOp
+    serWaveOp.m_WaveOpType = wave::ReciprocalWaveOp::gTypeStrStatic();
+
+    KCC_SERIALIZE(NumPartitions);
+
+    saveSrc(WAVE_OP, serWaveOp, Dims::XYZ);
+    saveDst(WAVE_OP, serWaveOp, Dims::XYZ);
+
+    for (unsigned int i = 0; i < reciprocalWaveOp->gTileId().size(); ++i) {
+        serWaveOp.m_TileId[i] = reciprocalWaveOp->gTileId()[i];
+    }
+    KCC_SERIALIZE(TileIdFormat);
+#undef WAVE_OP
+}
+
 
 void
 Network::Save::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,

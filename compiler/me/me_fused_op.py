@@ -930,7 +930,7 @@ class FusedOp(list):
                 raise RuntimeError("ERROR: cannot handle more than two inputs for first operation %s, layer %s"%(first_op_type, first_op.data["layer_name"]))
         elif re.search(self.act_ops_regex, first_op_type):
             self.execute_unfused_pool_op(tpb, batch_item)
-        elif (first_op_type == "BiasAdd"):
+        elif (first_op_type == "BiasAdd" or first_op_type == "Reciprocal"):
             self.execute_unfused_pool_op(tpb, batch_item)
         elif (first_op_type == "Concat"):
             self.execute_unfused_concat_op(tpb, batch_item)
@@ -2043,6 +2043,46 @@ class FusedOp(list):
         ofmap_subtile.set_waveop_pattern(mapper, waveop, 'dst', dst_psum_bank, dst_sb_address, start_at_mid_part)
         waveop_stream.add_linked(waveop, dram_waveops, src_psum_bank, new_reader_morsels)
         return waveop
+        
+    def gen_unary_tensor_waveop_inline(self, mapper, waveop_stream, op, ifmap_tile, ofmap_tile, psum_bank_id, dram_waveops=[], new_reader_morsels=[]):
+        batch_item = ofmap_tile.batch_item_start
+        num_partitions = ofmap_tile.channel_count
+        start_at_mid_part = ofmap_tile.start_at_mid_part
+        # Source SB address or PSUM bank
+        if op.src_is_psum:
+            src_sb_address = 0
+            src_psum_bank = psum_bank_id
+        else:            
+            src_sb_address = mapper.get_sb_addr_from_file_addr(ifmap_tile.file_params, batch_item, ifmap_tile.lower_addr[0])
+            src_psum_bank = -1
+
+        # Destination SB address or PSUM bank
+        if op.dst_is_psum:
+            dst_sb_address = 0
+            dst_psum_bank = psum_bank_id
+        else:            
+            dst_sb_address = mapper.get_sb_addr_from_file_addr(ofmap_tile.file_params, batch_item, ofmap_tile.lower_addr[0])
+            dst_psum_bank = -1
+
+        waveop_name = op.data['layer_name'] + "/" + op.data['layer_type'] + "_" + ofmap_tile.id_string
+        waveop_type = op.data['layer_type']
+
+        waveop = {
+              'previous_waveops'        : [],
+              'waveop_type'             : waveop_type,
+              'waveop_name'             : waveop_name,
+              'layer_name'              : op.data['layer_name'],
+              'tile_id_format'          : ofmap_tile.format,
+              'tile_id'                 : ofmap_tile.id_array,
+              'num_partitions'          : num_partitions,
+            }
+
+        ifmap_subtile = ifmap_tile.make_pewave()
+        ofmap_subtile = ofmap_tile.make_pewave()
+        ifmap_subtile.set_waveop_pattern(mapper, waveop, 'src', src_psum_bank, src_sb_address, start_at_mid_part)
+        ofmap_subtile.set_waveop_pattern(mapper, waveop, 'dst', dst_psum_bank, dst_sb_address, start_at_mid_part)
+        waveop_stream.add_linked(waveop, dram_waveops, src_psum_bank, new_reader_morsels)
+        return waveop        
 
     def gen_fused_pool_waveop_inline (self, tpb, ifmap_tile, ofmap_tile, psum_bank_src, start_at_mid_part, new_reader_morsels=[]):
         first_waveop = None
@@ -2241,6 +2281,8 @@ class FusedOp(list):
             if layer_type == 'Lrelu':
                 alpha = self.first_op.data['mul_scalar']
             tile_data_flatten = tpb.activate.act(layer_type, ifmaps_data_extract, alpha)
+        elif (layer_type == "Reciprocal"):
+            tile_data_flatten = tpb.pool.reciprocate(ifmaps_data_extract, ifmap_tile.channel_count)
         else:
             raise RuntimeError("ERROR: cannot execute %s in execute_unfused_first_op"%layer_type)
 
@@ -2588,6 +2630,21 @@ class FusedOp(list):
                                     ifmap_tile    = ifmap_tile, 
                                     ofmap_tile    = ofmap_tile, 
                                     psum_bank_id  = psum_bank_id if first_op.dst_is_psum else -1)
+            elif first_op.data['layer_type'] == 'Reciprocal':
+                ifmap_tile_subtile \
+                        = PoolSubtile(ifmap_tile, ifmap_tile.tile_rect, Dim2D(1,1))
+                ofmap_tile_subtile \
+                        = PoolSubtile(ofmap_tile, ofmap_tile.tile_rect, Dim2D(1,1))
+
+                last_waveop = self.gen_unary_tensor_waveop_inline(
+                    mapper             = tpb.statebuffer.file_mapper, 
+                    waveop_stream      = tpb.waveop_stream,
+                    op                 = self[0],
+                    ifmap_tile         = ifmap_tile, 
+                    ofmap_tile         = ofmap_tile, 
+                    psum_bank_id       = psum_bank_id if first_op.dst_is_psum else -1,
+                    dram_waveops       = dram_ifmaps_waveops, 
+                    new_reader_morsels = new_reader_morsels)
             else:                    
                 last_waveop = self.gen_act_waveop_inline(
                         tpb               = tpb, 

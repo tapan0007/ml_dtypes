@@ -98,6 +98,7 @@ enum class WaveOpType {
     Load,
     Save,
     Pool,
+    Reciprocal,
     MatMul,
     Activation,
     TensorTensor,

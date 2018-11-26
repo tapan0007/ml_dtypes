@@ -260,6 +260,7 @@ private:
 
     void loadSbAtom(cereal::JSONInputArchive& archive);
     void loadPool(cereal::JSONInputArchive& archive);
+    void loadReciprocal(cereal::JSONInputArchive& archive);
     void loadMatMul(cereal::JSONInputArchive& archive);
     void loadActivation(cereal::JSONInputArchive& archive);
 
@@ -274,6 +275,7 @@ private:
 
     void saveSbAtom(cereal::JSONOutputArchive& archive) const;
     void savePool(cereal::JSONOutputArchive& archive) const;
+    void saveReciprocal(cereal::JSONOutputArchive& archive) const;
     void saveMatMul(cereal::JSONOutputArchive& archive) const;
     void saveActivation(cereal::JSONOutputArchive& archive) const;
     void saveResAdd(cereal::JSONOutputArchive& archive) const;
@@ -296,6 +298,7 @@ private:
     bool verifySbAtomSave() const;
     bool verifyMatMul() const;
     bool verifyPool() const;
+    bool verifyReciprocal() const;
     bool verifyActivation() const;
     bool verifyResAdd() const;
     bool verifyScaleAdd() const;

@@ -13,6 +13,7 @@
 #include "compisa/inc/compisaldweights.hpp"
 
 #include "compisa/inc/compisapool.hpp"
+#include "compisa/inc/compisareciprocal.hpp"
 
 #include "compisa/inc/compisaactivate.hpp"
 
@@ -91,6 +92,17 @@ void WaveCode::writeInstruction<compisa::PoolInstr>(const compisa::PoolInstr& in
     engInfo->m_Pc += instSize;
 }
 
+template<>
+void WaveCode::writeInstruction<compisa::ReciprocalInstr>(const compisa::ReciprocalInstr& instruction) const
+{
+    instruction.CheckValidity();
+    checkForNoSync(instruction.inst_events);
+
+    const kcc_int32 instSize = sizeof(instruction);
+    auto engInfo = &m_InstrStreams->m_PoolEng;
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
+}
 
 template<>
 void WaveCode::writeInstruction<compisa::TensorTensorOpInstr>(const compisa::TensorTensorOpInstr& instruction) const

@@ -3,7 +3,8 @@ MODULE:=wave
 MODS := $(MODULE) utils nets serialize
 
 FILES := pooleng matmul sbatom sbatomload sbatomsave pool activation \
-tensor tensortensor tensorscalarconst barrier nop scaleadd clipbyvalue
+tensor tensortensor tensorscalarconst barrier nop scaleadd clipbyvalue \
+reciprocal
 
 SRCS := waveedge waveop $(addsuffix waveop,$(FILES))
 

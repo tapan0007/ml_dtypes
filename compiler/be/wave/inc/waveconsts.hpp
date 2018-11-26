@@ -10,6 +10,7 @@ constexpr const char* const WaveOpTypeStr_SBAtomLoad    = "SBAtomLoad";
 constexpr const char* const WaveOpTypeStr_SBAtomSave    = "SBAtomSave";
 constexpr const char* const WaveOpTypeStr_MatMul        = "MatMul";
 constexpr const char* const WaveOpTypeStr_Pool          = "Pool";
+constexpr const char* const WaveOpTypeStr_Reciprocal    = "Reciprocal";
 constexpr const char* const WaveOpTypeStr_Activation    = "Activation";
 constexpr const char* const WaveOpTypeStr_Barrier       = "Barrier";
 

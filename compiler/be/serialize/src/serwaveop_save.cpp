@@ -35,6 +35,8 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
        saveSbAtom(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Pool) {
         savePool(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Reciprocal) {
+        saveReciprocal(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_MatMul) {
         saveMatMul(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Activation) {
@@ -109,6 +111,19 @@ SerWaveOp::savePool(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(TileIdFormat);
 }
 
+
+//===========================================================================
+void
+SerWaveOp::saveReciprocal(cereal::JSONOutputArchive& archive) const
+{
+    saveSrc(archive, Dims::XYZ);
+    saveDst(archive, Dims::XYZ);
+
+    KCC_ARCHIVE(NumPartitions);
+
+    KCC_ARCHIVE(TileId);
+    KCC_ARCHIVE(TileIdFormat);
+}
 
 //===========================================================================
 void

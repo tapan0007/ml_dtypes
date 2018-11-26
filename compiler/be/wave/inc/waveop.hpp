@@ -84,6 +84,9 @@ public:
     virtual bool qPoolWaveOp() const {
         return false;
     }
+    virtual bool qReciprocalWaveOp() const {
+        return false;
+    }
     virtual bool qScaleAddWaveOp() const {
         return false;
     }

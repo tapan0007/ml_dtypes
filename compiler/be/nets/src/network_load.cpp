@@ -21,6 +21,7 @@
 
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
+#include "wave/inc/reciprocalwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/clipbyvaluewaveop.hpp"
 #include "wave/inc/tensortensorwaveop.hpp"
@@ -63,7 +64,6 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         Assert(false, "Unsupported data type ", dataType);
     }
 
-
     //===========================================================================
     if (m_UseWave) {
         std::vector<serialize::SerWaveOp> serWaveOps;
@@ -79,6 +79,8 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 waveOp = m_Load->loadSbAtomSave(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::PoolWaveOp::gTypeStrStatic()) {
                 waveOp = m_Load->loadPool(serWaveOp);
+            } else if (serWaveOp.m_WaveOpType == wave::ReciprocalWaveOp::gTypeStrStatic()) {
+                waveOp = m_Load->loadReciprocal(serWaveOp);                
             } else if (serWaveOp.m_WaveOpType == wave::MatMulWaveOp::gTypeStrStatic()) {
                 waveOp = m_Load->loadMatMul(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::ActivationWaveOp::gTypeStrStatic()) {
@@ -240,6 +242,36 @@ Network::Load::loadPool(const serialize::SerWaveOp& serWaveOp)
 
     auto waveOp = new wave::PoolWaveOp(poolParams, prevWaveOps);
     Assert(waveOp->gName() == poolParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
+    return waveOp;
+#undef PARAMS
+}
+
+wave::ReciprocalWaveOp*
+Network::Load::loadReciprocal(const serialize::SerWaveOp& serWaveOp)
+{
+#undef PARAMS
+#define PARAMS reciprocalParams
+    std::vector<wave::WaveOp*> prevWaveOps;
+    wave::ReciprocalWaveOp::Params reciprocalParams;
+    fillWaveOpParams(serWaveOp, prevWaveOps, PARAMS);
+
+    loadSrc(PARAMS, serWaveOp, Dims::XYZ);
+    loadDst(PARAMS, serWaveOp, Dims::XYZ);
+
+    reciprocalParams.m_InDtypeId  = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
+
+    KCC_UNSERIALIZE(NumPartitions);
+
+    Assert(reciprocalParams.m_TileId.size() == serWaveOp.m_TileId.size(),
+        serWaveOp.m_WaveOpType, " waveop '", serWaveOp.m_WaveOpName,
+        "' has wrong tile id size: ", reciprocalParams.m_TileId.size());
+    for (unsigned int i = 0; i < serWaveOp.m_TileId.size(); ++i) {
+        reciprocalParams.m_TileId[i] = serWaveOp.m_TileId[i];
+    }
+    reciprocalParams.m_TileIdFormat = serWaveOp.m_TileIdFormat;
+
+    auto waveOp = new wave::ReciprocalWaveOp(reciprocalParams, prevWaveOps);
+    Assert(waveOp->gName() == reciprocalParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
     return waveOp;
 #undef PARAMS
 }

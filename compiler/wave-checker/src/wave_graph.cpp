@@ -12,6 +12,7 @@ WaveOp::WaveOpType WaveOp::ExtractWaveOpTypeEngine(
   else if (!wot.compare("SBAtomSave")) t = SBAtomSave;
   else if (!wot.compare("MatMul")) t = MatMul;
   else if (!wot.compare("Pool")) t = Pool;
+  else if (!wot.compare("Reciprocal")) t = Pool;
   else if (!wot.compare("ResAdd")) t = ResAdd;
   else if (!wot.compare("Multiply")) t = ResAdd;
   else if (!wot.compare("Sub")) t = ResAdd;
@@ -457,6 +458,7 @@ WaveOp* WaveGraphChecker::ConstructWaveOp(json& op)
   if (!wave_op_type.compare("MatMul")) wo = new MMOp(op);
   else if (!wave_op_type.compare("Activation") ||
       !wave_op_type.compare("Pool") ||
+      !wave_op_type.compare("Reciprocal") ||
       !wave_op_type.compare("ClipByValue") ||
       !wave_op_type.compare("ScaleAdd")) wo = new PoolActOp(op);
   else if (!wave_op_type.compare("SBAtomLoad") ||
@@ -950,6 +952,7 @@ void WaveGraphChecker::MakeImplicitEdgesExplicit()
       make_edge(prev_exam(prev_pe), cur_v, prev_pe, wg);
     }
     else if (!wop_type.compare("Pool") || !wop_type.compare("ResAdd")
+        || !wop_type.compare("Reciprocal")
         || !wop_type.compare("Multiply")
         || !wop_type.compare("ScaleAdd")
         || !wop_type.compare("Add")
