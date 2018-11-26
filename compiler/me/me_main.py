@@ -319,7 +319,9 @@ class TPBSched:
                         op_list.residue_in_scratch = False
                         #if last_pairup_batch_count*2 <= op_list.last_op.ofmaps_file_params.file_dims.N:
                         # TODO: support higher batch count for smaller data sizes
-                        op_list.next_batch_count = min(16, last_pairup_batch_count * 2) # can only support batch up to 16 in this scheduler
+                        if args.nname == "resnet50":
+                            # Generic scheduling should use the same number of batch count.
+                            op_list.next_batch_count = min(16, last_pairup_batch_count * 2) # can only support batch up to 16 in this scheduler
                         last_pairup_batch_count = op_list.next_batch_count
                         # Mark all fused ops between last join and this join as "pre-pair-up" region
                         if prev_join_op_list is not None:
