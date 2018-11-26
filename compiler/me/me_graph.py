@@ -754,7 +754,7 @@ class KGraph:
         node_top_copy = new_node
 
 
-    def expand_sum_layer(self, layer, visited_nodes):
+    def expand_sum_layer(self, layer, visited_nodes, new_layers_list):
         axes = layer['reduce_axes']
         # - Only support reduce_sum on C axis now
         # - For other axes, we need to expand reduce_sum to element-wise additions
@@ -789,8 +789,39 @@ class KGraph:
         "#comment"        : "2D Conv expanded from Sum operation"
         }
 
-        layer.clear()
-        layer.update(new_layer)
+        new_layers_list.append(new_layer)
+
+
+    def expand_rsqrt_layer(self, layer, visited_nodes, new_layers_list):
+        
+        sqrt_filename = layer['ref_file']
+        (root, ext) = os.path.splitext(sqrt_filename)
+        sqrt_filename += root + '-do-not-exist' + ext
+
+        # Replace the node
+        sqrt_layer= {
+        "layer_type"      : "Sqrt",
+        "layer_name"      : layer['layer_name'] + '/sqrt',
+        "ofmap_shape"     : layer['ofmap_shape'],
+        "ofmap_format"    : layer['ofmap_format'],
+        # this file doesn't exist but the file name is still used
+        # to name the output file.
+        "ref_file"        : sqrt_filename,
+        "previous_layers" : layer['previous_layers'],
+        "#comment"        : "Sqrt expanded from Rsqrt"
+        }
+        reciprocal_layer= {
+        "layer_type"      : "Reciprocal",
+        "layer_name"      : layer['layer_name'] + '/reciprocal',
+        "ofmap_shape"     : layer['ofmap_shape'],
+        "ofmap_format"    : layer['ofmap_format'],
+        "ref_file"        : layer['ref_file'],
+        "previous_layers" : [ sqrt_layer['layer_name'] ],
+        "#comment"        : "Reciprocal expanded from Rsqrt"
+        }        
+
+        new_layers_list += [sqrt_layer, reciprocal_layer]
+
         
     # populate graph using layer info from JSON
     def populate_from_kgraph_json(self, kgraph_json):
@@ -805,11 +836,21 @@ class KGraph:
             layers = kgraph_json["layers"]
             visted_layers = dict()
 
+            new_layers = []
+
             for l in layers:
                 visted_layers[l['layer_name']] = l
 
                 if (l['layer_type'] == 'Sum'):
-                    self.expand_sum_layer(l, visted_layers)
+                    self.expand_sum_layer(l, visted_layers, new_layers)
+                elif (l['layer_type'] == 'Rsqrt'):
+                    self.expand_rsqrt_layer(l, visted_layers, new_layers)
+                else:
+                    new_layers.append(l)
+            
+            layers.clear()
+            layers += new_layers
+
 
         # process layers
         node_number = 0

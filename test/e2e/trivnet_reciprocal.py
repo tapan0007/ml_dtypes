@@ -11,26 +11,18 @@ import re
 
 # Usage
 # 
-# python3 trivnet_reciprocal.py tfloat16-b1-h2-c64-wmin2-wmax2.2-imin-10-imax10 trivnet_ reciprocal "float16"
+# python3 trivnet_reciprocal.py tfloat16-b1-h2-c64-reciprocal-wmin2-wmax2.2-imin-10-imax10 trivnet_ reciprocal "float16"
 
-"""
-# Extract text-only config options from the config string
-# l10-relu-tanh-b1 => {"relu" : 1, "tanh" : 1}, return letover "l10-b1"
 def getConfOpts(confStr):
-  conf = {}
-  for s in ["RECIPROCAL"]:
+  opFlags = {}
+  for s in ["RECIPROCAL", "RSQRT"]:
     s1 = "-" + s
     if s1 in confStr:
       confStr = confStr.replace(s1, "")
-      conf[s] = True
-  return(conf, confStr)
+      opFlags[s] = True
+  return(opFlags, confStr)
 
-print("\nINFO: started as  ", " ".join(sys.argv))
-
-
-"""
-
-# Sample confStr : tfloat16-b1-h2-c64-wmin2-wmax2.2-imin-10-imax10
+# Sample confStr : tfloat16-b1-h2-c64-reciprocal-wmin2-wmax2.2-imin-10-imax10
 confStr = sys.argv[1].upper() + "-"
 
 if len(sys.argv) > 2:
@@ -43,7 +35,7 @@ if len(sys.argv) > 3:
 else:
   netName = "reciprocal"
 
-dimStr = confStr
+(opFlags, dimStr) = getConfOpts(confStr)
 print("INFO: options ",  dimStr)
 
 dimList = re.split('([A-Z]+)(-?[\d\.]+)-', dimStr)
@@ -73,13 +65,25 @@ for t in ["np", "tf"]:
 
 IF1 = np.zeros([B, H, H, C])
 BIAS1 = np.zeros([C])
+
+# tf.train.Saver requires at least one variable to freeze. Otherwise, it throws an exception.
 w = tf.get_variable(name=netName+"/bias1",
                     initializer = np.linspace(WMIN, WMAX, num=BIAS1.size, dtype=npDataType).reshape(BIAS1.shape),
                     dtype=tfDataType)
-i0 = tf.placeholder(tfDataType, shape=IF1.shape, name="input")
-i1 = tf.reciprocal(i0, name=netName + "/reciprocal")
-output = tf.identity(i1, name=netName+"/output")
 
+# input placeholder
+i0 = tf.placeholder(tfDataType, shape=IF1.shape, name="input")
+
+if opFlags.get('RECIPROCAL'):
+    _output = tf.reciprocal(i0, name=netName + "/reciprocal")
+elif opFlags.get('RSQRT'):
+    _output = tf.rsqrt(i0, name=netName + "/rsqrt")    
+else:
+    raise RuntimeError("No recognizable activation function; please check your test specification")
+ 
+output = tf.identity(_output, name=netName+"/output")
+
+# input value
 i0val = np.linspace(IMIN, IMAX, num=IF1.size, dtype=npDataType).reshape(IF1.shape)
 np.save( outPrefix + 'ref_input.npy', i0val)
 print("Inp=\n", i0val)
