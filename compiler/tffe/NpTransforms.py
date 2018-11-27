@@ -51,7 +51,13 @@ class NpTrans:
         Transforms[src][dst][d] = calcTransform(Formats[src][d], Formats[dst][d])
 
   @staticmethod
-  def formatNpyArrAs(arr, srcFormat, dstFormat, dstShape=None):
+  def formatNpyArrAs(arr, srcFormat, dstFormat, srcShape=None, dstShape=None):
+    
+    # Support flat arrays such as flat (bad) user input in 5-cnn_mnist_fp16
+    if srcShape != None:
+      arr = arr.reshape(srcShape)
+      print("DEBUG: src %s %s  dst %s %s" % (srcFormat, srcShape, dstFormat, dstShape)) 
+    
     assert len(srcFormat) == len(arr.shape)
     srcShape = arr.shape
     sf = srcFormat
@@ -79,9 +85,9 @@ class NpTrans:
 
   # Ulility function to convert npy files given the precise format spec, returns new file name and the destination format
   @staticmethod
-  def formatNpyFileAs(npFile, srcFormat, dstFormat, outFile=None, dstShape=None):
+  def formatNpyFileAs(npFile, srcFormat, dstFormat, outFile=None, srcShape=None, dstShape=None):
     arr = np.load(npFile)
-    arr = NpTrans.formatNpyArrAs(arr, srcFormat, dstFormat, dstShape)
+    arr = NpTrans.formatNpyArrAs(arr, srcFormat, dstFormat, srcShape=srcShape, dstShape=dstShape)
     if outFile == None:
       npFileDest = npFile.replace(".npy", "_" + dstFormat + ".npy")
     else:

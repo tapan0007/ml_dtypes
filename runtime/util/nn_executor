@@ -139,7 +139,8 @@ class NnSubgraph:
         inputShapeTf = input["shape"]
         inputFormatTf = tff.tfFormat
         inputFormatSim = tff.simFormat
-        npt.formatNpyFileAs(tfFile, inputFormatTf, inputFormatSim, outFile=tpbInpFile)
+        
+        npt.formatNpyFileAs(tfFile, inputFormatTf, inputFormatSim, outFile=tpbInpFile, srcShape=input['shape'])
         print(getInfoDateStr(), "INFO: nn_executor sg%02d:  translated TF format %s %s  to TPB Fmap format %s %s" % (self.sgId, inputFormatTf, tfFile, inputFormatSim, tpbInpFile))
         assert os.path.isfile(tpbInpFile)  # exists from compilation
         # The inputs for the first subgraph are same as when compiled
