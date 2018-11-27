@@ -425,7 +425,7 @@ class Zebu(BePlat):
     print("INFO: using port %d for grpc" % self.grpcPort)
 
   def checkHeartBeat(self, cmd):
-    return(self.sshCmd(cmd, opt="-o ConnectTimeout=10"))
+    return(self.sshCmd(cmd))
 
   def startTonga(self):
     # Boot Tonga
