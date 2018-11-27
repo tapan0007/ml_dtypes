@@ -89,7 +89,7 @@ level = args.level
 ################################
 parallel = args.parallel
 if args.force_qemu and args.parallel == defaultParallel:
-  parallel = max(args.parallel // 2, buggyQemuMaxParallel)
+  parallel = min(args.parallel // 2, buggyQemuMaxParallel)
   print("INFO: using default --parallel %d due to --force_qemu" % parallel)
 select = args.select
 selectSet = set(["any", "waived_only", "not_waived"])
