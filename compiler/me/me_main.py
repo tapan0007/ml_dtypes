@@ -643,6 +643,9 @@ if __name__ == "__main__":
     except Exception as e:
         print("WARNING: Can't open process ID %d status file %s"%(pid, proc_status_file))
     
+    # print free SB gaps
+    tpb.statebuffer.file_mapper.find_unused_gaps()
+
     print("\nINFO: Finished at time %s" % str(datetime.datetime.now()))
 
     # check for comparison errors

@@ -944,6 +944,37 @@ class FileMapper():
             self.debug = args.debug
         self.args = args
 
+    def find_unused_gaps(self):
+        print("Checking for unused gaps in SB")
+        largest_unused_gap_start = 0
+        largest_unused_gap_size = 0
+        last_unused_gap_start = 0
+        last_unused_gap_size = 0
+        last_unused_gap_tracking = False
+        for i in range(0, self.sb_partition_sz, self.item_sz):
+            morsel_unused = True
+            for j in range(2):
+                if self.morsels_wr[j][i].accessor_id >= 0:
+                    morsel_unused = False
+                for k in range(EngineEnum.COUNT):
+                    if self.morsels_rd[k][j][i].accessor_id >= 0:
+                        morsel_unused = False
+            if morsel_unused:
+                if not last_unused_gap_tracking:
+                    last_unused_gap_start = i
+                    last_unused_gap_tracking = True
+                    last_unused_gap_size = 0
+                last_unused_gap_size += self.item_sz
+            elif last_unused_gap_tracking:
+                print("Free gap: start %d size %d (bytes)"%(last_unused_gap_start, last_unused_gap_size))
+                last_unused_gap_tracking = False
+                if last_unused_gap_size > largest_unused_gap_size:
+                    (largest_unused_gap_start, largest_unused_gap_size) = (last_unused_gap_start, last_unused_gap_size)
+        if last_unused_gap_size > 0 and last_unused_gap_tracking:
+            print("Free gap: start %d size %d (bytes)"%(last_unused_gap_start, last_unused_gap_size))
+            (largest_unused_gap_start, largest_unused_gap_size) = (last_unused_gap_start, last_unused_gap_size)
+        print("Largest free gap:  start %d size %d (bytes)"%(largest_unused_gap_start, largest_unused_gap_size))
+
     def check_overlap(self, region0_start, region0_sz, region1_start, region1_sz):
         #print("DBG: checking overlap: region 0 start %d sz %d, region 1 start %d sz %d"%(region0_start, region0_sz, region1_start, region1_sz))
         if (region0_start <= region1_start):
