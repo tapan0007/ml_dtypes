@@ -116,6 +116,8 @@ class Instr:
     # POOL
     "POOL"       : "tan",
     "TENSOR_TENSOR_OP" : "khaki",
+    "TENSOR_TENSOR_ARITH_OP" : "brown",
+    "TENSOR_REDUCE_ARITH_OP" : "green",
     "WRITE"      : "lightgrey",
     "SEMAPHORE"  : "yellow",
     "NOP"        : "grey",
