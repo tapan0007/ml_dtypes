@@ -26,7 +26,7 @@ class NpUtils:
   #   py - like python all close but still has the verbose option
   #   max - use max B for relative difference -> very loose match criteria
   @staticmethod
-  def allclose(a, b, rtol=1e-05, atol=1e-08, equal_nan=False, verbose=False, mode='max'):
+  def allclose(a, b, rtol=1e-05, atol=1e-08, equal_nan_inf=False, verbose=False, mode='max'):
     # b is gold/refernce, a is new
     if not a.shape == b.shape:
       return False
@@ -42,8 +42,8 @@ class NpUtils:
     for index, bval in np.ndenumerate(b):
       aval = a[index]
       bval = b[index]
-      if bval == np.nan:
-        if not (aval == np.nan and equal_nan):
+      if bval == np.nan or bval == np.inf:
+        if not (aval == bval and equal_nan_inf):
           return False
       else:
         if mode == 'py':

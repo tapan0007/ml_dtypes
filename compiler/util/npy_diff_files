@@ -117,8 +117,14 @@ if verbose >= 2:
     for (count, value) in zip(counts, values):
       print("  %12g " % value, "#" * int(count * step + 0.49999), count)
   print("\nHistograms:")
-  printHistogram("Gold", gold)
-  printHistogram("New", new)
+  try:
+    printHistogram("Gold", gold)
+  except Exception as e:
+    print("Warning: Failed to print histogram: %s" % str(e))
+  try:
+    printHistogram("New", new)
+  except Exception as e:
+    print("Warning: Failed to print histogram: %s" % str(e))
 
 if verbose >= 2:
   print("\nStatistics")
@@ -146,7 +152,7 @@ if args.binary_match:
 
 else:
   (tolr, tola) = args.tolerance
-  resAllclose = npu.allclose(new, gold, tolr/100, tola, verbose=verbose)
+  resAllclose = npu.allclose(new, gold, tolr/100, tola, equal_nan_inf=True, verbose=verbose)
   #resAllclose = np.allclose(new, gold, tolr/100, tola)
   if verbose >= 1:
     #print("Allclose info tolerance relative %g %%  absolute %g : %s" % (tolr, tola, resAllclose))
