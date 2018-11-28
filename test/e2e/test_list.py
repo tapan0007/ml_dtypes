@@ -53,8 +53,6 @@ lstmD0T32 = "%s/%s" % (kePath, "apps/tf/ptb_word_lm/keras_unrolled/data-t32-0.np
 
 melSpectra = "%s/%s" % (kePath, "apps/tf/parallel_wavenet/example1/melspec_input_fp16.npy")
 
-mnistSample = "%s/%s" % (kePath, "apps/tf/cnn_mnist/sample_mnist_img_fp16.npy")
-
 # ME recipes
 def MEv2(optstr):
     optsdec = {"cleanwg": "enable_cleanup", "rn50": "nname=resnet50", "generic": "nname=generic",
@@ -959,9 +957,6 @@ testConfigMap = {
   "7-amoebanet_fp16_cell11" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_11/cell_output/concat --partition from_multi cell_11/Relu,cell_11/Relu_1 --executors host all wave 1 %s --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s --euler_options '--max_events 210'" % (MEv2("Generic"), rnDogJpg), "--input_files %s" % (rnDogJpg)],
   "7-amoebanet_fp16_rcell0" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to reduction_cell_0/cell_output/concat --partition from_multi reduction_cell_0/Relu,reduction_cell_0/Relu_1 --executors host all wave 1 %s --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (MEv2("Generic"), rnDogJpg), "--input_files %s" % (rnDogJpg)],
   "7-amoebanet_fp16_rcell1" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to reduction_cell_1/cell_output/concat --partition from_multi reduction_cell_1/Relu,reduction_cell_1/Relu_1 --executors host all wave 1 %s --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (MEv2("Generic"), rnDogJpg), "--input_files %s" % (rnDogJpg)],
-
-  # CNN MNIST
-  "5-cnn_mnist_fp16"     : [ "tf_s3",  "s3://kaena-nn-models", "cnn_mnist_opt_fp16.pb",  "--input_node Reshape --partition from softmax_tensor --executors host all wave 0 %s --images %s "%(MEv2("Generic-NoVerify"), mnistSample), "--input_files %s"%mnistSample],
 
   #
   # watchpoint tests
