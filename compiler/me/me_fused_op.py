@@ -1494,9 +1494,9 @@ class FusedOp(list):
                 bias_data_temp          = self[i].parent.zero_bias_file_params.dram_data
                 bias_chan_start         = self[i].bias_file_c_fold_offset * PEArray.NUM_ROWS + ofmap_tile.m_id * PEArray.NUM_COLS
                 if self[i].parent.zero_bias_file_params.file_dims.has_c:
-                    bias_addr           = (bias_chan_start // PEArray.NUM_ROWS) * self[i].item_sz
+                    bias_addr           = (bias_chan_start // PEArray.NUM_ROWS) * self[i].parent.zero_bias_file_params.item_sz
                 else:                    
-                    bias_addr           = bias_chan_start * self[i].item_sz
+                    bias_addr           = bias_chan_start * self[i].parent.zero_bias_file_params.item_sz
                 bias_chan_mid_part      = (ofmap_tile.m_id%2) == 1
                 bias_chan_end           = min(bias_chan_start + PEArray.NUM_COLS, self[i].bias_file_c_fold_offset * PEArray.NUM_ROWS + ofmap_tile.file_params.file_dims.C)
                 bias_extracted          = np.zeros(bias_chan_end - bias_chan_start)
