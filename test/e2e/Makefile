@@ -139,6 +139,10 @@ TEST_ARGS_CHECK_EMU_TESTS = \
 0-1conv0_qemu_sem_wave \
 0-116conv_tanh_sem_qemu_wave \
 2-wavernn_tf_ts0_w1_h02_cb \
+6-inceptionv3_wave_dog_sg00_tpb_upto_concat8 \
+6-inceptionv3_wave_dog_sg00_tpb_upto_concat9 \
+7-inceptionv3_wave_dog_sg00_tpb_upto_concat10 \
+7-inceptionv3_wave_dog_sg00_tpb_upto_concat11 \
 4-ptb_word_small_sigmoid_fp16_b32_wave \
 5-rn50_nne_to_act4_wave-no_repl \
 5-rn50_nne_to_act4_wave-repl \
