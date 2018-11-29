@@ -17,7 +17,6 @@
 #include "utils/inc/datatype.hpp"
 #include "utils/inc/fmapdesc.hpp"
 
-//#include "layers/inc/convlayer.hpp"
 
 #include "wave/inc/waveop.hpp"
 
@@ -175,11 +174,9 @@ private:
     kcc_int32       m_FmapZStep        = -1;
     kcc_int32       m_IfmapsSbAddress       = -1;
     const DataType& m_InDtype;
-    // layer name
     kcc_int32       m_NumColumnPartitions   = -1;
     kcc_int32       m_NumRowPartitions      = -1;
     const DataType& m_OutDtype;
-    // previous layers
     kcc_int32       m_PsumBankId            = -1;
     kcc_int32       m_PsumBankOffset        = -1;
     kcc_int32       m_PsumXNum              = -1;
@@ -219,11 +216,9 @@ public:
     kcc_int32       m_FmapZStep             = -1;
     kcc_int32       m_IfmapsSbAddress       = -1;
     DataTypeId      m_InDtypeId             = DataTypeId::None;
-    // layer name
     kcc_int32       m_NumColumnPartitions   = -1;
     kcc_int32       m_NumRowPartitions      = -1;
     DataTypeId      m_OutDtypeId            = DataTypeId::None;
-    // previous layers
     kcc_int32       m_PsumBankId            = -1;
     kcc_int32       m_PsumBankOffset        = -1;
     kcc_int32       m_PsumXNum              = -1;

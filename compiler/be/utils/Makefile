@@ -3,7 +3,7 @@ MODULE:=utils
 MODS := $(MODULE) nets layers serialize schedule
 
 ########################################################
-SRCS := fmapdesc debug datatype printers types asserter version
+SRCS := fmapdesc debug datatype types asserter version
 ## consts
 
 GIT_SHA_LONG:=$(shell git describe --always --abbrev=12)

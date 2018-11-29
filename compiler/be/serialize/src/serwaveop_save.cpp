@@ -122,7 +122,6 @@ SerWaveOp::saveMatMul(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(FmapZStep);
     KCC_ARCHIVE(IfmapsSbAddress);
     KCC_ARCHIVE(InDtype);
-    // layer name
     KCC_ARCHIVE(NumColumnPartitions);
     KCC_ARCHIVE(NumRowPartitions);
     KCC_ARCHIVE(OutDtype);

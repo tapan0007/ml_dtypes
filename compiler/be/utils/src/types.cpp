@@ -3,16 +3,16 @@
 #include "utils/inc/asserter.hpp"
 #include "utils/inc/types.hpp"
 
-#include "layers/inc/layerconsts.hpp"
 
 namespace kcc {
 namespace utils {
 
+
 const std::string&
 poolType2Str(PoolType poolType)
 {
-    static const std::string maxPool(layers::LayerTypeStr_MaxPool);
-    static const std::string avgPool(layers::LayerTypeStr_AvgPool);
+    static const std::string maxPool(PoolTypeStr_MaxPool);
+    static const std::string avgPool(PoolTypeStr_AvgPool);
     static const std::string badPool("Bad pool type");
 
     switch(poolType) {
@@ -33,9 +33,9 @@ poolType2Str(PoolType poolType)
 PoolType
 poolTypeStr2Id(const std::string& str)
 {
-    if (str == layers::LayerTypeStr_MaxPool) {
+    if (str == PoolTypeStr_MaxPool) {
         return PoolType::Max;
-    } else if (str == layers::LayerTypeStr_AvgPool) {
+    } else if (str == PoolTypeStr_AvgPool) {
         return PoolType::Avg;
     } else {
         Assert(false, "Wrong Pool Name", str);

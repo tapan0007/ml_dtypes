@@ -6,7 +6,6 @@
 
 #include "arch/inc/arch.hpp"
 #include "wave/inc/waveconsts.hpp"
-#include "layers/inc/layer.hpp"
 #include "nets/inc/network.hpp"
 #include "wave/inc/activationwaveop.hpp"
 

@@ -157,11 +157,11 @@ enum class PoolType {
     Max,
     Avg
 };
+constexpr const char* const PoolTypeStr_MaxPool       = "MaxPool";
+constexpr const char* const PoolTypeStr_AvgPool       = "AvgPool";
 
 
 //**********************************************************************
-using LayerId = kcc_int32;
-const LayerId LayerId_Null = -1;
 
 
 using StateBufferAddress = kcc_int64;

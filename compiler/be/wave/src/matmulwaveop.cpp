@@ -6,7 +6,6 @@
 #include "events/inc/events.hpp"
 
 #include "arch/inc/arch.hpp"
-#include "layers/inc/layer.hpp"
 #include "nets/inc/network.hpp"
 #include "wave/inc/waveconsts.hpp"
 #include "wave/inc/matmulwaveop.hpp"
@@ -27,11 +26,9 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
     , m_FmapZStep(params.m_FmapZStep)
     , m_IfmapsSbAddress(params.m_IfmapsSbAddress)
     , m_InDtype(DataType::dataTypeId2DataType(params.m_InDtypeId))
-    // layer name
     , m_NumColumnPartitions(params.m_NumColumnPartitions)
     , m_NumRowPartitions(params.m_NumRowPartitions)
     , m_OutDtype(DataType::dataTypeId2DataType(params.m_OutDtypeId))
-    // previous layers
     , m_PsumBankId(params.m_PsumBankId)
     , m_PsumBankOffset(params.m_PsumBankOffset)
     , m_PsumXNum(params.m_PsumXNum)

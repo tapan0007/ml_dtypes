@@ -9,17 +9,6 @@
 #include "utils/inc/asserter.hpp"
 #include "arch/inc/arch.hpp"
 
-#include "layers/inc/layer.hpp"
-#include "layers/inc/inputlayer.hpp"
-#include "layers/inc/constlayer.hpp"
-#include "layers/inc/convlayer.hpp"
-#include "layers/inc/relulayer.hpp"
-#include "layers/inc/tanhlayer.hpp"
-#include "layers/inc/sqrtlayer.hpp"
-#include "layers/inc/maxpoollayer.hpp"
-#include "layers/inc/avgpoollayer.hpp"
-#include "layers/inc/resaddlayer.hpp"
-#include "layers/inc/biasaddlayer.hpp"
 
 #include "wave/inc/sbatomloadwaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
@@ -55,56 +44,8 @@ Network::Network(const arch::Arch& arch, const char* gitVersion)
 
 Network::~Network() = default;
 
-//--------------------------------------------------------
-void
-Network::addLayer(layers::Layer* layer)
-{
-    m_Layers.push_back(layer);
-}
 
 
-
-//--------------------------------------------------------
-void
-Network::SchedLayerForwRevIter::operator++()
-{
-    layers::Layer* const currLayer = m_CurrLayer;
-    Assert(currLayer, "Layer iterator in Network: Invalid current layer");
-    layers::Layer* nextLayer;
-
-    if (m_Forw) {
-        nextLayer = currLayer->gNextSchedLayer();
-    } else {
-        nextLayer = currLayer->gPrevSchedLayer();
-    }
-
-    m_CurrLayer = nextLayer;
-}
-
-//--------------------------------------------------------
-Network::SchedForwLayers
-Network::gSchedForwLayers() const
-{
-    return SchedForwLayers(m_Layers);
-}
-
-//--------------------------------------------------------
-Network::SchedRevLayers
-Network::gSchedRevLayers()
-{
-    return SchedRevLayers(m_Layers);
-}
-
-//--------------------------------------------------------
-layers::Layer*
-Network::findLayer(const std::string& layerName, bool mustFind)
-{
-    layers::Layer* layer = m_Name2Layer[layerName];
-    if (mustFind) {
-        Assert(layer, "Could not find layer ", layerName);
-    }
-    return layer;
-}
 
 //--------------------------------------------------------
 wave::WaveOp*
@@ -184,20 +125,6 @@ Network::gInTensorDimensions() const
     return badDim;
 }
 
-//--------------------------------------------------------
-kcc_int32
-Network::gInLayerStride() const
-{
-    for (auto waveop : m_WaveOps) {
-        const auto sbLoadWaveop =
-                dynamic_cast<const wave::SbAtomLoadWaveOp*>(waveop);
-        if (sbLoadWaveop && ! sbLoadWaveop->qContainWeights()) {
-            return sbLoadWaveop->gSrcStepElem();
-        }
-    }
-    Assert(false, "Network::gInLayerStride: did not find IFMAP Load waveop");
-    return -1;
-}
 
 //--------------------------------------------------------
 kcc_int32

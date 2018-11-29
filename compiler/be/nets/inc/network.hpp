@@ -24,9 +24,6 @@ namespace arch {
     class Arch;
 }
 
-namespace layers {
-    class Layer;
-}
 
 namespace wave {
     class WaveOp;
@@ -43,9 +40,7 @@ namespace wave {
     class BarrierWaveOp;
     class NopWaveOp;
 }
-namespace schedule {
-    class LayerLevel;
-}
+
 namespace serialize {
     class SerWaveOp;
 }
@@ -56,7 +51,6 @@ using namespace utils;
 
 
 
-constexpr const char* const NetKey_Layers               = "layers";
 constexpr const char* const NetKey_WaveOps              = "waveops";
 constexpr const char* const NetKey_NetName              = "net_name";
 constexpr const char* const NetKey_DataType             = "data_type";
@@ -69,12 +63,6 @@ constexpr const char* const NetKey_GitVersion           = "git_version";
 // The whole neural net
 //--------------------------------------------------------
 class Network {
-public:
-    class SchedForwLayers;
-    class SchedRevLayers;
-private:
-    class SchedLayerForwRevIter;
-
 public:
     template<typename Archive>
     void save(Archive & archive) const;
@@ -91,7 +79,6 @@ private:
 
 
 private:
-    layers::Layer* findLayer(const std::string& prevLayerName, bool mustFind);
     wave::WaveOp*  findWaveOp(const std::string& prevWaveOpName);
 
 public:
@@ -114,18 +101,6 @@ public:
     }
     void rDoBatching(bool doBatch) {
         m_DoBatching = doBatch;
-    }
-
-    std::vector<layers::Layer*>& gLayers() {
-        return m_Layers;
-    }
-
-    layers::Layer* gLayer(kcc_int32 idx) const {
-        return m_Layers[idx];
-    }
-
-    kcc_int32 gNumberLayers() const {
-        return m_Layers.size();
     }
 
 
@@ -154,19 +129,13 @@ public:
     }
     const std::string& gInTensorFormat() const;
     const utils::TensorParams::ShapeType& gInTensorDimensions() const;
-    kcc_int32 gInLayerStride() const;
 
     kcc_int32 gInDataSizeInBytes() const;
     kcc_int32 gOutDataSizeInBytes() const;
 
-    void addLayer(layers::Layer* layer);
-
     const std::string& gName() const {
         return m_Name;
     }
-
-    SchedForwLayers gSchedForwLayers() const;
-    SchedRevLayers gSchedRevLayers();
 
     void rUseWave (bool useWave) {
         m_UseWave = useWave;
@@ -187,11 +156,9 @@ private:
     std::unique_ptr<DataType>               m_DataType;
     std::string                             m_Name;
     std::string                             m_GitVersion;
-    std::vector<layers::Layer*>             m_Layers;
     std::vector<wave::WaveOp*>              m_WaveOps;
     std::vector<wave::WaveOp*>              m_SaveWaveOps;
     bool                                    m_DoBatching;
-    std::map<std::string, layers::Layer*>   m_Name2Layer;
     std::map<std::string, wave::WaveOp*>    m_Name2WaveOp;
     bool                                    m_UseWave = false;
     std::unique_ptr<Load>                   m_Load;
@@ -201,66 +168,6 @@ private:
 
 
 
-
-//----------------------------------------------------------------
-// Iterates over scheduled layers either forward or in reverse
-//----------------------------------------------------------------
-class Network::SchedLayerForwRevIter {
-public:
-    SchedLayerForwRevIter(layers::Layer* startLayer, bool forw)
-        : m_CurrLayer(startLayer)
-        , m_Forw(forw)
-    { }
-
-    bool operator!= (const SchedLayerForwRevIter& rhs) const {
-        return m_CurrLayer != rhs.m_CurrLayer;
-    }
-
-    layers::Layer* operator* () const {
-        return m_CurrLayer;
-    }
-
-    void operator++();
-private:
-    layers::Layer*      m_CurrLayer;
-    const bool  m_Forw;
-};
-
-//----------------------------------------------------------------
-// Iterates over scheduled layers forward
-//--------------------------------------------------------
-class Network::SchedForwLayers {
-public:
-    SchedForwLayers(const std::vector<layers::Layer*>& layers)
-        : m_Layers(layers)
-    { }
-    SchedLayerForwRevIter begin() const {
-        return SchedLayerForwRevIter(m_Layers[0], true);
-    }
-    SchedLayerForwRevIter end() const {
-        return SchedLayerForwRevIter(nullptr, true);
-    }
-private:
-    const std::vector<layers::Layer*>& m_Layers;
-};
-
-//--------------------------------------------------------
-// Iterates over scheduled layers in reverse
-//--------------------------------------------------------
-class Network::SchedRevLayers {
-public:
-    SchedRevLayers(std::vector<layers::Layer*>& layers)
-        : m_Layers(layers)
-    { }
-    SchedLayerForwRevIter begin() const {
-        return SchedLayerForwRevIter(m_Layers[m_Layers.size()-1], false);
-    }
-    SchedLayerForwRevIter end() const {
-        return SchedLayerForwRevIter(nullptr, false);
-    }
-private:
-    std::vector<layers::Layer*>& m_Layers;
-};
 
 } // namespace nets
 } // namespace kcc

@@ -77,7 +77,7 @@ private:
     kcc_int32 m_MapWidth;
 };
 
-} // namespace layers
+} // namespace utils
 } // namespace kcc
 
 #endif

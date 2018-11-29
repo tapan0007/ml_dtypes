@@ -18,7 +18,6 @@
 #include "utils/inc/datatype.hpp"
 #include "utils/inc/fmapdesc.hpp"
 
-//#include "layers/inc/resaddlayer.hpp"
 
 #include "wave/inc/tensorwaveop.hpp"
 

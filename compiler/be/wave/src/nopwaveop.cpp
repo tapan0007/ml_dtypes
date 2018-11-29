@@ -9,7 +9,6 @@
 #include "events/inc/events.hpp"
 
 #include "arch/inc/arch.hpp"
-#include "layers/inc/layer.hpp"
 #include "nets/inc/network.hpp"
 
 #include "wave/inc/waveconsts.hpp"
@@ -55,7 +54,7 @@ NopWaveOp::gLayerName() const
 bool
 NopWaveOp::verify() const
 {
-    // Don't call WaveOp::verify() since the layer is nullptr
+    WaveOp::verify();
     if (m_Name == "") {
         RETURN_ASSERT(false);
     }
@@ -71,7 +70,7 @@ NopWaveOp::verify() const
 bool
 NopWaveOp::Params::verify() const
 {
-    // Don't call WaveOp::Params::verify() since the layer is nullptr
+    WaveOp::Params::verify();
     if (m_WaveOpName == "") {
         RETURN_ASSERT(false);
     }

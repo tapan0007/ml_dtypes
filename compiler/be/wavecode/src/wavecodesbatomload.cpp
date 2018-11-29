@@ -15,9 +15,6 @@
 #include "events/inc/events.hpp"
 
 
-#include "layers/inc/inputlayer.hpp"
-#include "layers/inc/constlayer.hpp"
-#include "layers/inc/convlayer.hpp"
 
 #include "wave/inc/waveedge.hpp"
 #include "wave/inc/sbatomloadwaveop.hpp"

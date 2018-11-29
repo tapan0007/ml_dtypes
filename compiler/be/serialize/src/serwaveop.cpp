@@ -166,7 +166,6 @@ SerWaveOp::verifyPool() const
     if (m_InDtype == "") {
         RETURN_ASSERT(false);
     }
-    // "layername": "1conv/i1",
     if (m_NumPartitions < 1) {
         RETURN_ASSERT(false);
     }

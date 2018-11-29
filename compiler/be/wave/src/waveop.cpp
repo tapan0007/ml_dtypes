@@ -6,7 +6,6 @@
 #include "utils/inc/datatype.hpp"
 #include "events/inc/events.hpp"
 
-#include "layers/inc/layer.hpp"
 #include "wave/inc/waveedge.hpp"
 #include "wave/inc/waveop.hpp"
 #include "nets/inc/network.hpp"
@@ -23,7 +22,6 @@ WaveOp::WaveOp (const WaveOp::Params& params,
     // , m_OfmapDesc(params.m_OfmapDesc)
     , m_Order(params.m_Order)
     , m_LayerName(params.m_LayerName)
-    , m_Layer(params.m_Layer)
 {
     const bool thisIsBarrier = this->qBarrierWaveOp();
     //assert(params.verify());
@@ -80,7 +78,6 @@ WaveOp::verify () const
     if (m_LayerName == "") {
         return false;
     }
-    //// OK to have null Layer.
     if (m_Order < 0) {
         return false;
     }

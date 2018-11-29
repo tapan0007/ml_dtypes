@@ -105,7 +105,6 @@ SerWaveOp::loadPool(cereal::JSONInputArchive& archive)
     loadDst(archive, Dims::XYZ);
     KCC_ARCHIVE(DstStartAtMidPart);
 
-    // layername
     KCC_ARCHIVE(NumPartitions);
     KCC_ARCHIVE(PoolFrequency);
     KCC_ARCHIVE(PoolFunc);
@@ -126,7 +125,6 @@ SerWaveOp::loadMatMul(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(FmapZStep);
     KCC_ARCHIVE(IfmapsSbAddress);
     KCC_ARCHIVE(InDtype);
-    // layer name
     KCC_ARCHIVE(NumColumnPartitions);
     KCC_ARCHIVE(NumRowPartitions);
     KCC_ARCHIVE(OutDtype);

@@ -19,7 +19,6 @@
 #include "utils/inc/datatype.hpp"
 #include "utils/inc/fmapdesc.hpp"
 
-#include "layers/inc/activlayer.hpp"
 
 #include "wave/inc/waveop.hpp"
 

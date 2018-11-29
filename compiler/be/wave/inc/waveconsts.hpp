@@ -23,6 +23,9 @@ constexpr const char* const WaveOpTypeStr_ClipByValue   = "ClipByValue";
 constexpr const char* const WaveOpTypeStr_Maximum       = "Maximum";
 constexpr const char* const WaveOpTypeStr_Minimum       = "Minimum";
 
+constexpr const char* const WaveOpTypeStr_MaxPool       = "MaxPool";
+constexpr const char* const WaveOpTypeStr_AvgPool       = "AvgPool";
+
 }}
 
 #endif

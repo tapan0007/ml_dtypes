@@ -4,11 +4,6 @@
 
 #include "utils/inc/datatype.hpp"
 
-#include "layers/inc/layer.hpp"
-#include "layers/inc/convlayer.hpp"
-#include "layers/inc/inputlayer.hpp"
-#include "layers/inc/constlayer.hpp"
-
 #include "wave/inc/waveconsts.hpp"
 #include "wave/inc/sbatomloadwaveop.hpp"
 #include "nets/inc/network.hpp"

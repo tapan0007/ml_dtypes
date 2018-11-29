@@ -6,7 +6,6 @@
 #include "utils/inc/datatype.hpp"
 
 #include "arch/inc/arch.hpp"
-#include "layers/inc/layer.hpp"
 #include "nets/inc/network.hpp"
 
 #include "wave/inc/waveconsts.hpp"
@@ -56,7 +55,7 @@ BarrierWaveOp::gLayerName() const
 bool
 BarrierWaveOp::verify() const
 {
-    // Don't call WaveOp::verify() since the layer is nullptr
+    WaveOp::verify();
     if (m_Name == "") {
         RETURN_ASSERT(false);
     }
@@ -72,7 +71,7 @@ BarrierWaveOp::verify() const
 bool
 BarrierWaveOp::Params::verify() const
 {
-    // Don't call WaveOp::Params::verify() since the layer is nullptr
+    WaveOp::Params::verify();
     if (m_WaveOpName == "") {
         RETURN_ASSERT(false);
     }

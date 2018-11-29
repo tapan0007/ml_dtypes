@@ -10,7 +10,6 @@
 #include "utils/inc/asserter.hpp"
 #include "utils/inc/misc.hpp"
 #include "utils/inc/debug.hpp"
-#include "utils/inc/printers.hpp"
 #include "utils/inc/datatype.hpp"
 
 #include "nets/inc/network.hpp"
@@ -18,14 +17,9 @@
 #include "events/inc/eventmgr.hpp"
 
 #include "arch/inc/arch.hpp"
-#include "memmgr/inc/statebuffermgr.hpp"
-#include "codegen/inc/codegen.hpp"
 #include "wavecode/inc/wavecode.hpp"
-#include "schedule/inc/scheduler.hpp"
-#include "layers/inc/layer.hpp"
 #include "nets/inc/network.hpp"
 
-//#include "printer.hpp"
 
 
 namespace kcc {
@@ -38,19 +32,6 @@ namespace arch {
     class StateBuffer;
 }
 
-
-namespace layers {
-    class Layer;
-}
-namespace schedule {
-    class Scheduler;
-}
-namespace memmgr {
-    class StateBufferMgr;
-}
-namespace codegen {
-    class CodeGen;
-}
 
 enum {
     EnginePrintFormatSize = 20

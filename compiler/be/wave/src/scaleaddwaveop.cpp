@@ -5,7 +5,6 @@
 #include "utils/inc/datatype.hpp"
 
 #include "arch/inc/arch.hpp"
-#include "layers/inc/layer.hpp"
 #include "nets/inc/network.hpp"
 #include "wave/inc/waveconsts.hpp"
 #include "wave/inc/scaleaddwaveop.hpp"
@@ -76,7 +75,6 @@ ScaleAddWaveOp::verify() const
     if (m_DstZStep == 0 && m_DstZNum != 1) {
         RETURN_ASSERT(false);
     }
-    // "layername;
     if (m_NumPartitions < 1) {
         RETURN_ASSERT(false);
     }

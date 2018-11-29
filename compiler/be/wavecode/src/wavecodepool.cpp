@@ -9,7 +9,6 @@
 #include "arch/inc/arch.hpp"
 #include "arch/inc/psumbuffer.hpp"
 
-#include "layers/inc/poollayer.hpp"
 
 #include "wave/inc/waveedge.hpp"
 #include "wave/inc/poolwaveop.hpp"

@@ -5,7 +5,6 @@
 #include "utils/inc/datatype.hpp"
 
 #include "arch/inc/arch.hpp"
-#include "layers/inc/layer.hpp"
 #include "nets/inc/network.hpp"
 #include "wave/inc/poolengwaveop.hpp"
 

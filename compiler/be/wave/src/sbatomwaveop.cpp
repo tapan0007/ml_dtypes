@@ -4,7 +4,6 @@
 
 
 #include "utils/inc/datatype.hpp"
-#include "layers/inc/layer.hpp"
 #include "wave/inc/sbatomwaveop.hpp"
 #include "nets/inc/network.hpp"
 

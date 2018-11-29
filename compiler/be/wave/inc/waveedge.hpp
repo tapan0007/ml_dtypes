@@ -23,9 +23,6 @@ namespace kcc {
 enum class EventWaitMode;
 enum class EventSetMode;
 
-namespace layers {
-    class Layer;
-}
 namespace nets {
     class Network;
 }

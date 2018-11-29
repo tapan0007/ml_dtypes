@@ -14,21 +14,6 @@
 #include "utils/inc/consts.hpp"
 #include "arch/inc/arch.hpp"
 
-#include "layers/inc/layerconsts.hpp"
-#include "layers/inc/layer.hpp"
-#include "layers/inc/inputlayer.hpp"
-#include "layers/inc/constlayer.hpp"
-#include "layers/inc/convlayer.hpp"
-#include "layers/inc/matmullayer.hpp"
-#include "layers/inc/reshapelayer.hpp"
-#include "layers/inc/relulayer.hpp"
-#include "layers/inc/tanhlayer.hpp"
-#include "layers/inc/sqrtlayer.hpp"
-#include "layers/inc/maxpoollayer.hpp"
-#include "layers/inc/avgpoollayer.hpp"
-#include "layers/inc/resaddlayer.hpp"
-#include "layers/inc/biasaddlayer.hpp"
-
 #include "nets/inc/network_load.hpp"
 
 #include "wave/inc/sbatomloadwaveop.hpp"
@@ -41,24 +26,10 @@
 #include "wave/inc/tensortensorwaveop.hpp"
 #include "wave/inc/tensorscalarconstwaveop.hpp"
 
-#include "serialize/inc/serlayer.hpp"
 #include "serialize/inc/serwaveop.hpp"
 
 
 
-#define ASSERT_NUM_LAYERS(serLayer, N) \
-    Assert((serLayer).gNumPrevLayers() == (N), (serLayer).gTypeStr(), " layer '", (serLayer).gLayerName(), \
-                   "' should have ", (N), " input", ((N)==1 ? "" : "s"), ", but it has ", (serLayer).gNumPrevLayers())
-
-#define ASSERT_NUM_LAYERS2(serLayer, N1, N2) \
-    Assert( ((serLayer).gNumPrevLayers() == (N1) || (serLayer).gNumPrevLayers() == (N2) ), \
-                   (serLayer).gTypeStr(), " layer '", (serLayer).gLayerName(), \
-                   "' should have ", (N1), " or ", (N2), " inputs, but it has ", \
-                   (serLayer).gNumPrevLayers())
-
-#define ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName) \
-    Assert((prevLayer) != nullptr, (serLayer).gTypeStr(), " layer '", (serLayer).gLayerName(), \
-                       "': Previous layer '", (prevLayerName), "' not found");
 
 namespace kcc {
 namespace nets {
@@ -91,217 +62,6 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
     } else {
         Assert(false, "Unsupported data type ", dataType);
     }
-
-    std::vector<serialize::SerLayer> serLayers;
-    archive(cereal::make_nvp(NetKey_Layers, serLayers));
-
-    for (unsigned i = 0; i < serLayers.size(); ++i) {
-        const serialize::SerLayer& serLayer(serLayers[i]);
-        layers::Layer::Params params;
-        params.m_LayerName = serLayer.gName();
-        params.m_BatchFactor = serLayer.gBatchFactor();
-        params.m_Network = this;
-        params.m_RefFile = serLayer.gRefFile();
-        params.m_RefFileFormat = serLayer.gOfmapFormat();
-
-        if (serLayer.gTypeStr() != layers::LayerTypeStr_Const) {
-            Assert(serLayer.gNumOfmaps() > 0,
-                   "Non const tensor must have more than on Fmap");
-            Assert(serLayer.gOfmapHeight() > 0,
-                   "Non const tensor height must be positive");
-            Assert(serLayer.gOfmapWidth() > 0,
-                   "Non const tensor height must be positive");
-        }
-
-        FmapDesc fmap_desc(serLayer.gNumOfmaps(), serLayer.gOfmapHeight(), serLayer.gOfmapWidth());
-
-        layers::Layer* layer = nullptr;
-        if (serLayer.gTypeStr() == layers::LayerTypeStr_Input) {
-            ASSERT_NUM_LAYERS(serLayer, 0);
-            layer = new layers::InputLayer(params, fmap_desc);
-        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_Const) {
-            ASSERT_NUM_LAYERS(serLayer, 0);
-            layer = new layers::ConstLayer(params, fmap_desc);
-
-        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_Conv) {
-            ASSERT_NUM_LAYERS(serLayer, 1);
-
-            const std::string& prevLayerName = serLayer.gPrevLayer(0);
-            layers::Layer* prevLayer = findLayer(prevLayerName, true);
-            ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
-            std::tuple<kcc_int32,kcc_int32> stride = std::make_tuple(
-                                            serLayer.gStrideVertical(),
-                                            serLayer.gStrideHorizontal());
-            std::tuple<kcc_int32,kcc_int32> kernel = std::make_tuple(
-                                            serLayer.gConvFilterHeight(),
-                                            serLayer.gConvFilterWidth());
-            std::tuple<kcc_int32,kcc_int32, kcc_int32,kcc_int32> padding = std::make_tuple(
-                                            serLayer.gPaddingTop(),
-                                            serLayer.gPaddingBottom(),
-                                            serLayer.gPaddingLeft(),
-                                            serLayer.gPaddingRight());
-
-            const std::string filterFileName = serLayer.gKernelFile();
-            const std::string filterTensorDimSemantics = serLayer.gKernelFormat();
-            layers::ConvLayer::Params convParams(params);
-            /*
-            convParams.m_BatchingInWave    = serLayer.gBatchingInWave();
-            */
-
-            layer = new layers::ConvLayer(convParams, prevLayer,
-                                          fmap_desc,
-                                          stride, kernel, padding,
-                                          filterFileName.c_str(),
-                                          filterTensorDimSemantics.c_str());
-
-        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_Matmul) {
-            ASSERT_NUM_LAYERS(serLayer, 1);
-            const std::string& prevLayerName = serLayer.gPrevLayer(0);
-            layers::Layer* prevLayer = findLayer(prevLayerName, true);
-            ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
-            std::tuple<kcc_int32,kcc_int32> kernel = std::make_tuple(
-                                            serLayer.gConvFilterHeight(),
-                                            serLayer.gConvFilterWidth());
-
-            const std::string filterFileName = serLayer.gKernelFile();
-            const std::string filterTensorDimSemantics = serLayer.gKernelFormat();
-            layers::MatmulLayer::Params matmulParams(params);
-
-            layer = new layers::MatmulLayer(matmulParams, prevLayer,
-                                          fmap_desc,
-                                          kernel,
-                                          filterFileName.c_str(),
-                                          filterTensorDimSemantics.c_str());
-
-        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_Reshape) {
-            ASSERT_NUM_LAYERS(serLayer, 1);
-
-            const std::string& prevLayerName = serLayer.gPrevLayer(0);
-            layers::Layer* prevLayer = findLayer(prevLayerName, true);
-            ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
-
-            layers::ReshapeLayer::Params reshapeParams(params);
-
-            layer = new layers::ReshapeLayer(reshapeParams, prevLayer, fmap_desc);
-
-        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_MaxPool || serLayer.gTypeStr() == layers::LayerTypeStr_AvgPool) {
-            ASSERT_NUM_LAYERS(serLayer, 1);
-            const std::string& prevLayerName = serLayer.gPrevLayer(0);
-            layers::Layer* prevLayer = findLayer(prevLayerName, true);
-            ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
-
-            std::tuple<kcc_int32,kcc_int32> stride = std::make_tuple(
-                                            serLayer.gStrideVertical(),
-                                            serLayer.gStrideHorizontal());
-            std::tuple<kcc_int32,kcc_int32> kernel = std::make_tuple(
-                                            serLayer.gPoolKernelHeight(),
-                                            serLayer.gPoolKernelWidth());
-            std::tuple<kcc_int32,kcc_int32, kcc_int32,kcc_int32> padding = std::make_tuple(
-                                            serLayer.gPaddingTop(),
-                                            serLayer.gPaddingBottom(),
-                                            serLayer.gPaddingLeft(),
-                                            serLayer.gPaddingRight());
-
-            if (serLayer.gTypeStr() == layers::LayerTypeStr_MaxPool) {
-                layer = new layers::MaxPoolLayer(
-                        params,
-                        prevLayer,
-                        fmap_desc,
-                        stride,
-                        kernel,
-                        padding);
-            } else {
-                layer = new layers::AvgPoolLayer(
-                        params,
-                        prevLayer,
-                        fmap_desc,
-                        stride,
-                        kernel,
-                        padding);
-            }
-
-        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_Relu) {
-            ASSERT_NUM_LAYERS(serLayer, 1);
-            const std::string& prevLayerName = serLayer.gPrevLayer(0);
-            layers::Layer* prevLayer = findLayer(prevLayerName, true);
-            ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
-            layer = new layers::ReluLayer(params, prevLayer);
-        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_Tanh) {
-            ASSERT_NUM_LAYERS(serLayer, 1);
-            const std::string& prevLayerName = serLayer.gPrevLayer(0);
-            layers::Layer* prevLayer = findLayer(prevLayerName, true);
-            ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
-            layer = new layers::TanhLayer(params, prevLayer);
-        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_Sqrt) {
-            ASSERT_NUM_LAYERS(serLayer, 1);
-            const std::string& prevLayerName = serLayer.gPrevLayer(0);
-            layers::Layer* prevLayer = findLayer(prevLayerName, true);
-            ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
-            layer = new layers::SqrtLayer(params, prevLayer);            
-        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_ResAdd
-                   || serLayer.gTypeStr() == layers::LayerTypeStr_Multiply
-                   || serLayer.gTypeStr() == layers::LayerTypeStr_Sub
-                   || serLayer.gTypeStr() == layers::LayerTypeStr_Add) {
-            // TODO: check dimensions and types of inputs
-            if (serLayer.gTypeStr() == layers::LayerTypeStr_ResAdd) {
-                ASSERT_NUM_LAYERS(serLayer, 2);
-            } else {
-                ASSERT_NUM_LAYERS2(serLayer, 1, 2);
-            }
-            std::vector<layers::Layer*> prevLayers;
-            for (const auto& prevLayerName : serLayer.gPrevLayers()) {
-                layers::Layer* prevLayer = findLayer(prevLayerName, true);
-                ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
-                prevLayers.push_back(prevLayer);
-            }
-            layer = new layers::ResAddLayer(params, fmap_desc,prevLayers);
-        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_BiasAdd) {
-            // TODO check dimensions and types of inputs
-            ASSERT_NUM_LAYERS(serLayer, 2);
-            std::vector<layers::Layer*> prevLayers;
-            for (const auto& prevLayerName : serLayer.gPrevLayers()) {
-                layers::Layer* prevLayer = findLayer(prevLayerName, true);
-                ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
-                prevLayers.push_back(prevLayer);
-            }
-            layer = new layers::BiasAddLayer(params, fmap_desc, prevLayers);
-        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_StridedSlice
-                || serLayer.gTypeStr() == layers::LayerTypeStr_Unstack
-                || serLayer.gTypeStr() == layers::LayerTypeStr_Sigmoid
-                || serLayer.gTypeStr() == layers::LayerTypeStr_ConvTranspose
-                || serLayer.gTypeStr() == layers::LayerTypeStr_ClipByValue
-                || serLayer.gTypeStr() == layers::LayerTypeStr_Split
-                || serLayer.gTypeStr() == layers::LayerTypeStr_Squeeze
-                || serLayer.gTypeStr() == layers::LayerTypeStr_ExpandDims
-                || serLayer.gTypeStr() == layers::LayerTypeStr_Slice
-                || serLayer.gTypeStr() == layers::LayerTypeStr_Minimum
-                || serLayer.gTypeStr() == layers::LayerTypeStr_Maximum
-                || serLayer.gTypeStr() == layers::LayerTypeStr_Pad
-                || serLayer.gTypeStr() == layers::LayerTypeStr_Softplus
-                || serLayer.gTypeStr() == layers::LayerTypeStr_Transpose
-                || serLayer.gTypeStr() == layers::LayerTypeStr_SpaceToBatchND
-                || serLayer.gTypeStr() == layers::LayerTypeStr_BatchToSpaceND
-                || serLayer.gTypeStr() == layers::LayerTypeStr_Concat
-                || serLayer.gTypeStr() == layers::LayerTypeStr_Dequantize
-                || serLayer.gTypeStr() == layers::LayerTypeStr_Quantize
-                || serLayer.gTypeStr() == layers::LayerTypeStr_QuantizedConv
-                )
-        {   // FIXME: placeholder
-            const std::string& prevLayerName = serLayer.gPrevLayer(0);
-            layers::Layer* prevLayer = findLayer(prevLayerName, true);
-            ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
-            layer = new layers::TanhLayer(params, prevLayer);   // FIXME: placeholder
-        } else {
-            Assert(false, "Unsuported layer type ", serLayer.gTypeStr());
-        }
-
-        Assert(m_Name2Layer.find(params.m_LayerName) == m_Name2Layer.end(),
-               "Layer ", params.m_LayerName, " already exists");
-        m_Name2Layer[params.m_LayerName] = layer;
-    }
-    Assert(m_Layers.size() == serLayers.size(),
-        "Layer mismatch count after input deserialization: ", m_Layers.size(),
-        " != ", serLayers.size());
 
 
     //===========================================================================
@@ -501,11 +261,9 @@ Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(FmapZStep);
     KCC_UNSERIALIZE(IfmapsSbAddress);
     PARAMS.m_InDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
-    // layer_name
     KCC_UNSERIALIZE(NumColumnPartitions);
     KCC_UNSERIALIZE(NumRowPartitions);
     PARAMS.m_OutDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
-    // previous layers
     KCC_UNSERIALIZE(PsumBankId);
     KCC_UNSERIALIZE(PsumBankOffset);
     KCC_UNSERIALIZE(PsumXNum);
@@ -755,7 +513,6 @@ Network::Load::fillWaveOpParams(const serialize::SerWaveOp& serWaveOp,
 {
     waveOpParams.m_WaveOpName   = serWaveOp.m_WaveOpName;
     waveOpParams.m_LayerName    = serWaveOp.m_LayerName;
-    waveOpParams.m_Layer        = m_Network.findLayer(serWaveOp.m_LayerName, false);
     waveOpParams.m_Order        = m_Network.gWaveOps().size();
     Assert(waveOpParams.m_LayerName != "", "Missing layer name for waveop ", serWaveOp.m_WaveOpName);
     for (const auto& prevWaveOpName : serWaveOp.m_PreviousWaveOps) {
@@ -767,8 +524,6 @@ Network::Load::fillWaveOpParams(const serialize::SerWaveOp& serWaveOp,
 
 
 #undef KCC_UNSERIALIZE
-#undef ASSERT_NUM_LAYERS
-#undef ASSERT_PREV_LAYER
 
 }}
 

@@ -10,8 +10,6 @@
 
 #include "events/inc/events.hpp"
 
-#include "layers/inc/layer.hpp"
-
 #include "wave/inc/waveedge.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
 

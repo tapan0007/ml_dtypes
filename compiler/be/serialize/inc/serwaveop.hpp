@@ -63,7 +63,6 @@ constexpr static const char* WaveOpKey_IfmapReplicationShiftAmnt    = "ifmap_rep
 constexpr static const char* WaveOpKey_IfmapReplicationStepBytes    = "ifmap_replication_step_bytes";
 constexpr static const char* WaveOpKey_SrcStepElem                  = "stride";
 
-// layer name
 constexpr static const char* WaveOpKey_NumColumnPartitions  = "num_column_partitions";
 constexpr static const char* WaveOpKey_NumRowPartitions     = "num_row_partitions";
 // previous waveops
@@ -319,7 +318,6 @@ public:
     kcc_int64                   m_SbAddress         = -1;
     bool                        m_StartAtMidPart    = false;
     std::string                 m_DataType          = "";
-    //layer name
     kcc_int64                   m_Length            = -1;
     kcc_int32                   m_OffsetInFile      = -1;
     kcc_int64                   m_PartitionStepBytes= -1;
@@ -344,7 +342,6 @@ public:
     kcc_int32                   m_FmapZNum              = -1;
     kcc_int32                   m_FmapZStep             = -1;
     kcc_int64                   m_IfmapsSbAddress       = -1;
-    // layer name
     kcc_int32                   m_NumColumnPartitions   = -1;
     kcc_int32                   m_NumRowPartitions      = -1;
     // previous waveops
@@ -373,7 +370,6 @@ public:
     kcc_int32                   m_DstZStep          = -1;
     std::string                 m_InDtype           = "";
     std::string                 m_BiasDtype         = "";
-    // "layername": "1conv/i1",
     kcc_int32                   m_NumPartitions     = -1;
     std::string                 m_OutDtype          = "";
     kcc_int32                   m_PoolFrequency     = -1;

@@ -4,11 +4,8 @@ MODULE:=compiler
 #MODS := utils nets layers arch memmgr schedule serialize codegen wave
 MODS :=  \
 	wavecode	\
-	schedule	\
-	memmgr		\
 	nets		\
 	serialize	\
-	layers		\
 	events		\
 	wave		\
 	arch		\
