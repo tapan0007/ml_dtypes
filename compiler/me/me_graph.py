@@ -155,7 +155,7 @@ class KNode:
             if prev_node.data['layer_type'] == "Const":
                 if self.data['layer_type'] == "BiasAdd":
                     self.bias_file_c_fold_offset = self.parent.add_bias_to_constants_file(prev_node.data['ref_file'])
-                    self.bias_file_params = self.parent.zero_bias_file_params
+                    self.bias_file_params = self.parent.combined_bias_file_params
                 else:
                     bias_shape_dims = ShapeDims(prev_node.data['ofmap_format'], prev_node.data['ofmap_shape'])
                     self.bias_file_c_fold_offset = 0
@@ -717,7 +717,7 @@ class KGraph:
         self.current_node = None
         self.last_split_next_nodes = []
         self.args = args
-        self.zero_bias_file_params = None
+        self.combined_bias_file_params = None
 
     # add forward edges for forward traversals
     def add_forward_refs(self, final_nodes):
@@ -1316,7 +1316,7 @@ class KGraph:
                                     contain_weights = True)
         bias_file_params.layer_name = op.data['layer_name']
         bias_file_params.load_file()
-        self.zero_bias_file_params = bias_file_params
+        self.combined_bias_file_params = bias_file_params
 
     def add_bias_to_constants_file(self, bias_file):
         try:
@@ -1325,15 +1325,13 @@ class KGraph:
             print(e)
             exit(1)
         (new_folded, _) = fold_data(data, "NCHW", pad_all = True)
-        c_fold_offset = add_folded_data_to_file(new_folded, self.zero_bias_file_params.file_name)
+        c_fold_offset = add_folded_data_to_file(new_folded, self.combined_bias_file_params.file_name)
         return c_fold_offset
 
     def map_constants_file(self, file_mapper, region_sz):
-        bias_file_params = self.zero_bias_file_params
+        bias_file_params = self.combined_bias_file_params
         bias_file_params.compute_params(Dim2D(1,1), self.args)
         bias_file_params.load_file()
-        print(bias_file_params.dram_data.shape)
-        #bias_file_sz = bias_file_params.tot_partition_usage_sz_padded
-        file_mapper.map_file(bias_file_params, 0, wrap_around=True, region_sz=region_sz)
-        #self.next_bias_file_start = align_addr_8B(bias_file_sz)
+        bias_file_sz = bias_file_params.tot_partition_usage_sz_padded
+        file_mapper.map_file(bias_file_params, 0, wrap_around=True, region_sz=min(region_sz, bias_file_sz))
 

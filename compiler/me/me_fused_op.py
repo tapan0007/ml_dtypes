@@ -486,10 +486,11 @@ class FusedOp(list):
     def map_files_gen_during_exec(self, tpb, file_params):
         file_start_addr = tpb.statebuffer.next_nonbias_file_start
         file_sz = file_params.tot_partition_usage_sz_padded
+        bias_region_sz = self.last_op.parent.combined_bias_file_params.mapped_params.region_sz
         bias_region_sz = tpb.statebuffer.batcher.sb_bias_sz[0]
         if file_start_addr < bias_region_sz:
             file_start_addr = bias_region_sz
-        if file_start_addr + file_sz >= tpb.statebuffer.SB_PARTITION_SZ:
+        if file_start_addr + file_sz >= tpb.statebuffer.file_mapper.sb_partition_sz:
             file_start_addr = bias_region_sz
         # Check overlap with IFMAP
         #for i in self.first_op.ifmaps_file_params_concat:
@@ -499,9 +500,8 @@ class FusedOp(list):
         #assert(ofmap_file_params.mapped_params != None)
         #file_start_addr = check_overlap(ofmap_file_params, file_start_addr)
         ifmap_ofmap_file_params = self.first_op.ifmaps_file_params_concat + [ofmap_file_params]
-        file_start_addr = self.move_addr_to_first_free_section(
-                                file_mapper               = tpb.statebuffer.file_mapper
-                                , st_addr                 = file_start_addr 
+        file_start_addr = tpb.statebuffer.file_mapper.move_addr_to_first_free_section(
+                                  st_addr                 = file_start_addr 
                                 , region_sz               = file_sz
                                 , min_region_start        = bias_region_sz
                                 , live_mapped_file_params = self.live_mapped_file_params + ifmap_ofmap_file_params)
@@ -515,84 +515,10 @@ class FusedOp(list):
                 + file_params.tot_partition_usage_sz_padded
         return
 
-    """Pick from sorted list of free sections, outside of existing live FMAPs
-        args:
-            file_mapper: statebuffer's file mapper object
-            st_addr: start address of region to adjust
-            region_sz: size of region
-            min_region_start: if address exceeds SB size, wrap around to this address
-            live_mapped_file_params: current list of SB mapped tensor files that should remain (since they are still being used, and we don't want to evict unless we have to) 
-        return:
-            st: newly allocated start address
-    """
-    def move_addr_to_first_free_section(self
-                                          , file_mapper
-                                          , st_addr
-                                          , region_sz
-                                          , min_region_start
-                                          , live_mapped_file_params
-                                         ):
-        st = st_addr
-        if st < min_region_start:
-            st = min_region_start
-        if self.args.debug > 1:
-            print("DBG: checking for overlap, start addr %d size %d, against %d live mapped files"%(st_addr, region_sz, len(live_mapped_file_params)))
-
-        list_of_seg = self.get_list_of_free_sections(file_mapper, min_region_start, live_mapped_file_params)
-
-        # find the smallest free segment that fits
-        st = -1
-        for i in list_of_seg:
-            if region_sz < i[1]:
-                st = i[0]
-        if st < 0:
-            for i in list_of_seg:
-                print("free (start, len) = (%d, %d), next start = %d"%(i[0], i[1], i[0]+i[1]))
-            raise RuntimeError("Couldn't find empty space for start addr %d size %d"%(st_addr, region_sz))
-        return st
-
     def print_SB_addr (self, file_params):
         print ("file_name = %s"%file_params.file_name)
         print ("\tstart_addr = %d"%file_params.mapped_params.start_addr)
         print ("\tend_addr = %d"%file_params.mapped_params.end_addr)
-
-    """Get list of free sections
-    """
-    def get_list_of_free_sections(self
-                                , file_mapper
-                                , min_region_start
-                                , live_mapped_file_params
-                                ):
-        live_mapped_file_params.sort(key = lambda x : x.mapped_params.start_addr, reverse=False)
-        num_live_tensors = len(live_mapped_file_params)
-        item_sz = live_mapped_file_params[0].item_sz
-        # get list of free segments (start, length)
-        list_of_seg = []
-        for i in range(num_live_tensors):
-            mapped_cur = live_mapped_file_params[i].mapped_params
-            end_of_cur = mapped_cur.start_addr + mapped_cur.region_sz
-            if (self.args.debug > 3):
-                print("%d: (current) start %d size %d (%s)"%(i, mapped_cur.start_addr, mapped_cur.region_sz, live_mapped_file_params[i].file_name))
-            if i+1 < num_live_tensors:
-                mapped_nxt = live_mapped_file_params[i+1].mapped_params
-                if (self.args.debug > 3):
-                    print("%d: (next) start %d size %d (%s)"%(i, mapped_nxt.start_addr, mapped_nxt.region_sz, live_mapped_file_params[i+1].file_name))
-            else:
-                mapped_nxt = None
-            if len(list_of_seg) == 0:
-                list_of_seg.append((align_addr_8B(min_region_start), mapped_cur.start_addr - min_region_start))
-            if mapped_nxt is None:
-                list_of_seg.append((align_addr_8B(end_of_cur), 96*1024 - end_of_cur))
-            else:
-                if not file_mapper.check_overlap(
-                        mapped_cur.start_addr, mapped_cur.region_sz,
-                        mapped_nxt.start_addr, mapped_nxt.region_sz):
-                    list_of_seg.append((align_addr_8B(end_of_cur), mapped_nxt.start_addr - end_of_cur))
-        #for i in list_of_seg:
-        #    print("free (start, len) = (%d, %d), next start = %d"%(i[0], i[1], i[0]+i[1]))
-        # sort list of free segments            
-        list_of_seg.sort(key = lambda x: x[1], reverse = False)
-        return list_of_seg
 
     """Map tensors to SB
         args:
@@ -610,18 +536,9 @@ class FusedOp(list):
         # This maybe overwritten later if next batch count doubles (pairup)
         sb_size_set_index = tpb.statebuffer.batcher.sb_size_set_index[(self.current_batch_count, self.partial_batch_pre_pairup)]
 
-        # bias file/region defaults
-        bias_file_start_addr = tpb.statebuffer.next_bias_file_start
-        bias_file_sz = tpb.statebuffer.batcher.item_sz
-        bias_file_params = None
-        if self.has_biasadd:
-            assert(self.biasadd_op is not None)
-            bias_file_params = self.biasadd_op.bias_file_params
-            bias_file_sz = bias_file_params.tot_partition_usage_sz_padded
-        bias_region_start_addr = 0
-        bias_region_sz = tpb.statebuffer.batcher.sb_bias_sz[sb_size_set_index]
-        if (bias_file_start_addr + bias_file_sz) > bias_region_sz:
-            bias_file_start_addr = 0
+        # Bias values are now folded into CNcHW, combined with constants and loaded in chunks (kaena-356)
+        # They are premapped by call to kgraph.map_constants_file in me_main
+
         # weights file/region defaults            
         weights_file_start_addr = 0
         weights_file_sz = tpb.statebuffer.batcher.item_sz 
@@ -646,18 +563,6 @@ class FusedOp(list):
         single_ofmap_sz = ofmaps_file_params.batch_item_partition_usage_sz_padded
         ofmaps_region_start_addr  = 0
         ofmaps_region_sz = single_ofmap_sz * self.last_op.N
-
-        # Bias region:
-        #   - keep in contiguous region to help DMA perf: an optimizer (TBD) will need to coalesce the bias files
-        #   - share bias mapping for all type of nets
-        #   - make sure to keep bias region the same in the batch map (BatchSBDataMap)
-        #if self.has_biasadd:
-        #    if bias_file_params.mapped_params is None:
-        #        map_file(bias_file_params, bias_file_start_addr, wrap_around=False, region_sz=bias_file_sz)
-        #        tpb.statebuffer.adv_next_bias_file_start(bias_file_sz)
-        #    else:                
-        #        # in case that file is already mapped, keep the mapped values
-        #        bias_file_start_addr = bias_file_params.mapped_params.start_addr
 
         if self.args.nname == "resnet50":
             # Input/residue uses upper portion of the shared space
@@ -702,7 +607,7 @@ class FusedOp(list):
                                                 + self.first_op.slice_offset.y * self.first_op.item_sz * self.first_op.W 
                 else:    
                     ofmaps_region_sz = tpb.statebuffer.batcher.sb_scratch_sz[sb_size_set_index]
-                    ofmaps_region_start_addr = tpb.statebuffer.SB_PARTITION_SZ - ofmaps_region_sz
+                    ofmaps_region_start_addr = tpb.statebuffer.file_mapper.sb_partition_sz - ofmaps_region_sz
 
             # If OFMAP region overlaps IFMAP region, and numober of channels > 64 or stride/filter-size > 1, offset it (to lower address) by OFMAP * Tn 
             # (stride is only relevant to Conv/Pool, and filter-size is only relevant to Conv)
@@ -760,6 +665,8 @@ class FusedOp(list):
                 weights_file_start_addr = weights_file_params.mapped_params.start_addr
         # Simple networks: use simple mapping                
         else:
+            bias_region_sz = self.first_op.parent.combined_bias_file_params.mapped_params.region_sz
+
             # Get start for IFMAPs
             start_addr = tpb.statebuffer.next_nonbias_file_start
             if start_addr < bias_region_sz:
@@ -767,11 +674,11 @@ class FusedOp(list):
             # IFMAPs regions                    
             # Input/residue uses upper portion of the shared space
             if self.first_op.is_input and ifmaps_file_params.mapped_params is None:
-                if start_addr + ifmaps_region_sz >= tpb.statebuffer.SB_PARTITION_SZ:                    
+                if start_addr + ifmaps_region_sz >= tpb.statebuffer.file_mapper.sb_partition_sz:                    
                     start_addr = bias_region_sz
                 ifmaps_region_start_addr = start_addr
                 ifmaps_region_sz = ifmaps_file_params.tot_partition_usage_sz_padded
-                if ifmaps_region_sz > (tpb.statebuffer.SB_PARTITION_SZ/4):
+                if ifmaps_region_sz > (tpb.statebuffer.file_mapper.sb_partition_sz/4):
                     if self.first_op.data["layer_type"] == "AvgPool" or self.first_op.data["layer_type"] == "Pool":
                         if self.first_op.pool_window.x > 1:
                             raise RuntimeError("Cannot support yet pooling with window size > 1 if IFMAP size (%d) takes more than quarter of SB partition. This requires wrapping around the region, causing discontinuity at the end of region. Feature required: breaking pool at the discontinuity."%(ifmaps_region_sz))
@@ -796,14 +703,13 @@ class FusedOp(list):
                 residue_file_params = self.join_op.prev[self.join_op.residue_index].ofmaps_file_params
                 if residue_file_params.mapped_params is None:
                     residue_region_sz = residue_file_params.tot_partition_usage_sz_padded
-                    if start_addr + residue_region_sz >= tpb.statebuffer.SB_PARTITION_SZ:                    
+                    if start_addr + residue_region_sz >= tpb.statebuffer.file_mapper.sb_partition_sz:                    
                         start_addr = bias_region_sz
-                    if residue_region_sz > (tpb.statebuffer.SB_PARTITION_SZ/4):
+                    if residue_region_sz > (tpb.statebuffer.file_mapper.sb_partition_sz/4):
                         # cap region size to be 4 chunks
                         residue_region_sz = 4 * residue_file_params.chunk_sz_padded * residue_file_params.fmap_channels_folds
-                    start_addr = self.move_addr_to_first_free_section(
-                                        file_mapper               = tpb.statebuffer.file_mapper
-                                        , st_addr                 = ofmaps_region_start_addr
+                    start_addr = tpb.statebuffer.file_mapper.move_addr_to_first_free_section(
+                                          st_addr                 = ofmaps_region_start_addr
                                         , region_sz               = ofmaps_region_sz
                                         , min_region_start        = bias_region_sz
                                         , live_mapped_file_params = live_mapped_file_params)
@@ -820,9 +726,8 @@ class FusedOp(list):
                     # Ff weights file is too large, make intake buffer a circular buffer.
                     # Due to channel folding there's high chance of thrashing (high eviction rate) with a factor of 4,
                     # so use an odd factor say 7.
-                    largest_free_section = self.get_list_of_free_sections(
-                                                    file_mapper               = tpb.statebuffer.file_mapper
-                                                    , min_region_start        = bias_region_sz
+                    largest_free_section = tpb.statebuffer.file_mapper.get_list_of_free_sections(
+                                                      min_region_start        = bias_region_sz
                                                     , live_mapped_file_params = live_mapped_file_params)[-1]
                     if weights_file_sz > largest_free_section[1]:
                         multiplier = largest_free_section[1] // weights_file_params.chunk_sz_padded
@@ -832,9 +737,8 @@ class FusedOp(list):
                         weights_file_start_addr = largest_free_section[0]
                         wrap_around = True
                         #print("largest_free_section ", largest_free_section, " chunk_sz_x_chan_folds ",  chunk_sz_x_chan_folds,  " chunk_sz_padded ", weights_file_params.chunk_sz_padded, " fmap_channels_folds ", weights_file_params.fmap_channels_folds)
-                    weights_file_start_addr = self.move_addr_to_first_free_section(
-                                                    file_mapper               = tpb.statebuffer.file_mapper
-                                                    , st_addr                 = weights_file_start_addr 
+                    weights_file_start_addr = tpb.statebuffer.file_mapper.move_addr_to_first_free_section(
+                                                      st_addr                 = weights_file_start_addr 
                                                     , region_sz               = weights_file_sz
                                                     , min_region_start        = bias_region_sz
                                                     , live_mapped_file_params = live_mapped_file_params)
@@ -865,9 +769,8 @@ class FusedOp(list):
                     ofmaps_region_start_addr = residue_file_params.mapped_params.start_addr
                 else:    
                     ofmaps_region_start_addr = start_addr
-                    ofmaps_region_start_addr = self.move_addr_to_first_free_section(
-                                file_mapper               = tpb.statebuffer.file_mapper
-                                , st_addr                 = ofmaps_region_start_addr
+                    ofmaps_region_start_addr = tpb.statebuffer.file_mapper.move_addr_to_first_free_section(
+                                  st_addr                 = ofmaps_region_start_addr
                                 , region_sz               = ofmaps_region_sz
                                 , min_region_start        = bias_region_sz
                                 , live_mapped_file_params = live_mapped_file_params)
@@ -894,12 +797,11 @@ class FusedOp(list):
         # Trace printout
         if (self.args.debug > 2 and not tpb.statebuffer.printed_map_trace_header): 
             print("SB MAP TRACE, fused op, fused op ID, batch elem, Tn, current_batch_count, next_batch_count, partial_batch_pre_pairup, partial_batch_pairup, residue_in_scratch,, \
- bias file end_addr, bias region end_addr, bias region start_addr, bias file start_addr,,\
  weights file end_addr, weights region end_addr, weights region start_addr, weights file start_addr,,\
  ifmap single end_addr, ifmaps region end_addr, ifmaps region start_addr, ifmap single start_addr,,\
  ofmap single end_addr, ofmaps region end_addr, ofmaps region start_addr, ofmap single start_addr,, ifmap file, ofmap file")                    
             tpb.statebuffer.printed_map_trace_header = True
-        if (self.args.debug > 2): print("SB MAP TRACE, %s, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d,, %d, %d, %d, %d,, %d, %d, %d, %d,, %d, %d, %d, %d,, %s, %s"%(
+        if (self.args.debug > 2): print("SB MAP TRACE, %s, %d, %d, %d, %d, %d, %d, %d, %d,, %d, %d, %d, %d,, %d, %d, %d, %d,, %d, %d, %d, %d,, %s, %s"%(
                                 self.last_op.data['layer_name'], 
                                 self.fused_op_id, 
                                 batch_item,
@@ -909,10 +811,6 @@ class FusedOp(list):
                                 self.partial_batch_pre_pairup,
                                 self.partial_batch_pairup,
                                 self.residue_in_scratch,
-                                bias_file_start_addr + bias_file_sz - tpb.statebuffer.batcher.item_sz, 
-                                bias_region_start_addr + bias_region_sz - tpb.statebuffer.batcher.item_sz,
-                                bias_region_start_addr,
-                                bias_file_start_addr,
                                 weights_file_start_addr + weights_file_sz - tpb.statebuffer.batcher.item_sz, 
                                 weights_region_start_addr + weights_region_sz - tpb.statebuffer.batcher.item_sz,
                                 weights_region_start_addr,
@@ -1463,10 +1361,10 @@ class FusedOp(list):
                     (writers, readers, dram_bias_waveops, new_reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
                                                     tpb.waveop_stream.waveop_count,
                                                     tpb.waveop_stream,
-                                                    self[i].parent.zero_bias_file_params,
+                                                    self[i].parent.combined_bias_file_params,
                                                     0,  # batch_item is not needed for bias
-                                                    0,
-                                                    self[i].item_sz,
+                                                    0,  # zeros start at address 0 of combined bias file
+                                                    self[i].parent.combined_bias_file_params.item_sz,
                                                     EngineEnum.ACT,
                                                     )
                     list_of_accessors_wr += writers # writers for WAW dependencies
@@ -1481,7 +1379,8 @@ class FusedOp(list):
                     tpb.pearray.write_psum(psum_bank_id, 0, psum_temp.shape[0], psum_temp)
                 waveop = self.gen_act_waveop_inline(tpb, None, op_list[i], self.first_op, ifmap_tile, ofmap_tile, 
                                           True, psum_bank_id, dst_is_psum, psum_bank_id, dram_bias_waveops, 
-                                          self[i].parent.zero_bias_file_params.mapped_params.start_addr, new_reader_morsels)
+                                          0,  # zeros start at address 0 of combined bias file
+                                          new_reader_morsels)
                 prev_waveops = extract_predecessors(
                         list_of_accessors_wr = list_of_accessors_wr, 
                         list_of_accessors_rd = list_of_accessors_rd,
@@ -1492,19 +1391,19 @@ class FusedOp(list):
                 attach_predecessors(waveop, prev_waveops)
             elif (layer_type == 'BiasAdd'):
                 # load bias values
-                bias_data_temp          = self[i].parent.zero_bias_file_params.dram_data
+                bias_data_temp          = self[i].parent.combined_bias_file_params.dram_data
                 bias_chan_start         = self[i].bias_file_c_fold_offset * PEArray.NUM_ROWS + ofmap_tile.m_id * PEArray.NUM_COLS
-                if self[i].parent.zero_bias_file_params.file_dims.has_c:
-                    bias_addr           = (bias_chan_start // PEArray.NUM_ROWS) * self[i].parent.zero_bias_file_params.item_sz
+                if self[i].parent.combined_bias_file_params.file_dims.has_c:
+                    bias_addr           = (bias_chan_start // PEArray.NUM_ROWS) * self[i].parent.combined_bias_file_params.item_sz
                 else:                    
-                    bias_addr           = bias_chan_start * self[i].parent.zero_bias_file_params.item_sz
+                    bias_addr           = bias_chan_start * self[i].parent.combined_bias_file_params.item_sz
                 bias_chan_mid_part      = (ofmap_tile.m_id%2) == 1
                 bias_chan_end           = min(bias_chan_start + PEArray.NUM_COLS, self[i].bias_file_c_fold_offset * PEArray.NUM_ROWS + ofmap_tile.file_params.file_dims.C)
                 bias_extracted          = np.zeros(bias_chan_end - bias_chan_start)
                 for chan in range(bias_chan_start, bias_chan_end):
                     fold = chan // PEArray.NUM_ROWS
                     part = chan % PEArray.NUM_ROWS
-                    bias_extracted[chan - bias_chan_start] = self[i].parent.zero_bias_file_params.dram_data[part, 0, fold, 0, 0]
+                    bias_extracted[chan - bias_chan_start] = self[i].parent.combined_bias_file_params.dram_data[part, 0, fold, 0, 0]
                     #print("c_fold_offset %d chan %d fold %d partition %d value %d"%(self[i].bias_file_c_fold_offset, chan, fold, part, bias_extracted[chan - bias_chan_start]))
                 dram_bias_waveops   = []
                 list_of_accessors_wr = []
@@ -1513,10 +1412,10 @@ class FusedOp(list):
                     (writers, readers, dram_bias_waveops, new_reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
                                                     tpb.waveop_stream.waveop_count,
                                                     tpb.waveop_stream,
-                                                    self[i].parent.zero_bias_file_params,
+                                                    self[i].parent.combined_bias_file_params,
                                                     0,  # batch_item is not needed for bias
                                                     bias_addr,
-                                                    self[i].parent.zero_bias_file_params.item_sz,
+                                                    self[i].parent.combined_bias_file_params.item_sz,
                                                     EngineEnum.ACT,
                                                     )
                     list_of_accessors_wr += writers # writers for WAW dependencies 
@@ -1963,7 +1862,7 @@ class FusedOp(list):
               'activation_func'         : act_type,
               'alpha'                   : alpha,
               'in_dtype'                : in_dtype,
-              'bias_dtype'              : act_or_biasadd_op.parent.zero_bias_file_params.data_type,
+              'bias_dtype'              : act_or_biasadd_op.parent.combined_bias_file_params.data_type,
               'out_dtype'               : out_dtype,
               'scale'                   : scale,
               'src_is_psum'             : src_is_psum,
@@ -2292,7 +2191,7 @@ class FusedOp(list):
             for chan in range(bias_chan_start, bias_chan_end):
                 fold = chan // PEArray.NUM_ROWS
                 part = chan % PEArray.NUM_ROWS
-                bias_extracted[chan - bias_chan_start] = first_op.parent.zero_bias_file_params.dram_data[part, 0, fold, 0, 0]
+                bias_extracted[chan - bias_chan_start] = first_op.parent.combined_bias_file_params.dram_data[part, 0, fold, 0, 0]
             tile_data_flatten = tpb.activate.biasadd(ifmaps_data_extract, bias_extracted)
             #x = DBG_DUMP_PSUM_COL("BiasAdd: ", tile_data_flatten, 0)
         elif (layer_type == "ClipByValue"):
@@ -2468,7 +2367,7 @@ class FusedOp(list):
                         waveop        = waveop)
                 #print(waveop)
         else:   
-            bias_addr = 0
+            bias_addr = 0 # zeros start at address 0 of combined bias file
             biasadd_op = None
             act_op = None
             ifmap_tile_subtile \
@@ -2492,10 +2391,10 @@ class FusedOp(list):
                 (writers, readers, dram_bias_waveops, reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
                                                 tpb.waveop_stream.waveop_count + len(dram_ifmaps_waveops),
                                                 tpb.waveop_stream,
-                                                first_op.parent.zero_bias_file_params,
+                                                first_op.parent.combined_bias_file_params,
                                                 0,  # batch_item is not needed for bias
-                                                0,
-                                                first_op.item_sz,
+                                                0,  # zeros start at address 0 of combined bias file
+                                                first_op.parent.combined_bias_file_params.item_sz,
                                                 EngineEnum.ACT,
                                                 )
                 dram_ifmaps_waveops += dram_bias_waveops
@@ -2513,14 +2412,14 @@ class FusedOp(list):
                 act_op = first_op
             elif (first_op.data['layer_type'] == "BiasAdd"): 
                 bias_chan_start         = first_op.bias_file_c_fold_offset * PEArray.NUM_ROWS + ofmap_tile.m_id * PEArray.NUM_COLS
-                if first_op.parent.zero_bias_file_params.file_dims.has_c:
+                if first_op.parent.combined_bias_file_params.file_dims.has_c:
                     bias_addr           = (bias_chan_start // PEArray.NUM_ROWS) * first_op.item_sz
                 else:                    
                     bias_addr           = bias_chan_start * self[i].item_sz
                 (writers, readers, dram_bias_waveops, reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
                                                 tpb.waveop_stream.waveop_count + len(dram_ifmaps_waveops),
                                                 tpb.waveop_stream,
-                                                first_op.parent.zero_bias_file_params,
+                                                first_op.parent.combined_bias_file_params,
                                                 0,  # batch_item is not needed for bias
                                                 bias_addr,
                                                 first_op.item_sz,
@@ -2560,19 +2459,18 @@ class FusedOp(list):
                     main_sb_addr = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(ifmap_tile.file_params, batch_item, ifmap_tile.lower_addr[0])
                     psum_bank_src = psum_bank_id 
                     # If doing tensor-tensor op without PSUM, but distance between tensors is too far, or operation is non-commutativ, then move tile to PSUM
-                    if (abs(residue_sb_addr - main_sb_addr) > (2**15 - 1) \
-                            or first_op.data["layer_type"] == "Sub") \
-                                and psum_bank_src < 0:
+                    if abs(residue_sb_addr - main_sb_addr) > (2**15 - 1) \
+                            and psum_bank_src < 0:
                         psum_bank_residue = tpb.pearray.use_psum_bank_and_adv_ptr(True)
                         residue_tile.lower_addr[0] = residue_file_addr
                         # grab dependencies for zeros
                         (writers, readers, dram_bias_waveops, zeros_reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
                                                         tpb.waveop_stream.waveop_count + len(dram_ifmaps_waveops),
                                                         tpb.waveop_stream,
-                                                        first_op.parent.zero_bias_file_params,
+                                                        first_op.parent.combined_bias_file_params,
                                                         0,  # batch_item is not needed for bias
                                                         0,  # zeros are located in first fold of bias-constants file
-                                                        first_op.item_sz,
+                                                        first_op.parent.combined_bias_file_params.item_sz,
                                                         EngineEnum.ACT,
                                                         )
                         first_waveop = self.gen_act_waveop_inline(
@@ -3051,7 +2949,7 @@ class FusedOp(list):
             knode.weights_file_params_concat.append(knode.weights_file_params)
             self.map_files_gen_during_exec(tpb, knode.weights_file_params)
             self.live_mapped_file_params.append(knode.weights_file_params)
-            self.print_SB_addr(knode.weights_file_params)
+            #self.print_SB_addr(knode.weights_file_params)
             return
         pewave = PEWave(ifmap_tile, c_start_idx, 0, 0)
         pewave.ifmap_channel_count = PEArray.NUM_ROWS

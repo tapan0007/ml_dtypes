@@ -38,56 +38,15 @@ class EngineEnum(IntEnum):
 class StateBuffer:
 
     SB_NUM_PARTITIONS = 128
-    #SB_ATOM_SZ = 1024
-    SB_ATOM_SZ = 2048   # For FP32, use this to guarantee gapless spaces for 28x28 (without using skip-atoms), when folding is involved
-    #SB_ATOM_SZ = 4096
-    SB_PARTITION_SZ = 96*1024# 96KB per partition
-    SB_NUM_1K_ATOMS = SB_PARTITION_SZ//SB_ATOM_SZ
-    SB_NUM_64B_MORSELS = SB_PARTITION_SZ // 64
 
     def __init__(self, batcher):
         self.batcher = batcher
-        self.file_mapper = FileMapper(self.SB_PARTITION_SZ, self.batcher.data_type, args)
-        self.zero_bias_file_params = None
+        self.file_mapper = FileMapper(self.batcher.data_type, args)
+        self.combined_bias_file_params = None
         self.next_bias_file_start = 0
         self.next_nonbias_file_start = 0
         self.next_weights_file_start = 0
         self.printed_map_trace_header = False
-
-    """Create constants file:
-    kaena-452: create a file of zeros for use with Activation instruction without BiasAdd
-    Format matches existing bias formats, but it should be more like CRSM to match weights
-    """
-    def create_constants_file(self, op, args):
-        bias_shape_dims = ShapeDims("NCHW", [1, PEArray.NUM_ROWS, 1, 1])           
-        bias_file_params = FileParams(
-                                    file_name       = op.data['ref_file'].replace(".npy", "-constants.npy"),
-                                    file_dims       = bias_shape_dims, 
-                                    data_type       = self.batcher.data_type,
-                                    op_params       = op,
-                                    args            = args,
-                                    contain_weights = True)
-        bias_file_params.layer_name = op.data['layer_name']
-        bias_file_params.load_file()
-        self.zero_bias_file_params = bias_file_params
-
-    def add_bias_to_constants_file(self, bias_file):
-        try:
-            data = np.load(bias_file)
-        except Exception as e:
-            print(e)
-            exit(1)
-        (new_folded, _) = fold_data(data, "NCHW", "temp_folded_bias_unused.npy", True)
-        c_fold_offset = add_folded_data_to_file(new_folded, self.zero_bias_file_params.file_name)
-        return c_fold_offset
-
-    def map_constants_file(self):
-        bias_file_params = self.zero_bias_file_params
-        bias_file_params.load_file()
-        bias_file_start_addr = 0
-        bias_file_sz = bias_file_params.tot_partition_usage_sz_padded
-        self.file_mapper.map_file(bias_file_params, bias_file_start_addr, wrap_around=False, region_sz=bias_file_sz)
-        self.next_bias_file_start = align_addr_8B(bias_file_sz)
 
     """Advance next bias allocation pointer.
         Args: 
@@ -273,10 +232,9 @@ class TPBSched:
 
             # kaena-452: create a file of zeros for use with Activation instruction without BiasAdd
             # Format matches existing bias formats, but it should be more like CRSM to match weights
-            if kgraph.zero_bias_file_params is None:
+            if kgraph.combined_bias_file_params is None:
                 kgraph.create_constants_file(first_op)
 
-             # Dissolve Input of Placeholder types
             if first_op.is_placeholder:
                 assert(len(op_list) == 1)
                 first_op.result_avail = True
@@ -594,6 +552,7 @@ if __name__ == "__main__":
     parser.add_argument("--full_dependencies", default=True, action='store_true', help="Insert all the dependencies in wavegraph")
     parser.add_argument("--relax_dependencies", action='store_true', help="To prevent running out of events (kaena-403,449), this option when true would relax the dependency requirement (kaena-411)")
     parser.add_argument("--fuse_lrelu", action='store_true', help="Fuse the function max(y, a*y) into Lrelu activation function")
+    parser.add_argument("--sb_partition_sz", type=int, default=96*1024-256, help="Size of one SB partition (to reserve space at end of SB for stress test)")
     args = parser.parse_args()
 
     print("\nINFO: Middle Sched v2: Running in %s mode"%(args.nname))

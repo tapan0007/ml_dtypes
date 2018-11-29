@@ -924,25 +924,26 @@ class SbMorsel():
 """ Class to manage mapping file to SB regions
 """
 class FileMapper():
-    def __init__(self, sb_partition_sz, data_type, args=None):
+    def __init__(self, data_type, args=None):
         self.item_sz         = data_type_to_item_sz(data_type)
-        self.sb_partition_sz = sb_partition_sz
         self.data_type       = data_type
         self.file_params_list = {}
-        self.morsels_wr = [[SbMorsel() for i in range(sb_partition_sz)] for j in range(2)]
-        self.morsels_rd = [[[SbMorsel() for i in range(sb_partition_sz)] for j in range(2)] for k in range(EngineEnum.COUNT)]
         self.dramsaves = dict()
         if args is None:
             self.enable_eviction = False
             self.full_dependencies = False
             self.relax_dependencies = False
+            self.sb_partition_sz = 96*1024
             self.debug = 0
         else:            
             self.enable_eviction = args.enable_eviction
             self.full_dependencies = args.full_dependencies
             self.relax_dependencies = args.relax_dependencies
+            self.sb_partition_sz = args.sb_partition_sz
             self.debug = args.debug
         self.args = args
+        self.morsels_wr = [[SbMorsel() for i in range(self.sb_partition_sz)] for j in range(2)]
+        self.morsels_rd = [[[SbMorsel() for i in range(self.sb_partition_sz)] for j in range(2)] for k in range(EngineEnum.COUNT)]
 
     def find_unused_gaps(self):
         print("Checking for unused gaps in SB")
@@ -1017,32 +1018,78 @@ class FileMapper():
             print("adjust0_if_overlap: adjusted to region0_start_adjusted %d region0_sz %d"%(region0_start_adjusted, region0_sz))
         return (no_overlap, region0_start_adjusted)
 
-    def skip_unfreed_region (self, cur_knode, start_addr):
-        st = start_addr
-        while 1:
-            fid = self.morsels_rd[st].file_id
-            if (fid == -1):
-                break
-            else:
-                fmap = self.file_params_list[fid]
-                print("FileMapper::skip_unfreed_region::cur_knode = %s"%(
-                    cur_knode.data['layer_name']))
-                if (fmap.mapped_params.is_consumed_by_all_readers() == True):
-                    print ("FileMapper::skip_unfreed_region::", end = " ")
-                    print ("%s starting from %d is completely consumed"%(
-                        fmap.file_name, st))
-                    break;
-                else:
-                    print ("FileMapper::skip_unfreed_region::", end = " ")
-                    print ("%s starting from %d is not consumed yet"%(
-                        fmap.file_name, st), end = ", ")
-                    for r in fmap.readers_of_shared_fmap:
-                        if (fmap.mapped_params.consumed_by_readers[r] == False):
-                            print ("%s", end = ", ")
-                    print ("need to read %s"%fmap.file_name)
-                    st = fmap.mapped_params.end_addr + fmap.item_sz
-                    assert(st != start_addr)
+    """Pick from sorted list of free sections, outside of existing live FMAPs
+        args:
+            file_mapper: statebuffer's file mapper object
+            st_addr: start address of region to adjust
+            region_sz: size of region
+            min_region_start: if address exceeds SB size, wrap around to this address
+            live_mapped_file_params: current list of SB mapped tensor files that should remain (since they are still being used, and we don't want to evict unless we have to) 
+        return:
+            st: newly allocated start address
+    """
+    def move_addr_to_first_free_section(self
+                                          , st_addr
+                                          , region_sz
+                                          , min_region_start
+                                          , live_mapped_file_params
+                                         ):
+        st = st_addr
+        if st < min_region_start:
+            st = min_region_start
+        if self.args.debug > 1:
+            print("DBG: checking for overlap, start addr %d size %d, against %d live mapped files"%(st_addr, region_sz, len(live_mapped_file_params)))
+
+        list_of_seg = self.get_list_of_free_sections(min_region_start, live_mapped_file_params)
+
+        # find the smallest free segment that fits
+        st = -1
+        for i in list_of_seg:
+            if region_sz < i[1]:
+                st = i[0]
+        if st < 0:
+            for i in list_of_seg:
+                print("free (start, len) = (%d, %d), next start = %d"%(i[0], i[1], i[0]+i[1]))
+            raise RuntimeError("Couldn't find empty space for start addr %d size %d"%(st_addr, region_sz))
         return st
+
+    """Get list of free sections
+    """
+    def get_list_of_free_sections(self
+                                , min_region_start
+                                , live_mapped_file_params
+                                ):
+        live_mapped_file_params.sort(key = lambda x : x.mapped_params.start_addr, reverse=False)
+        num_live_tensors = len(live_mapped_file_params)
+        item_sz = live_mapped_file_params[0].item_sz
+        # get list of free segments (start, length)
+        list_of_seg = []
+        for i in range(num_live_tensors):
+            mapped_cur = live_mapped_file_params[i].mapped_params
+            end_of_cur = mapped_cur.start_addr + mapped_cur.region_sz
+            if (self.args.debug > 3):
+                print("%d: (current) start %d size %d (%s)"%(i, mapped_cur.start_addr, mapped_cur.region_sz, live_mapped_file_params[i].file_name))
+            if i+1 < num_live_tensors:
+                mapped_nxt = live_mapped_file_params[i+1].mapped_params
+                if (self.args.debug > 3):
+                    print("%d: (next) start %d size %d (%s)"%(i, mapped_nxt.start_addr, mapped_nxt.region_sz, live_mapped_file_params[i+1].file_name))
+            else:
+                mapped_nxt = None
+            if len(list_of_seg) == 0:
+                list_of_seg.append((align_addr_8B(min_region_start), mapped_cur.start_addr - min_region_start))
+            if mapped_nxt is None:
+                list_of_seg.append((align_addr_8B(end_of_cur), self.sb_partition_sz - end_of_cur))
+            else:
+                if not self.check_overlap(
+                        mapped_cur.start_addr, mapped_cur.region_sz,
+                        mapped_nxt.start_addr, mapped_nxt.region_sz):
+                    list_of_seg.append((align_addr_8B(end_of_cur), mapped_nxt.start_addr - end_of_cur))
+        #for i in list_of_seg:
+        #    print("free (start, len) = (%d, %d), next start = %d"%(i[0], i[1], i[0]+i[1]))
+        # sort list of free segments            
+        list_of_seg.sort(key = lambda x: x[1], reverse = False)
+        return list_of_seg
+
     # File_params contains information about file
     # Start_addr is start address in SB
     # Region_sz is size of region used
@@ -2045,7 +2092,7 @@ class TestFileMapper(unittest.TestCase):
         shape_dims = ShapeDims("CRSM", [256,7,7,64]) 
         file_params = FileParams("testfile.npy", shape_dims, "float16", self.op_params_stride1)
         self.assertEqual(file_params.chunk_sz, 896)
-        test_obj = FileMapper(96*1024, "float16")
+        test_obj = FileMapper("float16")
         test_obj.full_dependencies = True
         self.assertEqual(test_obj.item_sz, 2)
         self.assertEqual(test_obj.data_type, "float16")
@@ -2156,7 +2203,7 @@ class TestFileMapper(unittest.TestCase):
         shape_dims = ShapeDims("NCHW", [16,3,224,224]) 
         file_params = FileParams("testfile2.npy", shape_dims, "float16", self.op_params_stride2)
         file_params.load_file()
-        test_obj = FileMapper(96*1024, "float16")
+        test_obj = FileMapper("float16")
         test_obj.map_file(file_params, 50240, True, region_sz=55*55*file_params.item_sz)
         self.assertEqual(file_params.mapped_params.start_addr, 50240)
         self.assertEqual(file_params.mapped_params.region_sz, 3*file_params.chunk_sz)
@@ -2183,7 +2230,7 @@ class TestFileMapper(unittest.TestCase):
         shape_dims = ShapeDims("NCHW", [1,256,55,55]) 
         file_params = FileParams("testfile_55x55.npy", shape_dims, "float16", self.op_params_stride2)
         file_params.load_file()
-        test_obj = FileMapper(96*1024, "float16")
+        test_obj = FileMapper("float16")
         #test_obj.map_file(file_params, 0, True, region_sz=55*55*file_params.item_sz)
         test_obj.map_file(file_params, 0, True, region_sz=12544)
         self.assertEqual(file_params.chunk_sz, 1760)
@@ -2225,7 +2272,7 @@ class TestFileMapper(unittest.TestCase):
         shape_dims = ShapeDims("NCHW", shape_tuple)
         file_params = FileParams("testfile_"+str(shape_tuple)+".npy", shape_dims, "float16", self.op_params_stride1)
         file_params.load_file()
-        test_obj = FileMapper(96*1024, "float16")
+        test_obj = FileMapper("float16")
         #test_obj.map_file(file_params, 0, True, region_sz=55*55*file_params.item_sz)
         test_obj.map_file(file_params, 0, True, region_sz=region_sz)
         list_of_accessors = [{'waveop_name' : "waveop_%d"%i} for i in range(100)]
