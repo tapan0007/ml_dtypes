@@ -1215,12 +1215,7 @@ noGpuTestWaiver = [
 ]
 
 qemuTestWaiver = [
-    ['7-rn50_nne_fp16_wave-no_repl-save-last-n-layers', 'WAIVE-QEMU-KAENA922'],
     ['8-rn50_nne_conv_wave$',  'WAIVE-QEMU'],
-    ['5-rn50_nne_to_act4_b16_wave-repl$',  'WAIVE-QEMU-KAENA1001'],
-    ['8-rn50_nne_fp16_b16_wave-fast_dram$',  'WAIVE-QEMU-KAENA1001'],
-    ['8-rn50_nne_fp16_b16_wave-two_banks$',  'WAIVE-QEMU-KAENA1001'],
-    ['8-rn50_nne_fp16_b16_wave$',  'WAIVE-QEMU-KAENA1001'],
     ['8-rn50_nne_fp16_b16_wave-no_repl', 'WAIVE-V49850304'],
     ['7-rn50_nne_fp16_wave-no_repl-all-layers', 'WAIVE-ManyDescr-SIM742'],
     ['0-300conv_tanh_wave-all-layers', 'WAIVE-TooManyOfmaps-SIM746'],
