@@ -244,27 +244,28 @@ class InklingProfile(object):
       for entry in jsonData:
         pc = int(entry["program_counter"])
         engine = entry['header']["block_id_str"]
-        cycle = int(entry["timestamp"]["low"])
-        # Notifications have buggy PC
-        pc *= 64
-        pcHex = "0x%x" %  pc
-        instr = tongaProgram.getInstr(engine, pcHex)
-        if instr:
-          opcode = instr.getInstrType()
-          mode = "unknown"
-          event = 0
-          e = InklingEvent(cycle, engine, pcHex, opcode, mode, event)
-          #print("  DEBUG: created inkling event record %s" % e)
-          if self.cycle2event[engine].get(cycle, None) == None:
-            self.events.append(e)
-            self.cycle2event[engine][cycle] = e
+        if entry["header"]["type_str"] == "tpb_trace_start":
+          cycle = int(entry["timestamp"]["low"])
+          # Notifications have buggy PC
+          pc *= 64
+          pcHex = "0x%x" %  pc
+          instr = tongaProgram.getInstr(engine, pcHex)
+          if instr:
+            opcode = instr.getInstrType()
+            mode = "unknown"
+            event = 0
+            e = InklingEvent(cycle, engine, pcHex, opcode, mode, event)
+            #print("  DEBUG: created inkling event record %s" % e)
+            if self.cycle2event[engine].get(cycle, None) == None:
+              self.events.append(e)
+              self.cycle2event[engine][cycle] = e
+            else:
+              # Duplicate (end of ) instruction, ignore
+              pass
           else:
-            # Duplicate (end of ) instruction, ignore
-            pass
-        else:
-          print("WARNING: the notification file has %s PC %s pointing to a non-existing instruction, entry %s" % (
-                  engine, pcHex, entry))
-          numBadPc += 1
+            print("WARNING: the notification file has %s PC %s pointing to a non-existing instruction, entry %s" % (
+                    engine, pcHex, entry))
+            numBadPc += 1
       print("INFO: the notification file had %d non-existing PC entries" % numBadPc)
     else:
       # Inkling log
