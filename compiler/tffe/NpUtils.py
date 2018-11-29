@@ -37,6 +37,7 @@ class NpUtils:
     #bRange = abs(np.amax(b) - np.amin(b))
     #bRange = abs(np.average(b))
     bRange = None
+    largestAbsDiff = 0.0
     if mode == 'max':
       bRange = abs(np.amax(b))
     for index, bval in np.ndenumerate(b):
@@ -50,10 +51,22 @@ class NpUtils:
           bRange = abs(bval)
         aval = float(aval)
         bval = float(bval)
-        if not (abs(aval - bval) <= (atol + rtol * bRange)):
-          if verbose:
-            print("INFO: NpUtils::allclose comparison failed  abs(%g - %g) <= (%g + %g * %g)" % (aval, bval, atol, rtol, bRange))
-          return False
-    return True
+        absDiff = abs(aval - bval)
+        tolerance = atol + rtol * bRange
+        if not absDiff <= tolerance:
+          if absDiff > largestAbsDiff:
+            largestAbsDiff = absDiff
+            if absDiff > atol and bRange > 0.0:  
+              relDiff = (absDiff - atol)/bRange
+            else:
+              relDiff = 0.0
+          print("INFO: NpUtils::allclose comparison failed at %s: abs(%g - %g) = %g is greater than (%g + %g * %g) = %g" % (str(index), aval, bval, absDiff, atol, rtol, bRange, tolerance))
+
+    if largestAbsDiff > 0.0:
+      if verbose:
+        print("\nINFO: NpUtils::allclose comparison failure summary: largest abs diff = %g, rel diff = %g %% (check against current rel tolerance of %g %%)\n" % (largestAbsDiff, relDiff * 100.0, rtol * 100.0))
+      return False
+    else:
+      return True
 
 

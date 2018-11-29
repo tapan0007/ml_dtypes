@@ -736,7 +736,7 @@ testConfigMap = {
     ) % (
     " --scheduler wave2 "
     + " --schedule_options ' --nname=generic --enable_cleanup --save_layer_regex  lstm_1_1/transpose\|lstm_1_1/Tile\|lstm_1_1/Tile_1\|lstm_1_1/mul_2\|lstm_1_1/mul_5\|lstm_1_1/mul_8\|lstm_1_1/mul_11\|lstm_2_1/stack ' " ,
-    lstmD0T4), "--input_files %s" % lstmD0T4
+    lstmD0T4), " --input_files %s" % lstmD0T4
     ],
 
   ## fp16,b32 on host
@@ -798,7 +798,7 @@ testConfigMap = {
   ) % (
   " --scheduler wave2 "
   + " --schedule_options ' --nname=generic --enable_cleanup --save_layer_regex  lstm_1_1/transpose\|lstm_1_1/Tile_1\|lstm_1_1/Tile\|lstm_1_1/mul_2\|lstm_1_1/mul_5\|lstm_1_1/mul_8\|lstm_1_1/mul_11\|lstm_2_1/transpose\|lstm_2_1/Tile\|lstm_2_1/Tile_1\|lstm_2_1/mul_2\|lstm_2_1/mul_5\|lstm_2_1/mul_8\|lstm_2_1/mul_11 ' " ,
-  lstmD0T4), "--input_files %s" % lstmD0T4],
+  lstmD0T4), "--diff_options '--tolerance 1.2 1e-5' --input_files %s" % lstmD0T4],
 
   ## fp16,b32,2l on host
   #"4-ptb_word_small_sigmoid_2l_fp16_b32_host"  : [ "tf_pb",
@@ -859,8 +859,8 @@ testConfigMap = {
 #"8-inceptionv3_wave_dog_sg00_tpb" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from mixed0/concat --executors host 1 wave 0 --scheduler wave2 --schedule_options '--nname=generic --enable_cleanup ' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
 "5-inceptionv3_wave_dog_sg00_tpb_upto_concat1" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_14/convolution,conv2d_16/convolution,conv2d_13/convolution,average_pooling2d_2/AvgPool --executors host 1 wave 0 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic"), rnDogJpg), "--input_files %s" % rnDogJpg],
 "5-inceptionv3_wave_dog_sg00_tpb_upto_concat2" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_20/convolution,conv2d_21/convolution,conv2d_23/convolution,average_pooling2d_3/AvgPool --executors host 1 wave 0 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic"), rnDogJpg), "--input_files %s" % rnDogJpg],
-"5-inceptionv3_wave_dog_sg00_tpb_upto_concat3" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_28/convolution,conv2d_27/convolution,max_pooling2d_3/MaxPool --executors host 1 wave 0 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-NoVerify"), rnDogJpg), "--input_files %s" % rnDogJpg],
-"5-inceptionv3_wave_dog_sg00_tpb_concat1_concat3" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_14/convolution,conv2d_16/convolution,conv2d_13/convolution,average_pooling2d_2/AvgPool conv2d_28/convolution,conv2d_27/convolution,max_pooling2d_3/MaxPool --executors host 0 2 wave 1 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-NoVerify"), rnDogJpg), "--input_files %s" % rnDogJpg],
+"5-inceptionv3_wave_dog_sg00_tpb_upto_concat3" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_28/convolution,conv2d_27/convolution,max_pooling2d_3/MaxPool --executors host 1 wave 0 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-NoVerify"), rnDogJpg), " --diff_options '--tolerance 1.2 1e-5' --input_files %s" % rnDogJpg],
+"5-inceptionv3_wave_dog_sg00_tpb_concat1_concat3" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_14/convolution,conv2d_16/convolution,conv2d_13/convolution,average_pooling2d_2/AvgPool conv2d_28/convolution,conv2d_27/convolution,max_pooling2d_3/MaxPool --executors host 0 2 wave 1 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-NoVerify"), rnDogJpg), " --diff_options '--tolerance 1.2 1e-5' --input_files %s" % rnDogJpg],
 "5-inceptionv3_wave_dog_sg00_tpb_concat2_concat3" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_20/convolution,conv2d_21/convolution,conv2d_23/convolution,average_pooling2d_3/AvgPool conv2d_28/convolution,conv2d_27/convolution,max_pooling2d_3/MaxPool --executors host 0 2 wave 1 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic"), rnDogJpg), "--input_files %s" % rnDogJpg],
 "5-inceptionv3_wave_dog_sg00_tpb_concat3_concat4" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_28/convolution,conv2d_27/convolution,max_pooling2d_3/MaxPool conv2d_31/convolution,conv2d_32/convolution,conv2d_35/convolution,average_pooling2d_4/AvgPool --executors host 0 2 wave 1 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic"), rnDogJpg), "--input_files %s" % rnDogJpg],
 "5-inceptionv3_wave_dog_sg00_tpb_concat4_concat5" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_31/convolution,conv2d_32/convolution,conv2d_35/convolution,average_pooling2d_4/AvgPool conv2d_41/convolution,conv2d_42/convolution,conv2d_45/convolution,average_pooling2d_5/AvgPool --executors host 0 2 wave 1 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic"), rnDogJpg), "--input_files %s" % rnDogJpg],
@@ -869,10 +869,10 @@ testConfigMap = {
 "5-inceptionv3_wave_dog_sg00_tpb_concat10_concat11" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_86/convolution,conv2d_87/convolution,conv2d_90/convolution,average_pooling2d_9/AvgPool avg_pool/Mean --executors host 0 2 wave 1 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic"), rnDogJpg), "--input_files %s" % rnDogJpg],
 "6-inceptionv3_wave_dog_sg00_tpb_upto_concat4" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_31/convolution,conv2d_32/convolution,conv2d_35/convolution,average_pooling2d_4/AvgPool --executors host 1 wave 0 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic"), rnDogJpg), "--input_files %s" % rnDogJpg],
 "6-inceptionv3_wave_dog_sg00_tpb_upto_concat5" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_41/convolution,conv2d_42/convolution,conv2d_45/convolution,average_pooling2d_5/AvgPool --executors host 1 wave 0 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic"), rnDogJpg), "--input_files %s" % rnDogJpg],
-"6-inceptionv3_wave_dog_sg00_tpb_upto_concat8" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_71/convolution,conv2d_73/convolution,max_pooling2d_4/MaxPool --executors host 1 wave 0 %s --input_node input_1 --images %s " %(incPreFp16, MEv2("Generic-NoVerify"), rnDogJpg), "--input_files %s" % rnDogJpg],
-"6-inceptionv3_wave_dog_sg00_tpb_upto_concat9" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_77/convolution,conv2d_78/convolution,conv2d_81/convolution,average_pooling2d_8/AvgPool --executors host 1 wave 0 --scheduler wave2 %s --input_node input_1 --images %s " %(incPreFp16, MEv2("Generic-NoVerify"), rnDogJpg), "--input_files %s" % rnDogJpg],
-"7-inceptionv3_wave_dog_sg00_tpb_upto_concat10" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_86/convolution,conv2d_87/convolution,conv2d_90/convolution,average_pooling2d_9/AvgPool --executors host 1 wave 0 --scheduler wave2 %s --input_node input_1 --images %s " %(incPreFp16, MEv2("Generic-NoVerify"), rnDogJpg), "--input_files %s" % rnDogJpg],
-"7-inceptionv3_wave_dog_sg00_tpb_upto_concat11" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from avg_pool/Mean --executors host 1 wave 0 --input_node input_1 %s --images %s --euler_options '--max_events 220'" %(incPreFp16, MEv2("Generic-NoVerify"), rnDogJpg), "--input_files %s" % rnDogJpg],
+"6-inceptionv3_wave_dog_sg00_tpb_upto_concat8" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_71/convolution,conv2d_73/convolution,max_pooling2d_4/MaxPool --executors host 1 wave 0 %s --input_node input_1 --images %s " %(incPreFp16, MEv2("Generic-NoVerify"), rnDogJpg), " --diff_options '--tolerance 1.3 1e-5' --input_files %s" % rnDogJpg],
+"6-inceptionv3_wave_dog_sg00_tpb_upto_concat9" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_77/convolution,conv2d_78/convolution,conv2d_81/convolution,average_pooling2d_8/AvgPool --executors host 1 wave 0 --scheduler wave2 %s --input_node input_1 --images %s " %(incPreFp16, MEv2("Generic-NoVerify"), rnDogJpg), " --diff_options '--tolerance 1.5 1e-5' --input_files %s" % rnDogJpg],
+"7-inceptionv3_wave_dog_sg00_tpb_upto_concat10" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_86/convolution,conv2d_87/convolution,conv2d_90/convolution,average_pooling2d_9/AvgPool --executors host 1 wave 0 --scheduler wave2 %s --input_node input_1 --images %s " %(incPreFp16, MEv2("Generic-NoVerify"), rnDogJpg), " --diff_options '--tolerance 2.3 1e-5' --input_files %s" % rnDogJpg],
+"7-inceptionv3_wave_dog_sg00_tpb_upto_concat11" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from avg_pool/Mean --executors host 1 wave 0 --input_node input_1 %s --images %s --euler_options '--max_events 220'" %(incPreFp16, MEv2("Generic-NoVerify"), rnDogJpg), " --diff_options '--tolerance 2.8 1e-5' --input_files %s" % rnDogJpg],
 
   "0-1conv1maxpool_wave_k3d1"  : [ "trivnet_conv_pool", "tfloat16-b1-h4-r1-s1-c1-m1-VALID-MaxPool-k3-d1-wmin2-wmax2.2-imin1-imax16", "1conv1pool", MEv2("Generic")],
   "0-1conv1maxpool_wave_h17k3d1"  : [ "trivnet_conv_pool", "tfloat16-b1-h17-r1-s1-c1-m1-VALID-MaxPool-k3-d1-wmin2-wmax2.2-imin1-imax16", "1conv1pool", MEv2("Generic")],
@@ -1087,12 +1087,16 @@ for i in [1, 2, 3, 6]:
 for i in [2, 6]:
     testConfigMap["5-parwavenet_10_fp16_tanh_to_add%s_wave"%i][TFFE_OPTION_IDX] += " --waive_wavegraph_checks "
     testConfigMap["5-parwavenet_10_fp16_in_to_add%s_wave"%i][TFFE_OPTION_IDX] += " --waive_wavegraph_checks "
-
 for i in [9, 12, 15, 18, 22]:
     testConfigMap["6-parwavenet_10_fp16_tanh_to_add%s_wave"%i] = gen_parwavenet_10_fp16_tanh1_to("add_%s"%i, 1)
-
 for i in [24]:
     testConfigMap["7-parwavenet_10_fp16_tanh_to_add%s_wave"%i] = gen_parwavenet_10_fp16_tanh1_to("add_%s"%i, 1)
+
+# kaena-902: add15/add18 cases exceed default relative tolerance of 1%
+for i in [15]:
+    testConfigMap["6-parwavenet_10_fp16_in_to_add%s_wave"%i][NNE_OPTION_IDX] += "--diff_options '--tolerance 1.2 1e-5'"
+for i in [18]:
+    testConfigMap["6-parwavenet_10_fp16_in_to_add%s_wave"%i][NNE_OPTION_IDX] += "--diff_options '--tolerance 1.7 1e-5'"
 
 def gen_7_rn50_nne_fp16_wave_no_repl_save(layer_name):
     return [
@@ -1120,11 +1124,6 @@ testWaiver = [
     ['0-1conv1maxpool_k3d2_wave',   'WAIVE_WAVESC'],
     ['0-1conv1pool_b5_wave',        'WAIVE_WAVESC'],
     ['0-1conv1pool_b5m3_wave',      'WAIVE_WAVESC'],
-    ['5-inceptionv3_wave_dog_sg00_tpb_concat1_concat3$', 'WAIVE_INCEPTIONV3'],
-    ['5-inceptionv3_wave_dog_sg00_tpb_upto_concat[3]$', 'WAIVE_INCEPTIONV3'],
-    ['6-inceptionv3_wave_dog_sg00_tpb_upto_concat[89]$', 'WAIVE_INCEPTIONV3'],
-    ['7-inceptionv3_wave_dog_sg00_tpb_upto_concat10$', 'WAIVE_INCEPTIONV3'],
-    ['7-inceptionv3_wave_dog_sg00_tpb_upto_concat11$', 'WAIVE_INCEPTIONV3'],
     ['8-inceptionv3_wave_dog_sg00_tpb$', 'WAIVE_INCEPTIONV3'],
     ['0-1conv1maxpool_wave_h17c196k3d1', 'WAIVE_INCEPTIONV3'],
     ['0-1maxpool_wave_h65c1m1k3d1_valid', 'WAIVE_INCEPTIONV3'],
@@ -1137,9 +1136,7 @@ testWaiver = [
     ['0-1conv_evict_wave', 'WAIVE_AMOEBA_SBEVICT'], # added by taemin
 
     # Parallel wavenet
-    #['.*clipbyvalue.*', 'WAIVE_KAENA636'],
-    #['.*softplus.*', 'WAIVE_KAENA634'],
-    ['.*squeeze.*', 'WAIVE_KAENA634'],
+    ['0-1squeeze_wave', 'WAIVE_KAENA634'],
     ['0-1transpose_wave', 'WAIVE_KAENA711'],
     ['0-1stridedslice_tanh_sigmoid_wave', 'WAIVE_KAENA711'],
     ['0-1stridedslice_wave', 'WAIVE_KAENA711'],
@@ -1147,8 +1144,6 @@ testWaiver = [
     ['3-parwavenet_.*_waveopt$', 'WAIVE_KAENA711'],
     ['3-1conv_transpose_1d_h100r80s20_wave', 'WAIVE_KAENA768'],
     ['3-1conv_transpose_1d_h10r40s10_wave', 'WAIVE_KAENA768'],
-    ['6-parwavenet_10_fp16_in_to_add15_wave$', 'WAIVE-KAENA902'],
-    ['6-parwavenet_10_fp16_in_to_add18_wave$', 'WAIVE-KAENA902'],
 
     #['^0-act_wave$',   'WAIVE-KAENA452'],
 
@@ -1176,7 +1171,6 @@ testWaiver = [
     ['2-ptb_word_unstack_.*',             'WAIVE-LSTM'],
     ['4-ptb_word_small_sigmoid_2l_auto_waveopt',   'WAIVE-L_PART'],
     ['4-ptb_word_small_sigmoid_2l_b64_wave',   'WAIVE-LSTM_ME'],
-    ['4-ptb_word_small_sigmoid_2l_fp16_b32_wave', 'WAIVE-LSTM-NUMERICAL'],
 
     # Multi-tpb partitioning - passes in host mode so no need to waive
     #['7-rn50_fp16_multi_tpb_o_wave', 'WAIVE_MTPB'],
