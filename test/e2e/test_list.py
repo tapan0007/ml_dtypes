@@ -143,7 +143,7 @@ testConfigMap = {
   "0-act_exp_sweep_wave"           : [ "trivnet_act", "tfloat32-b1-h128-c64-exp-wmin2-wmax2.2-imin-5-imax5",                         "act", MEv2("Generic")],
   "0-act_lrelu_sweep_wave"         : [ "trivnet_act", "tfloat32-b1-h80-c64-lrelu-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", MEv2("Generic")],
   "0-act_fused_lrelu_sweep_wave"   : [ "trivnet_act", "tfloat32-b1-h80-c64-lrelu-wmin2-wmax2.2-imin-10000000-imax10000000",  "act", "--scheduler wave2  --schedule_options ' --nname=generic --fuse_lrelu ' "],
-  "0-act_sqrt_sweep_wave"          : [ "trivnet_act", "tfloat32-b1-h80-c64-sqrt-wmin2-wmax2.2-imin0-imax10000000", "act", MEv2("Generic")],  
+  "0-act_sqrt_sweep_wave"          : [ "trivnet_act", "tfloat32-b1-h80-c64-sqrt-wmin2-wmax2.2-imin0-imax65504", "act", MEv2("Generic")],  
 
   "0-rtl-act_tanh_minisweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c64-tanh-wmin2-wmax2.2-imin-1-imax1",          "act", MEv2("Generic")],
   "0-rtl-act_sigmoid_minisweep_wave"       : [ "trivnet_act",      "tfloat32-b1-h128-c64-sigmoid-wmin2-wmax2.2-imin-1-imax1",          "act", MEv2("Generic")],
