@@ -222,6 +222,7 @@ testConfigMap = {
   "0-1conv_h6r3s2_wave"  : [ "trivnet_conv1",  "tfloat16-b1-h6-r3-s2-c1-m1-wmin-0.1-wmax0.12-imin-0.2-imax0.25", "1conv", MEv2("Generic")],
   "0-1conv_h6r3s2_b2_wave"  : [ "trivnet_conv1",  "tfloat16-b2-h6-r3-s2-c1-m1-wmin-0.1-wmax0.12-imin-0.2-imax0.25", "1conv", MEv2("RN50")],
   "0-1conv_h4r3s1_wave"  : [ "trivnet_conv1",  "tfloat16-b1-h4-r3-s1-c1-m1-wmin0-wmax9-imin0-imax15", "1conv", MEv2("Generic")],
+  "0-1conv_h14r3s1_wave"  : [ "trivnet_conv1", "tfloat16-b1-h14-r3-s1-c128-m64-wmin-0.5-wmax0.7-imin-0.8-imax1.2", "1conv", MEv2("Generic")],
   "0-1conv_h4r3s1_b2_wave"  : [ "trivnet_conv1",  "tfloat16-b2-h4-r3-s1-c1-m1-wmin0-wmax9-imin0-imax15", "1conv", MEv2("RN50")],
 
   "0-1conv_tile_r1_wave"  : [ "trivnet_conv1",  "tfloat16-b1-h35-r1-s1-c1-m1-wmin-0.1-wmax0.12-imin-0.2-imax0.25", "1conv", MEv2("Generic")],
