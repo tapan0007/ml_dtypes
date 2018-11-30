@@ -16,11 +16,11 @@ import argparse
 import multiprocessing as mp
 import time
 import multiprocessing
-import test_list
 import csv
 import subprocess
 import json
 import datetime
+import importlib
 
 kPath = os.environ.get('KAENA_PATH')
 kePath = os.environ.get('KAENA_EXT_PATH')
@@ -81,10 +81,24 @@ parser.add_argument('--sealife', help='Use sealife compiler instead of kcc', act
 parser.add_argument('--waive', help='Additional test to waive', nargs='+', default=[])
 parser.add_argument('--cached_kelf', help='Instead of compiling copy test dir from here/test_name and run inference. It can be unix path, ssh URL or s3 URL. Also triggers additional comparison with tensors computed by the cached run, and qor TopEffs comparison.', default=None)
 parser.add_argument('--be_options', help='BE arguments', nargs='+', default=[])
+parser.add_argument('--test_domains', help='Set of additional test definitions to load, default is uint8', nargs='+', default=['uint8'])
 
 args = parser.parse_args()
 verbose = args.verbose
 level = args.level
+
+
+# Test definitions
+import test_list
+for domain in args.test_domains:
+  testModuleName = "test_list_" + domain
+  importlib.import_module(testModuleName)
+  testModule = sys.modules[testModuleName]
+  test_list.testConfigMap.update(testModule.testConfigMap)
+  test_list.testWaiver.extend(testModule.testWaiver)
+  test_list.noGpuTestWaiver.extend(testModule.noGpuTestWaiver)
+  test_list.qemuTestWaiver.extend(testModule.qemuTestWaiver)
+
 
 ################################
 parallel = args.parallel

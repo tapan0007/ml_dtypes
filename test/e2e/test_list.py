@@ -1231,8 +1231,3 @@ qemuTestWaiver = [
 ]
 
 
-import test_list_uint8
-testConfigMap.update(test_list_uint8.testConfigMap)
-testWaiver.extend(test_list_uint8.testWaiver)
-noGpuTestWaiver.extend(test_list_uint8.noGpuTestWaiver)
-qemuTestWaiver.extend(test_list_uint8.qemuTestWaiver)
