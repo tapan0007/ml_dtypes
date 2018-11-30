@@ -26,6 +26,8 @@ namespace wave {
 
 
 class ReciprocalWaveOp : public PoolEngWaveOp {
+private:
+    using SubClass = PoolEngWaveOp;
 public:
     class Params;
 public:
@@ -64,9 +66,6 @@ public:
     }
     kcc_int32 gDstZStep () const {
         return m_DstZStep;
-    }
-    kcc_int32 gNumPartitions () const {
-        return m_NumPartitions;
     }
     bool qSrcIsPsum() const {
         return m_SrcIsPsum;
@@ -140,7 +139,6 @@ private:
     kcc_int32                   m_DstYStep              = -1;
     kcc_int32                   m_DstZNum               = -1;
     kcc_int32                   m_DstZStep              = -1;
-    kcc_int32                   m_NumPartitions         = -1;
     kcc_int32                   m_PoolFrequency         = -1;
     PoolType                    m_PoolFunc              = PoolType::None;
     bool                        m_DstIsPsum             = false;
@@ -168,7 +166,7 @@ private:
 
 
 
-class ReciprocalWaveOp::Params : public PoolEngWaveOp::Params {
+class ReciprocalWaveOp::Params : public ReciprocalWaveOp::SubClass::Params {
 public:
     bool verify() const;
 public:
@@ -181,7 +179,6 @@ public:
     kcc_int32                   m_DstYStep              = -1;
     kcc_int32                   m_DstZNum               = -1;
     kcc_int32                   m_DstZStep              = -1;
-    kcc_int32                   m_NumPartitions         = -1;
     bool                        m_SrcIsPsum;
     bool                        m_DstIsPsum;
     kcc_int32                   m_SrcPsumBankId = -1;

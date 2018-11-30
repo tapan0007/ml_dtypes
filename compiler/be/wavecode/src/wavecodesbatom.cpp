@@ -8,10 +8,15 @@
 #include "compisa/inc/compisadmatrigger.hpp"
 
 #include "wave/inc/sbatomwaveop.hpp"
+#include "wave/inc/sbatomloadwaveop.hpp"
+#include "wave/inc/sbatomsavewaveop.hpp"
 #include "wavecode/inc/wavecodesbatom.hpp"
+//#include "wavecode/inc/wavecodesbatomload.hpp"
+//#include "wavecode/inc/wavecodesbatomsave.hpp"
 
 namespace kcc {
 namespace wavecode {
+
 
 //************************************************************************
 WaveCodeSbAtom::WaveCodeSbAtom(WaveCodeRef waveCode)
@@ -55,16 +60,49 @@ WaveCodeSbAtom::processOutgoingEdgesAlreadyEmb(wave::SbAtomWaveOp* waveop, event
 } // WaveCodeSbAtom::processOutgoingEdgesAlreadyEmb
 
 //************************************************************************
-void
-WaveCodeSbAtom::addDmaBarrier(EngineId engId)
+kcc_int32
+WaveCodeSbAtom::calculateDmaCycleWait(const wave::SbAtomWaveOp* sbAtomWaveop) const
 {
-    const arch::PeArray& peArray(arch::Arch::gArch().gPeArray());
+    if (auto sbAtomLoadWaveop = dynamic_cast<const wave::SbAtomLoadWaveOp*>(sbAtomWaveop)) {
+        kcc_int32 cycleWait = 0;
+        for (auto prevWaveop : sbAtomLoadWaveop->gPrevWaveops()) {
+            cycleWait = std::max(cycleWait, prevWaveop->gReadEventLead());
+        }
+        return cycleWait;
+    }
+    if (auto sbAtomSaveWaveop = dynamic_cast<const wave::SbAtomSaveWaveOp*>(sbAtomWaveop)) {
+        kcc_int32 cycleWait = 0;
+        for (auto prevWaveop : sbAtomSaveWaveop->gPrevWaveops()) {
+            cycleWait = std::max(cycleWait, prevWaveop->gWriteEventLead());
+        }
+        return cycleWait;
+    }
+
+    Assert(false, "SbAtomWaveOp must be either Load or Save");
+    return -1;
+}
+
+//************************************************************************
+void
+WaveCodeSbAtom::addDmaBarrier(const wave::SbAtomWaveOp* sbAtomWaveop, EngineId engId)
+{
+    kcc_int32 cycleWait;
+    if (true) {
+        const arch::PeArray& peArray(arch::Arch::gArch().gPeArray());
+        cycleWait = std::max(peArray.gNumberRows(), peArray.gNumberColumns());
+    } else {
+        cycleWait = calculateDmaCycleWait(sbAtomWaveop);
+    }
+    if (cycleWait <= 0) {
+        return;
+    }
     compisa::NopInstr nopInstr;
     AssignWithSizeCheck(nopInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
     AssignWithSizeCheck(nopInstr.inst_events.wait_event_idx, 0);
     AssignWithSizeCheck(nopInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
     AssignWithSizeCheck(nopInstr.inst_events.set_event_idx, 0);
-    AssignWithSizeCheck(nopInstr.cycle_cnt, std::max(peArray.gNumberRows(), peArray.gNumberColumns()));
+    AssignWithSizeCheck(nopInstr.cycle_cnt, cycleWait);
+
     std::ostringstream oss;
     m_WaveCode.SaveName(nopInstr, "Delay before DMA due to END-WRITE signal being set at end of partition 0");
     m_WaveCode.writeInstruction(nopInstr, engId);

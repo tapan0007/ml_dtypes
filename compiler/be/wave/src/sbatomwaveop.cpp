@@ -16,7 +16,7 @@ namespace wave {
 
 SbAtomWaveOp::SbAtomWaveOp(const SbAtomWaveOp::Params& params,
                            const std::vector<WaveOp*>& prevWaveOps)
-    : WaveOp(params, prevWaveOps)
+    : BaseClass(params, prevWaveOps)
     , m_SbAddress(params.m_SbAddress)
     , m_StartAtMidPart(params.m_StartAtMidPart)
     , m_DataType(DataType::dataTypeId2DataType(params.m_DataType))
@@ -35,7 +35,7 @@ SbAtomWaveOp::SbAtomWaveOp(const SbAtomWaveOp::Params& params,
 bool
 SbAtomWaveOp::verify() const
 {
-    if (! this-> WaveOp::verify()) {
+    if (! this->BaseClass::verify()) {
         ASSERT_RETURN(false);
     }
     if (m_SbAddress < 0) {
@@ -76,7 +76,7 @@ SbAtomWaveOp::verify() const
 bool
 SbAtomWaveOp::Params::verify() const
 {
-    if (! this-> WaveOp::Params::verify()) {
+    if (! this->SbAtomWaveOp::BaseClass::Params::verify()) {
         return false;
     }
     if (m_RefFileName == "") {

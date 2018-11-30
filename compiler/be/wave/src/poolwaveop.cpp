@@ -19,11 +19,10 @@ namespace wave {
 
 PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
                        const std::vector<WaveOp*>& prevWaveOps)
-    : PoolEngWaveOp(params, prevWaveOps)
+    : BaseClass(params, prevWaveOps)
     , m_InDtype(DataType::dataTypeId2DataType(params.m_InDtypeId))
     , m_DstStartAtMidPart(params.m_DstStartAtMidPart)
 
-    , m_NumPartitions(params.m_NumPartitions)
     , m_PoolFrequency(params.m_PoolFrequency)
     , m_PoolFunc(params.m_PoolFunc)
 
@@ -70,7 +69,7 @@ bool
 PoolWaveOp::verify() const
 {
     const arch::PsumBuffer& psumBuf(arch::Arch::gArch().gPsumBuffer());
-    if (! this->WaveOp::verify()) {
+    if (! this->BaseClass::verify()) {
         RETURN_ASSERT(false);
     }
     if (m_DstSbAddress < 0) {
@@ -92,9 +91,6 @@ PoolWaveOp::verify() const
         RETURN_ASSERT(false);
     }
     if (m_DstZStep == 0 && m_DstZNum != 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_NumPartitions < 1) {
         RETURN_ASSERT(false);
     }
     if (m_PoolFrequency < 1) {
@@ -166,6 +162,7 @@ PoolWaveOp::verify() const
 bool
 PoolWaveOp::Params::verify() const
 {
+    PoolWaveOp::BaseClass::Params::verify();
     return true;
 }
 

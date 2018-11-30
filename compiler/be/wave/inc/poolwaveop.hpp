@@ -28,6 +28,8 @@ namespace wave {
 
 
 class PoolWaveOp : public PoolEngWaveOp {
+private:
+    using BaseClass = PoolEngWaveOp;
 public:
     class Params;
 public:
@@ -66,9 +68,6 @@ public:
     }
     kcc_int32 gDstZStep () const {
         return m_DstZStep;
-    }
-    kcc_int32 gNumPartitions () const {
-        return m_NumPartitions;
     }
     kcc_int32 gPoolFrequency () const {
         return m_PoolFrequency;
@@ -141,7 +140,7 @@ public:
         return gTypeStrStatic();
     }
 
-    virtual WaveOpType gType() const override {
+    WaveOpType gType() const override {
         return WaveOpType::Pool;
     }
 
@@ -155,7 +154,6 @@ private:
     kcc_int32                   m_DstYStep              = -1;
     kcc_int32                   m_DstZNum               = -1;
     kcc_int32                   m_DstZStep              = -1;
-    kcc_int32                   m_NumPartitions         = -1;
     kcc_int32                   m_PoolFrequency         = -1;
     PoolType                    m_PoolFunc              = PoolType::None;
     bool                        m_DstIsPsum             = false;
@@ -196,7 +194,6 @@ public:
     kcc_int32                   m_DstYStep              = -1;
     kcc_int32                   m_DstZNum               = -1;
     kcc_int32                   m_DstZStep              = -1;
-    kcc_int32                   m_NumPartitions         = -1;
     kcc_int32                   m_PoolFrequency         = 0.0;
     PoolType                    m_PoolFunc              = PoolType::None;
     bool                        m_SrcIsPsum;

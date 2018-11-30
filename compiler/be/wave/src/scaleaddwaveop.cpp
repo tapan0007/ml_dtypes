@@ -19,7 +19,7 @@ namespace wave {
 
 ScaleAddWaveOp::ScaleAddWaveOp(const ScaleAddWaveOp::Params& params,
                                const std::vector<WaveOp*>& prevWaveOps)
-    : PoolEngWaveOp(params, prevWaveOps)
+    : BaseClass(params, prevWaveOps)
     , m_DstSbAddress(params.m_DstSbAddress)
     , m_DstXNum(params.m_DstXNum)
     , m_DstXStep(params.m_DstXStep)
@@ -27,7 +27,6 @@ ScaleAddWaveOp::ScaleAddWaveOp(const ScaleAddWaveOp::Params& params,
     , m_DstYStep(params.m_DstYStep)
     , m_DstZNum(params.m_DstZNum)
     , m_DstZStep(params.m_DstZStep)
-    , m_NumPartitions(params.m_NumPartitions)
     , m_SrcIsPsum(params.m_SrcIsPsum)
     , m_Scale(params.m_Scale)
     , m_Offset(params.m_Offset)
@@ -51,7 +50,7 @@ bool
 ScaleAddWaveOp::verify() const
 {
     const arch::PsumBuffer& psumBuf(arch::Arch::gArch().gPsumBuffer());
-    if (! this->WaveOp::verify()) {
+    if (! this->BaseClass::verify()) {
         RETURN_ASSERT(false);
     }
     if (m_DstSbAddress < 0) {
@@ -120,6 +119,7 @@ ScaleAddWaveOp::verify() const
 bool
 ScaleAddWaveOp::Params::verify() const
 {
+    ScaleAddWaveOp::BaseClass::Params::verify();
     return true;
 }
 

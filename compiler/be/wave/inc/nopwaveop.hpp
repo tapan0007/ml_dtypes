@@ -30,6 +30,8 @@ namespace wave {
 
 
 class NopWaveOp : public WaveOp {
+private:
+    using BaseClass = WaveOp;
 public:
     class Params;
 public:
@@ -57,11 +59,18 @@ public:
         return gTypeStrStatic();
     }
 
-    virtual WaveOpType gType() const override {
+    WaveOpType gType() const override {
         return WaveOpType::Nop;
     }
 
     const std::string& gLayerName() const override;
+
+    kcc_int32 gReadEventLead() const override {
+        return 0;
+    }
+    kcc_int32 gWriteEventLead() const override {
+        return 0;
+    }
 
 private:
     EngineId m_EngineId = EngineId::None;

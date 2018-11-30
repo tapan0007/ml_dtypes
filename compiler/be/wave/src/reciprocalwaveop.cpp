@@ -22,9 +22,6 @@ ReciprocalWaveOp::ReciprocalWaveOp(const ReciprocalWaveOp::Params& params,
     : PoolEngWaveOp(params, prevWaveOps)
     , m_InDtype(DataType::dataTypeId2DataType(params.m_InDtypeId))
     , m_DstStartAtMidPart(params.m_DstStartAtMidPart)
-
-    , m_NumPartitions(params.m_NumPartitions)
-
     , m_DstIsPsum(params.m_DstIsPsum)
     , m_SrcIsPsum(params.m_SrcIsPsum)
     , m_TileId(params.m_TileId)
@@ -66,7 +63,7 @@ bool
 ReciprocalWaveOp::verify() const
 {
     const arch::PsumBuffer& psumBuf(arch::Arch::gArch().gPsumBuffer());
-    if (! this->WaveOp::verify()) {
+    if (! this->SubClass::verify()) {
         RETURN_ASSERT(false);
     }
     if (m_DstSbAddress < 0) {
@@ -88,9 +85,6 @@ ReciprocalWaveOp::verify() const
         RETURN_ASSERT(false);
     }
     if (m_DstZStep == 0 && m_DstZNum != 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_NumPartitions < 1) {
         RETURN_ASSERT(false);
     }
 

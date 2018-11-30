@@ -101,7 +101,48 @@ WaveOp::Params::verify() const
 }
 
 
+//********************************
+WaveOp* 
+WaveOp::PrevWaveOps::iterator::operator* () const
+{
+    WaveEdge* prevEdge = m_PrevEdges[m_Idx];
+    return prevEdge->gFromOp();
+}
 
+bool
+WaveOp::PrevWaveOps::iterator::operator!= (const iterator& rhs) const
+{
+    return rhs.m_Idx != m_Idx;
+}
+
+
+auto
+WaveOp::gPrevWaveops() const -> PrevWaveOps
+{
+    return PrevWaveOps(this);
+}
+
+
+//********************************
+WaveOp* 
+WaveOp::SuccWaveOps::iterator::operator* () const
+{
+    WaveEdge* succEdge = m_SuccEdges[m_Idx];
+    return succEdge->gToOp();
+}
+
+bool
+WaveOp::SuccWaveOps::iterator::operator!= (const iterator& rhs) const
+{
+    return rhs.m_Idx != m_Idx;
+}
+
+
+auto
+WaveOp::gSuccWaveops() const -> SuccWaveOps
+{
+    return SuccWaveOps(this);
+}
 
 
 }} // namespace

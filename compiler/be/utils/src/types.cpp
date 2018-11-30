@@ -99,21 +99,6 @@ engineId2Str(EngineId engId)
     Assert(false, "Wrong Engine ID ", static_cast<int>(engId));
     return badEng;
 }
-/*
-typedef enum TONGA_ISA_TPB_ACTIVATION_FUNC{
-    TONGA_ISA_TPB_ACTIVATION_FUNC_INVALID         = 0x00,
-    TONGA_ISA_TPB_ACTIVATION_FUNC_IDENTITY        = 0x01,
-    TONGA_ISA_TPB_ACTIVATION_FUNC_RELU            = 0x02,
-    TONGA_ISA_TPB_ACTIVATION_FUNC_LEAKY_RELU      = 0x03,
-    TONGA_ISA_TPB_ACTIVATION_FUNC_PARAMETRIC_RELU = 0x04,
-    TONGA_ISA_TPB_ACTIVATION_FUNC_SIGMOID         = 0x05,
-    TONGA_ISA_TPB_ACTIVATION_FUNC_TANH            = 0x06,
-    TONGA_ISA_TPB_ACTIVATION_FUNC_EXP             = 0x07,
-    TONGA_ISA_TPB_ACTIVATION_FUNC_SQRT            = 0x08,
-    TONGA_ISA_TPB_ACTIVATION_FUNC_SOFTPLUS        = 0x09,
-    TONGA_ISA_TPB_ACTIVATION_FUNC_NUM
-} TONGA_ISA_PACKED TONGA_ISA_TPB_ACTIVATION_FUNC;
-*/
 
 const std::string& ActivationFunc2Str(ActivationFunc actFunc)
 {

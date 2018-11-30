@@ -207,7 +207,7 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
     } // end incoming events
 
     //************************************************************************
-    addDmaBarrier(chosenEngId);
+    addDmaBarrier(sbAtomSaveWaveop, chosenEngId);
     //************************************************************************
     compisa::DmaTriggerInstr dmaTriggerInstr;
     strncpy(dmaTriggerInstr.dma_queue_name, dmaBlock.gDmaQueue()->gName().c_str(),
@@ -300,6 +300,9 @@ WaveCodeSbAtomSave::calcOutputSize(const wave::SbAtomSaveWaveOp* sbAtomSaveWaveo
         }
     }
 }
+
+
+//************************************************************************
 
 }}
 

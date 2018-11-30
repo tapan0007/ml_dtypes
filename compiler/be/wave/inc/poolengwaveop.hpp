@@ -27,6 +27,8 @@ namespace wave {
 
 
 class PoolEngWaveOp : public WaveOp {
+private:
+    using BaseClass = WaveOp;
 public:
     class Params;
 public:
@@ -43,9 +45,23 @@ public:
     EngineId gEngineId() const override {
         return EngineId::Pooling;
     }
+    kcc_int32 gNumPartitions () const {
+        return m_NumPartitions;
+    }
+
+    kcc_int32 gReadEventLead() const override {
+        return gNumPartitions();
+    }
+    kcc_int32 gWriteEventLead() const override {
+        return gNumPartitions();
+    }
 
 protected:
-    const DataType&             m_OutDtype;
+    bool verify() const;
+
+protected:
+    const DataType&     m_OutDtype;
+    kcc_int32           m_NumPartitions = -1;
 }; // class PoolEngWaveOp : public WaveOp
 
 
@@ -53,9 +69,10 @@ protected:
 
 
 
-class PoolEngWaveOp::Params : public WaveOp::Params {
+class PoolEngWaveOp::Params : public PoolEngWaveOp::BaseClass::Params {
 public:
-    DataTypeId m_OutDtypeId = DataTypeId::None;
+    DataTypeId m_OutDtypeId    = DataTypeId::None;
+    kcc_int32  m_NumPartitions = -1;
 };
 
 

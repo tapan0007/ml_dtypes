@@ -26,6 +26,8 @@ namespace wave {
 
 
 class SbAtomSaveWaveOp : public SbAtomWaveOp {
+private:
+    using BaseClass = SbAtomWaveOp;
 public:
     class Params;
 public:
@@ -43,7 +45,7 @@ public:
         return gTypeStrStatic();
     }
 
-    virtual WaveOpType gType() const override {
+    WaveOpType gType() const override {
         return WaveOpType::Save;
     }
 
@@ -54,6 +56,13 @@ public:
 
     bool qFinalLayerOfmap() const {
         return m_FinalLayerOfmap;
+    }
+
+    kcc_int32 gReadEventLead() const override {
+        return 0;
+    }
+    kcc_int32 gWriteEventLead() const override {
+        return 0;
     }
 
 private:

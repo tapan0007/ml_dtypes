@@ -51,7 +51,7 @@ void writeOutJson(nets::Network* ntwk, const char* jsonInFileName, const char* e
 {
     char JsonOutFileName[256];
     strncpy(JsonOutFileName, jsonInFileName,
-        kcc::ArraySizeof(JsonOutFileName)-1);
+        ArraySizeof(JsonOutFileName)-1);
     char* q = JsonOutFileName + (strlen(JsonOutFileName) - 5);
     Assert(0 == strcmp(q, ".json"),
         "Input Json file name does not end in '.json'");

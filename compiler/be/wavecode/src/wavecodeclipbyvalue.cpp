@@ -10,10 +10,6 @@
 
 #include "wave/inc/waveedge.hpp"
 #include "wave/inc/clipbyvaluewaveop.hpp"
-//#include "wave/inc/matmulwaveop.hpp"
-//#include "wave/inc/poolwaveop.hpp"
-//#include "wave/inc/sbatomloadwaveop.hpp"
-//#include "wave/inc/sbatomsavewaveop.hpp"
 
 #include "wavecode/inc/wavecode.hpp"
 #include "wavecode/inc/wavecodeclipbyvalue.hpp"

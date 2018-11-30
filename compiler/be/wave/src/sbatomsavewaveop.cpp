@@ -15,7 +15,7 @@ namespace wave {
 
 SbAtomSaveWaveOp::SbAtomSaveWaveOp(const SbAtomSaveWaveOp::Params& params,
                            const std::vector<WaveOp*>& prevWaveOps)
-    : SbAtomWaveOp(params, prevWaveOps)
+    : BaseClass(params, prevWaveOps)
     , m_FinalLayerOfmap(params.m_FinalLayerOfmap)
 {
     assert(params.verify());
@@ -25,7 +25,7 @@ SbAtomSaveWaveOp::SbAtomSaveWaveOp(const SbAtomSaveWaveOp::Params& params,
 bool
 SbAtomSaveWaveOp::verify() const
 {
-    if (! this->SbAtomWaveOp::verify()) {
+    if (! this->BaseClass::verify()) {
         return false;
     }
     return true;
@@ -47,7 +47,7 @@ SbAtomSaveWaveOp::gSaveDataSizeInBytes() const
 bool
 SbAtomSaveWaveOp::Params::verify() const
 {
-    if (! this->SbAtomWaveOp::Params::verify()) {
+    if (! this->SbAtomSaveWaveOp::BaseClass::Params::verify()) {
         return false;
     }
     return true;

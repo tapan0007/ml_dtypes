@@ -16,7 +16,7 @@ namespace wave {
 SbAtomLoadWaveOp::SbAtomLoadWaveOp(
         const SbAtomLoadWaveOp::Params& params,
         const std::vector<WaveOp*>& prevWaveOps)
-    : SbAtomWaveOp(params, prevWaveOps)
+    : BaseClass(params, prevWaveOps)
     , m_ContainWeights(params.m_ContainWeights)
     , m_IfmapReplicationNumRows(params.m_IfmapReplicationNumRows)
     , m_IfmapReplicationResolution(params.m_IfmapReplicationResolution)
@@ -43,7 +43,7 @@ SbAtomLoadWaveOp::gLoadDataSizeInBytes () const
 bool
 SbAtomLoadWaveOp::verify() const
 {
-    if (! this->SbAtomWaveOp::verify()) {
+    if (! this->BaseClass::verify()) {
         return false;
     }
     if (m_IfmapReplicationNumRows < 0) {
@@ -68,7 +68,7 @@ SbAtomLoadWaveOp::verify() const
 bool
 SbAtomLoadWaveOp::Params::verify() const
 {
-    if (! this->SbAtomWaveOp::Params::verify()) {
+    if (! this->SbAtomLoadWaveOp::BaseClass::Params::verify()) {
         return false;
     }
     // bool m_IfmapsReplicate

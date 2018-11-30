@@ -17,7 +17,7 @@ namespace wave {
 
 MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
                            const std::vector<WaveOp*>& prevWaveOps)
-    : WaveOp(params, prevWaveOps)
+    : BaseClass(params, prevWaveOps)
     , m_FmapXNum(params.m_FmapXNum)
     , m_FmapXStep(params.m_FmapXStep)
     , m_FmapYNum(params.m_FmapYNum)
@@ -58,7 +58,7 @@ bool
 MatMulWaveOp::verify() const
 {
     const arch::PsumBuffer& psumBuf(arch::Arch::gArch().gPsumBuffer());
-    if (! this->WaveOp::verify()) {
+    if (! this->BaseClass::verify()) {
         return false;
     }
     if (m_FmapXNum < 1) {
@@ -131,7 +131,7 @@ MatMulWaveOp::verify() const
 bool
 MatMulWaveOp::Params::verify() const
 {
-    if (! this-> WaveOp::Params::verify()) {
+    if (! this-> MatMulWaveOp::BaseClass::Params::verify()) {
         return false;
     }
     if (m_FmapXNum < 1) {

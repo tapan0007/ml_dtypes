@@ -4,6 +4,7 @@
 #define KCC_COMPISA_COMMON_H
 
 #include <cstring>
+#include <typeinfo>
 
 #include "aws_tonga_isa_tpb_common.h"
 
@@ -39,7 +40,8 @@ public:
     void CheckValidity() const
     {
         const TongaErrorCode errCode = Checker(this);
-        Assert(errCode == ::TONGA_ISA_ERR_CODE_SUCCESS, "Invalid instruction. Error code: ", errCode);
+        Assert(errCode == ::TONGA_ISA_ERR_CODE_SUCCESS,
+               "Invalid instruction of type ", typeid(INSTR()).name(), "    Error code: ", errCode);
     }
 };
 

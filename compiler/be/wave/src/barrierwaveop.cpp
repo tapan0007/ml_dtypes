@@ -24,7 +24,7 @@ BarrierWaveOp::BarrierWaveOp(const WaveOp::Params& params,
                              const std::vector<WaveOp*>& prevWaveOps,
                              const std::vector<WaveOp*>& succWaveOps,
                              EngineId engineId)
-    : WaveOp(params, prevWaveOps) // will add back edges
+    : BaseClass(params, prevWaveOps) // will add back edges
     , m_EngineId(engineId)
 {
     Assert(prevWaveOps.size() > 0, "Number of predecessors of barrier waveop ",
@@ -55,7 +55,7 @@ BarrierWaveOp::gLayerName() const
 bool
 BarrierWaveOp::verify() const
 {
-    WaveOp::verify();
+    BaseClass::verify();
     if (m_Name == "") {
         RETURN_ASSERT(false);
     }
@@ -71,7 +71,7 @@ BarrierWaveOp::verify() const
 bool
 BarrierWaveOp::Params::verify() const
 {
-    WaveOp::Params::verify();
+    BarrierWaveOp::BaseClass::Params::verify();
     if (m_WaveOpName == "") {
         RETURN_ASSERT(false);
     }

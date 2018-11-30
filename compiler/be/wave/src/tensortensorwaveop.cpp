@@ -19,7 +19,7 @@ namespace wave {
 TensorTensorWaveOp::TensorTensorWaveOp(TensorAluOpType aluOp,
                         const TensorTensorWaveOp::Params& params,
                         const std::vector<WaveOp*>& prevWaveOps)
-    : TensorWaveOp(params, prevWaveOps)
+    : BaseClass(params, prevWaveOps)
     , m_AluOp(aluOp)
     , m_InADtype(DataType::dataTypeId2DataType(params.m_InADtypeId))
     , m_InBDtype(DataType::dataTypeId2DataType(params.m_InBDtypeId))
@@ -80,7 +80,7 @@ TensorTensorWaveOp::TensorTensorWaveOp(TensorAluOpType aluOp,
 bool
 TensorTensorWaveOp::verify() const
 {
-    if (! this->TensorWaveOp::verify()) {
+    if (! this->BaseClass::verify()) {
         RETURN_ASSERT(false);
     }
     const arch::PsumBuffer& psumBuf(arch::Arch::gArch().gPsumBuffer());
@@ -157,6 +157,7 @@ TensorTensorWaveOp::verify() const
 bool
 TensorTensorWaveOp::Params::verify() const
 {
+    TensorTensorWaveOp::BaseClass::Params::verify();
     return true;
 }
 

@@ -543,7 +543,7 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelf(wave::SbAtomLoadWaveOp*
     } // end incoming events
 
     //************************************************************************
-    addDmaBarrier(chosenEngId);
+    addDmaBarrier(sbAtomLoadWaveop, chosenEngId);
     //************************************************************************
     compisa::DmaTriggerInstr dmaTriggerInstr;
     strncpy(dmaTriggerInstr.dma_queue_name,
@@ -700,7 +700,7 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
 
     //************************************************************************
 
-    addDmaBarrier(chosenEngId);
+    addDmaBarrier(sbAtomLoadWaveop, chosenEngId);
     compisa::DmaTriggerInstr dmaTriggerInstr;
     strncpy(dmaTriggerInstr.dma_queue_name,
             dmaInBlock.gDmaQueue()->gName().c_str(),
@@ -762,7 +762,7 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     }
 
     //************************************************************************
-    addDmaBarrier(chosenEngId);
+    addDmaBarrier(sbAtomLoadWaveop, chosenEngId);
     compisa::DmaTriggerInstr dmaTriggerInstr;
     strncpy(dmaTriggerInstr.dma_queue_name,
             dmaInBlock.gDmaQueue()->gName().c_str(),
@@ -905,7 +905,7 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::Sb
 
 
     //************************************************************************
-    addDmaBarrier(chosenEngId);
+    addDmaBarrier(sbAtomLoadWaveop, chosenEngId);
     //************************************************************************
     compisa::DmaTriggerInstr dmaTriggerInstr;
     strncpy(dmaTriggerInstr.dma_queue_name,
@@ -1053,6 +1053,9 @@ WaveCodeSbAtomLoad::calcInputSize(const wave::SbAtomLoadWaveOp* sbAtomLoadWaveop
     }
     kelfDma.rInputSizeBytes(sz, refFile);
 }
+
+/***********************************************************************
+***********************************************************************/
 
 }}
 

@@ -18,7 +18,7 @@ namespace wave {
 
 ClipByValueWaveOp::ClipByValueWaveOp(const ClipByValueWaveOp::Params& params,
                        const std::vector<WaveOp*>& prevWaveOps)
-    : WaveOp(params, prevWaveOps)
+    : BaseClass(params, prevWaveOps)
     , m_InDtype(DataType::dataTypeId2DataType(params.m_InDtypeId))
     , m_OutDtype(DataType::dataTypeId2DataType(params.m_OutDtypeId))
     , m_SrcIsPsum(params.m_SrcIsPsum)
@@ -37,7 +37,6 @@ ClipByValueWaveOp::ClipByValueWaveOp(const ClipByValueWaveOp::Params& params,
     , m_DstZNum(params.m_DstZNum)
     , m_DstZStep(params.m_DstZStep)
 
-    , m_NumPartitions(params.m_NumPartitions)
     , m_MinValue(params.m_MinValue)
     , m_MaxValue(params.m_MaxValue)
 
@@ -65,7 +64,7 @@ ClipByValueWaveOp::ClipByValueWaveOp(const ClipByValueWaveOp::Params& params,
 bool
 ClipByValueWaveOp::verify() const
 {
-    if (! this->WaveOp::verify()) {
+    if (! this->BaseClass::verify()) {
         RETURN_ASSERT(false);
     }
     const arch::PsumBuffer& psumBuf(arch::Arch::gArch().gPsumBuffer());
@@ -106,9 +105,6 @@ ClipByValueWaveOp::verify() const
         }
     }
 
-    if (m_NumPartitions < 1) {
-        RETURN_ASSERT(false);
-    }
     if (m_SrcXNum < 1) {
         RETURN_ASSERT(false);
     }
@@ -159,6 +155,7 @@ ClipByValueWaveOp::verify() const
 bool
 ClipByValueWaveOp::Params::verify() const
 {
+    ClipByValueWaveOp::BaseClass::Params::verify();
     return true;
 }
 

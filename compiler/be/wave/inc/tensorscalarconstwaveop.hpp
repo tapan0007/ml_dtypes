@@ -27,6 +27,8 @@ namespace wave {
 
 
 class TensorScalarConstWaveOp : public TensorWaveOp {
+private:
+    using BaseClass = TensorWaveOp;
 public:
     class Params;
 public:
@@ -43,7 +45,7 @@ public:
         return true;
     }
 
-    virtual WaveOpType gType() const override {
+    WaveOpType gType() const override {
         return WaveOpType::TensorScalarConst;
     }
 

@@ -28,6 +28,8 @@ class DmaQueue;
 namespace wave {
 
 class SbAtomWaveOp : public WaveOp {
+private:
+    using BaseClass = WaveOp;
 public:
     class Params;
 public:

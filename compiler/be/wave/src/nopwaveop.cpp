@@ -26,7 +26,7 @@ namespace wave {
 NopWaveOp::NopWaveOp(const NopWaveOp::Params& params,
                              const std::vector<WaveOp*>& prevWaveOps,
                              EngineId engineId, events::EventId evtId)
-    : WaveOp(params, prevWaveOps) // will add back edges
+    : BaseClass(params, prevWaveOps) // will add back edges
     , m_EngineId(engineId)
 {
     if (prevWaveOps.size() > 0) {
@@ -70,7 +70,7 @@ NopWaveOp::verify() const
 bool
 NopWaveOp::Params::verify() const
 {
-    WaveOp::Params::verify();
+    NopWaveOp::BaseClass::Params::verify();
     if (m_WaveOpName == "") {
         RETURN_ASSERT(false);
     }

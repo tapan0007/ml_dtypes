@@ -25,6 +25,8 @@ namespace wave {
 
 
 class SbAtomLoadWaveOp : public SbAtomWaveOp {
+private:
+    using BaseClass = SbAtomWaveOp;
 public:
     class Params;
 public:
@@ -42,7 +44,7 @@ public:
         return gTypeStrStatic();
     }
 
-    virtual WaveOpType gType() const override {
+    WaveOpType gType() const override {
         return WaveOpType::Load;
     }
 
@@ -67,6 +69,13 @@ public:
 
     kcc_int32 gSrcStepElem() const {
         return m_SrcStepElem;
+    }
+
+    kcc_int32 gReadEventLead() const override {
+        return 0;
+    }
+    kcc_int32 gWriteEventLead() const override {
+        return 0;
     }
 
 private:

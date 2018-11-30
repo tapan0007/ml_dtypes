@@ -28,6 +28,8 @@ namespace wave {
 
 
 class BarrierWaveOp : public WaveOp {
+private:
+    using BaseClass = WaveOp;
 public:
     class Params;
 public:
@@ -58,7 +60,7 @@ public:
         return gTypeStrStatic();
     }
 
-    virtual WaveOpType gType() const override {
+    WaveOpType gType() const override {
         return WaveOpType::Barrier;
     }
 

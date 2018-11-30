@@ -31,6 +31,8 @@ namespace wave {
  * S and A are immediate values in the instruction
  */
 class ScaleAddWaveOp : public PoolEngWaveOp {
+private:
+    using BaseClass = PoolEngWaveOp;
 public:
     class Params;
 public:
@@ -64,9 +66,6 @@ public:
     kcc_int32 gDstZStep () const {
         return m_DstZStep;
     }
-    kcc_int32 gNumPartitions () const {
-        return m_NumPartitions;
-    }
     bool qSrcIsPsum() const {
         return m_SrcIsPsum;
     }
@@ -89,7 +88,7 @@ public:
         return gTypeStrStatic();
     }
 
-    virtual WaveOpType gType() const override {
+    WaveOpType gType() const override {
         return WaveOpType::ScaleAdd;
     }
     kcc_float32 gScale() const {
@@ -97,6 +96,13 @@ public:
     }
     kcc_float32 gOffset() const {
         return m_Offset;
+    }
+
+    kcc_int32 gReadEventLead() const override {
+        return 0;
+    }
+    kcc_int32 gWriteEventLead() const override {
+        return 0;
     }
 
 private:
@@ -107,7 +113,6 @@ private:
     kcc_int32                   m_DstYStep              = -1;
     kcc_int32                   m_DstZNum               = -1;
     kcc_int32                   m_DstZStep              = -1;
-    kcc_int32                   m_NumPartitions         = -1;
     bool                        m_SrcIsPsum             = true;
     kcc_int32                   m_SrcPsumBankId         = -1;
     kcc_int32                   m_SrcPsumBankOffset     = -1;
@@ -140,7 +145,6 @@ public:
     kcc_int32                   m_DstYStep              = -1;
     kcc_int32                   m_DstZNum               = -1;
     kcc_int32                   m_DstZStep              = -1;
-    kcc_int32                   m_NumPartitions         = -1;
     bool                        m_SrcIsPsum;
     kcc_int32                   m_SrcPsumBankId;
     kcc_int32                   m_SrcPsumBankOffset;

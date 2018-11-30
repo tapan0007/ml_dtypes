@@ -18,7 +18,7 @@
 #include "utils/inc/fmapdesc.hpp"
 
 
-#include "wave/inc/waveop.hpp"
+#include "wave/inc/poolengwaveop.hpp"
 
 
 namespace kcc {
@@ -26,7 +26,9 @@ namespace kcc {
 namespace wave {
 
 
-class ClipByValueWaveOp : public WaveOp {
+class ClipByValueWaveOp : public PoolEngWaveOp {
+private:
+    using BaseClass = PoolEngWaveOp;
 public:
     class Params;
 
@@ -118,10 +120,6 @@ public:
         return m_OutDtype;
     }
 
-    kcc_int32 gNumPartitions () const {
-        return m_NumPartitions;
-    }
-
     kcc_float32 gMinValue() const {
         return m_MinValue;
     }
@@ -140,7 +138,7 @@ public:
         return gTypeStrStatic();
     }
 
-    virtual WaveOpType gType() const override {
+    WaveOpType gType() const override {
         return WaveOpType::ClipByValue;
     }
 
@@ -188,7 +186,6 @@ private:
     kcc_int64                   m_DstSbAddress          = -1;
     bool                        m_DstStartAtMidPart     = false;
 
-    kcc_int32                   m_NumPartitions         = -1;
     kcc_float32                 m_MinValue;
     kcc_float32                 m_MaxValue;
 
@@ -199,12 +196,11 @@ private:
 
 
 
-class ClipByValueWaveOp::Params : public WaveOp::Params {
+class ClipByValueWaveOp::Params : public ClipByValueWaveOp::BaseClass::Params {
 public:
     bool verify() const;
 public:
     DataTypeId                  m_InDtypeId             = DataTypeId::None;
-    DataTypeId                  m_OutDtypeId            = DataTypeId::None;
     bool                        m_SrcIsPsum             = false;
     bool                        m_DstIsPsum             = false;
 
@@ -230,7 +226,6 @@ public:
     kcc_int64                   m_DstSbAddress          = -1;
     bool                        m_DstStartAtMidPart     = false;
 
-    kcc_int32                   m_NumPartitions         = -1;
     kcc_float32                 m_MinValue;
     kcc_float32                 m_MaxValue;
     std::array<kcc_int32, 4>    m_TileId;

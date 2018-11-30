@@ -28,6 +28,8 @@ namespace wave {
 
 
 class TensorWaveOp : public PoolEngWaveOp {
+private:
+    using BaseClass = PoolEngWaveOp;
 public:
     class Params;
 public:
@@ -63,10 +65,6 @@ public:
 
 
     std::string gTypeStr() const override;
-
-    kcc_int32 gNumPartitions () const {
-        return m_NumPartitions;
-    }
 
     bool qDstIsPsum () const {
         return m_DstIsPsum;
@@ -104,7 +102,6 @@ public:
 
 protected:
     std::string     m_TypeStr  = ""; // from JSON
-    kcc_int32       m_NumPartitions         = -1;
 
     /* 3 dimensions for src/dst to support batching.  If this instruction runs
      * over sizeof() limit, cut the z dimension! */
@@ -133,7 +130,6 @@ public:
 protected:
 public:
     std::string     m_WaveOpType;
-    kcc_int32       m_NumPartitions         = -1;
 
     /* 3 dimensions for src/dst to support batching.  If this instruction runs
      * over sizeof() limit, cut the z dimension! */

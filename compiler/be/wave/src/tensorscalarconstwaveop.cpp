@@ -19,7 +19,7 @@ namespace wave {
 TensorScalarConstWaveOp::TensorScalarConstWaveOp(
                         const TensorScalarConstWaveOp::Params& params,
                         const std::vector<WaveOp*>& prevWaveOps)
-    : TensorWaveOp(params, prevWaveOps)
+    : BaseClass(params, prevWaveOps)
     , m_InDtype(DataType::dataTypeId2DataType(params.m_InDtypeId))
     , m_SrcIsPsum(params.m_SrcIsPsum)
 {
@@ -69,7 +69,7 @@ TensorScalarConstWaveOp::TensorScalarConstWaveOp(
 bool
 TensorScalarConstWaveOp::verify() const
 {
-    if (! this->TensorWaveOp::verify()) {
+    if (! this->BaseClass::verify()) {
         RETURN_ASSERT(false);
     }
     const arch::PsumBuffer& psumBuf(arch::Arch::gArch().gPsumBuffer());
@@ -114,6 +114,7 @@ TensorScalarConstWaveOp::verify() const
 bool
 TensorScalarConstWaveOp::Params::verify() const
 {
+    TensorScalarConstWaveOp::BaseClass::Params::verify();
     return true;
 }
 

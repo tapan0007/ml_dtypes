@@ -3,6 +3,39 @@
 #include "wave/inc/waveconsts.hpp"
 #include "serialize/inc/serwaveop.hpp"
 
+#if 1
+namespace cereal
+{
+    //! Saving for std::map<std::string, std::string>
+    template <class Archive, class C, class A> inline
+    void save( Archive & ar, std::map<std::string, std::string, C, A> const & map )
+    {
+        for( const auto & i : map )
+        ar( cereal::make_nvp( i.first, i.second ) );
+    }
+
+    //! Loading for std::map<std::string, std::string>
+    template <class Archive, class C, class A> inline
+    void load( Archive & ar, std::map<std::string, std::string, C, A> & map )
+    {
+        map.clear();
+
+        auto hint = map.begin();
+        while( true )
+        {
+            const auto namePtr = ar.getNodeName();
+
+            if( !namePtr )
+                break;
+
+            std::string key = namePtr;
+            std::string value; ar( value );
+            hint = map.emplace_hint( hint, std::move( key ), std::move( value ) );
+        }
+    }
+} // namespace cereal
+#endif
+
 
 namespace kcc {
 namespace serialize {
@@ -465,6 +498,33 @@ SerWaveOp::saveDst(cereal::JSONOutputArchive& archive, Dims dims) const
         Assert(false, "Dims to save Dst are wrong");
     }
 }
+
+
+//===========================================================================
+void
+SerWaveOp::Sync::save(cereal::JSONOutputArchive& archive) const
+{
+    std::map<std::string, std::string> m;
+    if (m_WithEvent) {
+        char buf[256];
+        m["sync_type"] = "event";
+        sprintf(buf, "%d", static_cast<kcc_int32>(m_EventSync.m_SetMode));
+        m["set_mode"] = buf;
+        sprintf(buf, "%d", static_cast<kcc_int32>(m_EventSync.m_EventId));
+        m["event_id"] = buf;
+        sprintf(buf, "%d", static_cast<kcc_int32>(m_EventSync.m_WaitMode));
+        m["wait_mode"] = buf;
+    } else {
+        char buf[256];
+        m["sync_type"] = "semaphore";
+        m["queue"] = m_SemSync.m_QueueName;
+        sprintf(buf, "%d", static_cast<kcc_int32>(m_SemSync.m_TrigOrd));
+        m["trig_ord"] = buf;
+    }
+    //archive(cereal::make_nvp("sync", m));
+    archive(m);
+}
+
 
 
 #undef KCC_ARCHIVE

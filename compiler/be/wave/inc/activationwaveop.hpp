@@ -29,6 +29,8 @@ namespace wave {
 
 
 class ActivationWaveOp : public WaveOp {
+private:
+    using BaseClass = WaveOp;
 public:
     class Params;
 public:
@@ -72,7 +74,7 @@ public:
         return gTypeStrStatic();
     }
 
-    virtual WaveOpType gType() const override {
+    WaveOpType gType() const override {
         return WaveOpType::Activation;
     }
 
@@ -110,6 +112,12 @@ public:
     }
     kcc_int32 gNumPartitions () const {
         return m_NumPartitions;
+    }
+    kcc_int32 gReadEventLead() const override {
+        return gNumPartitions();
+    }
+    kcc_int32 gWriteEventLead() const override {
+        return gNumPartitions();
     }
     const DataType& gOutDtype () const {
         return m_OutDtype;

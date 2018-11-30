@@ -993,6 +993,56 @@ SerWaveOp::str2ActivationFunc(const std::string& actType)
 }
 
 
+//===================================================
+SerWaveOp::Sync::Sync(events::EventSetMode setMode, events::EventId eventId, events::EventWaitMode waitMode)
+    : m_WithEvent(true)
+{
+    new (&m_EventSync) EventSync(setMode, eventId, waitMode);
+}
+
+SerWaveOp::Sync::Sync(const char* que, kcc_int32 trigOrd)
+    : m_WithEvent(false)
+{
+    new (&m_SemSync) SemSync(que, trigOrd);
+}
+
+SerWaveOp::Sync::Sync(const Sync& rhs)
+    : m_WithEvent(rhs.m_WithEvent)
+{
+    if (m_WithEvent) {
+        new (&m_EventSync) EventSync(rhs.m_EventSync);
+    } else {
+        new (&m_SemSync) SemSync(rhs.m_SemSync);
+    }
+}
+
+SerWaveOp::Sync::~Sync()
+{
+    if (m_WithEvent) {
+        m_EventSync.~EventSync();
+    } else {
+        m_SemSync.~SemSync();
+    }
+}
+
+
+//===================================================
+void
+SerWaveOp::addPreviousEventSync(events::EventSetMode setMode,
+                                events::EventId eventId,
+                                events::EventWaitMode waitMode)
+{
+    const Sync sync(setMode, eventId, waitMode);
+    m_PreviousSyncs.push_back(sync);
+}
+
+void
+SerWaveOp::addPreviousSemaphoreSync(const char* prevSemaphore, kcc_int32 trigOrd)
+{
+    const Sync sync(prevSemaphore, trigOrd);
+    m_PreviousSyncs.push_back(sync);
+}
+
 } // namespace serialize
 } // namespace kcc
 

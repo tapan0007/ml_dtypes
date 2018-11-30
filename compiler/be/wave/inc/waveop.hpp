@@ -112,6 +112,11 @@ public:
 
     virtual WaveOpType gType() const = 0;
 
+    // The number of clock cycles between event-set-on-read / event-set-on-write
+    // and the final write by the waveop
+    virtual kcc_int32 gReadEventLead() const = 0;
+    virtual kcc_int32 gWriteEventLead() const = 0;
+
     //----------------------------------------------------------------
     const std::string& gName() const {
         return m_Name;
@@ -127,6 +132,14 @@ public:
         return m_SuccWaveEdges;
     }
 
+private:
+    class PrevWaveOps;
+    class SuccWaveOps;
+public:
+    PrevWaveOps gPrevWaveops() const;
+    SuccWaveOps gSuccWaveops() const;
+
+public:
     void addPrevWaveEdge(WaveEdge* waveEdge) {
         m_PrevWaveEdges.push_back(waveEdge);
     }
@@ -180,6 +193,7 @@ protected:
 }; // class WaveOp
 
 
+//********************************
 class WaveOp::Params {
 public:
     bool verify() const;
@@ -189,6 +203,105 @@ public:
     std::string             m_LayerName     = "";
     kcc_int32               m_Order;
 };
+
+
+
+
+
+//********************************
+class WaveOp::PrevWaveOps {
+private:
+    class iterator;
+public:
+    PrevWaveOps(const WaveOp* waveop)
+        : m_Waveop(waveop)
+    {}
+    PrevWaveOps() = delete;
+    inline iterator begin() const;
+    inline iterator end() const;
+private:
+    const WaveOp* const m_Waveop;
+};
+
+//********************************
+class WaveOp::PrevWaveOps::iterator {
+public:
+    iterator(const WaveOp* waveop, kcc_int32 idx)
+        : m_PrevEdges(waveop->gPrevWaveEdges())
+        , m_Idx(idx)
+    {}
+    bool operator!= (const iterator& rhs) const;
+    WaveOp* operator* () const;
+    void operator++ () {
+        ++m_Idx;
+    }
+private:
+    const std::vector<WaveEdge*>& m_PrevEdges;
+    kcc_int32 m_Idx;
+};
+
+
+//********************************
+inline auto
+WaveOp::PrevWaveOps::begin() const -> iterator
+{
+    return iterator(m_Waveop, 0);
+}
+
+inline auto
+WaveOp::PrevWaveOps::end() const -> iterator
+{
+    return iterator(m_Waveop, m_Waveop->gPrevWaveEdges().size());
+}
+
+
+
+
+//********************************
+class WaveOp::SuccWaveOps {
+private:
+    class iterator;
+public:
+    SuccWaveOps(const WaveOp* waveop)
+        : m_Waveop(waveop)
+    {}
+    SuccWaveOps() = delete;
+    inline iterator begin() const;
+    inline iterator end() const;
+private:
+    const WaveOp* const m_Waveop;
+};
+
+//********************************
+class WaveOp::SuccWaveOps::iterator {
+public:
+    iterator(const WaveOp* waveop, kcc_int32 idx)
+        : m_SuccEdges(waveop->gSuccWaveEdges())
+        , m_Idx(idx)
+    {}
+    bool operator!= (const iterator& rhs) const;
+    WaveOp* operator* () const;
+    void operator++ () {
+        ++m_Idx;
+    }
+private:
+    const std::vector<WaveEdge*>& m_SuccEdges;
+    kcc_int32 m_Idx;
+};
+
+
+//********************************
+inline auto
+WaveOp::SuccWaveOps::begin() const -> iterator
+{
+    return iterator(m_Waveop, 0);
+}
+
+inline auto
+WaveOp::SuccWaveOps::end() const -> iterator
+{
+    return iterator(m_Waveop, m_Waveop->gSuccWaveEdges().size());
+}
 
 
 } // namespace wave

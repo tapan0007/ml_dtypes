@@ -214,32 +214,18 @@ public:
     template<typename Archive>
     void load(Archive & archive);
 
+private:
+    class Sync;
 
-    void addPreviousWaveOp(const std::string& prevWaveOp) { m_PreviousWaveOps.push_back(prevWaveOp);
+public:
+    void addPreviousWaveOp(const std::string& prevWaveOp) {
+        m_PreviousWaveOps.push_back(prevWaveOp);
     }
 
-    void addPreviousEventSync(events::EventWaitMode waitMode,
+    void addPreviousEventSync(events::EventSetMode setMode,
                               events::EventId eventId,
-                              events::EventSetMode setMode)
-    {
-        char buf[512];
-        sprintf(buf, "%s: wait=%d  event=%d  set=%d",
-            WaveOpKey_EventSync,
-            static_cast<kcc_int32>(waitMode),
-            static_cast<kcc_int32>(eventId),
-            static_cast<kcc_int32>(setMode));
-        const std::string b(buf);
-        m_PreviousSyncs.push_back(b);
-    }
-
-    void addPreviousSemaphoreSync(const char* prevSemaphore, kcc_int32 trigOrd)
-    {
-        char buf[512];
-        sprintf(buf, "%s: name=%s  trig_ord=%d",
-            WaveOpKey_SemaphoreSync, prevSemaphore, trigOrd);
-        const std::string b(buf);
-        m_PreviousSyncs.push_back(b);
-    }
+                              events::EventWaitMode waitMode);
+    void addPreviousSemaphoreSync(const char* prevSemaphore, kcc_int32 trigOrd);
 
 
     static ActivationFunc str2ActivationFunc(const std::string& s);
@@ -313,7 +299,7 @@ public:
     std::string                 m_WaveOpName        = "";
     std::string                 m_LayerName         = "";
     std::vector<std::string>    m_PreviousWaveOps;
-    std::vector<std::string>    m_PreviousSyncs;
+    std::vector<Sync>           m_PreviousSyncs;
 
     std::string                 m_Engine;
 
@@ -468,6 +454,61 @@ public:
     kcc_int32                   m_Order                         = -1;
 }; // class SerWaveOp
 
+
+
+
+
+//===================================================
+class SerWaveOp::Sync {
+private:
+    class EventSync {
+    public:
+        EventSync(events::EventSetMode setMode, events::EventId eventId, events::EventWaitMode waitMode)
+            : m_SetMode(setMode)
+            , m_EventId(eventId)
+            , m_WaitMode(waitMode)
+        {}
+        EventSync(const EventSync&) = default;
+        EventSync() = delete;
+    public:
+        const events::EventSetMode  m_SetMode;
+        const events::EventId       m_EventId;
+        const events::EventWaitMode m_WaitMode;
+    };
+
+    class SemSync {
+    public:
+        SemSync(const char* que, kcc_int32 trigOrd)
+            : m_QueueName(que)
+            , m_TrigOrd(trigOrd)
+        {}
+        SemSync(const SemSync&) = default;
+        SemSync() = delete;
+
+    public:
+        const std::string   m_QueueName;
+        const kcc_int32     m_TrigOrd;
+    };
+
+public:
+    Sync(events::EventSetMode setMode, events::EventId eventId, events::EventWaitMode waitMode);
+    Sync(const char* que, kcc_int32 trigOrd);
+    Sync(const Sync& rhs);
+    ~Sync();
+
+    void save(cereal::JSONOutputArchive& archive) const;
+
+private:
+    bool m_WithEvent;
+    union {
+        EventSync m_EventSync;
+        SemSync   m_SemSync;
+    };
+}; // SerWaveOp::Sync
+
+
+
+//===================================================
 
 
 } // namespace serialize

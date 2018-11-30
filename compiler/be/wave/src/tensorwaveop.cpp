@@ -19,12 +19,11 @@ namespace wave {
 TensorWaveOp::TensorWaveOp(
                         const TensorWaveOp::Params& params,
                         const std::vector<WaveOp*>& prevWaveOps)
-    : PoolEngWaveOp(params, prevWaveOps)
+    : BaseClass(params, prevWaveOps)
     , m_TypeStr(params.m_WaveOpType)
     , m_DstIsPsum(params.m_DstIsPsum)
 {
     Assert(params.m_OutDtypeId != DataTypeId::None, "None out data type");
-    m_NumPartitions             = params.m_NumPartitions;
 
     /* dst */
     if (m_DstIsPsum) {
@@ -48,13 +47,10 @@ TensorWaveOp::TensorWaveOp(
 bool
 TensorWaveOp::verify() const
 {
-    if (! this->WaveOp::verify()) {
+    if (! this->BaseClass::verify()) {
         RETURN_ASSERT(false);
     }
 
-    if (m_NumPartitions < 1) {
-        RETURN_ASSERT(false);
-    }
     if (m_TypeStr == "") {
         RETURN_ASSERT(false);
     }
@@ -102,6 +98,7 @@ TensorWaveOp::verify() const
 bool
 TensorWaveOp::Params::verify() const
 {
+    TensorWaveOp::BaseClass::Params::verify();
     return true;
 }
 

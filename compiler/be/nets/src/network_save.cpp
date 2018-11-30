@@ -71,9 +71,9 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
                     }
                     serWaveOp.addPreviousSemaphoreSync(buf, trigOrd);
             } else {
-                serWaveOp.addPreviousEventSync(prevWaveEdge->gWaitEventMode(),
-                                          prevWaveEdge->gEventId(),
-                                          prevWaveEdge->gSetEventMode());
+                serWaveOp.addPreviousEventSync(prevWaveEdge->gSetEventMode(),
+                                               prevWaveEdge->gEventId(),
+                                               prevWaveEdge->gWaitEventMode());
             }
         }
         serWaveOp.m_Order = waveOp->gOrder();

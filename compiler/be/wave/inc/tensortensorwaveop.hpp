@@ -28,6 +28,8 @@ namespace wave {
 
 
 class TensorTensorWaveOp : public TensorWaveOp {
+private:
+    using BaseClass = TensorWaveOp;
 public:
     class Params;
 public:
@@ -44,7 +46,7 @@ public:
     bool qTensorTensorWaveOp() const override {
         return true;
     }
-    virtual WaveOpType gType() const override {
+    WaveOpType gType() const override {
         return WaveOpType::TensorTensor;
     }
 

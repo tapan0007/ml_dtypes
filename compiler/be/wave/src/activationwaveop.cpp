@@ -18,7 +18,7 @@ namespace wave {
 
 ActivationWaveOp::ActivationWaveOp(const ActivationWaveOp::Params& params,
                        const std::vector<WaveOp*>& prevWaveOps)
-    : WaveOp(params, prevWaveOps)
+    : BaseClass(params, prevWaveOps)
     , m_ActivationFunc(params.m_ActivationFunc)
     , m_BiasAddEn(params.m_BiasAddEn)
     , m_BiasSbAddress(params.m_BiasSbAddress)
@@ -66,7 +66,7 @@ ActivationWaveOp::ActivationWaveOp(const ActivationWaveOp::Params& params,
 bool
 ActivationWaveOp::verify() const
 {
-    if (! this->WaveOp::verify()) {
+    if (! this->BaseClass::verify()) {
         RETURN_ASSERT(false);
     }
     const arch::PsumBuffer& psumBuf(arch::Arch::gArch().gPsumBuffer());
@@ -220,6 +220,7 @@ ActivationWaveOp::gSimActivationFunc() const
 bool
 ActivationWaveOp::Params::verify() const
 {
+    ActivationWaveOp::BaseClass::Params::verify();
     return true;
 }
 
