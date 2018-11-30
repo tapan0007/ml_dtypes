@@ -63,23 +63,7 @@ WaveCodeSbAtom::processOutgoingEdgesAlreadyEmb(wave::SbAtomWaveOp* waveop, event
 kcc_int32
 WaveCodeSbAtom::calculateDmaCycleWait(const wave::SbAtomWaveOp* sbAtomWaveop) const
 {
-    if (auto sbAtomLoadWaveop = dynamic_cast<const wave::SbAtomLoadWaveOp*>(sbAtomWaveop)) {
-        kcc_int32 cycleWait = 0;
-        for (auto prevWaveop : sbAtomLoadWaveop->gPrevWaveops()) {
-            cycleWait = std::max(cycleWait, prevWaveop->gReadEventLead());
-        }
-        return cycleWait;
-    }
-    if (auto sbAtomSaveWaveop = dynamic_cast<const wave::SbAtomSaveWaveOp*>(sbAtomWaveop)) {
-        kcc_int32 cycleWait = 0;
-        for (auto prevWaveop : sbAtomSaveWaveop->gPrevWaveops()) {
-            cycleWait = std::max(cycleWait, prevWaveop->gWriteEventLead());
-        }
-        return cycleWait;
-    }
-
-    Assert(false, "SbAtomWaveOp must be either Load or Save");
-    return -1;
+    return sbAtomWaveop->gNumPartitions();
 }
 
 //************************************************************************

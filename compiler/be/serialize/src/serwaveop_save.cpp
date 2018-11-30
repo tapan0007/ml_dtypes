@@ -3,7 +3,9 @@
 #include "wave/inc/waveconsts.hpp"
 #include "serialize/inc/serwaveop.hpp"
 
-#if 1
+// How to remove unnecessary "value0" keys in generated JSON.
+// See:
+// https://uscilab.github.io/cereal/archive_specialization.html
 namespace cereal
 {
     //! Saving for std::map<std::string, std::string>
@@ -34,7 +36,6 @@ namespace cereal
         }
     }
 } // namespace cereal
-#endif
 
 
 namespace kcc {
