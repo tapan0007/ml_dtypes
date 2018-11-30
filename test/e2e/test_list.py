@@ -635,7 +635,7 @@ testConfigMap = {
   #"7-rn50_nne_fp16_b16_waveopt"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave2 --batch 16 --images %s"%(rnPreFp16, getBatchedJpgs(16)), "--input_files %s" % (getBatchedJpgs(16))],
 
   # Resnet50 bfloat16
-  "7-rn50_nne_bfloat16_wave": [ "tf_s3", "s3://kaena-nn-models", "resnet50_bfp16infp16_keras_opt.pb", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 --wavegraph_transform 'shell=perl -i -p -e s/float16/bfloat16/g wavegraph.json' cleaner euler cleaner --images %s --euler_options '--max_events 230'" % (MEv2("RN50-no_verify"), rnBfloat16Npy), "--input_files %s --check_against_ref none" % rnBfloat16Npy ],
+  "7-rn50_nne_bfloat16_wave": [ "tf_s3", "s3://kaena-nn-models", "resnet50_bfp16infp16_keras_opt.pb", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 --wavegraph_transform 'shell=perl -i -p -e s/float16/bfloat16/g wavegraph.json' cleaner euler cleaner --images %s --euler_options '--max_events 230'" % (MEv2("RN50-no_verify"), rnBfloat16Npy), "--input_files %s --check_against_ref only_golden" % rnBfloat16Npy ],
 
 
 ##################################################################

@@ -34,7 +34,7 @@ parser.add_argument('--kelf_dir', help='kelf directory', default="")
 parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb")
 parser.add_argument('--input_files', help='Files to be passed in to the first subgraph (filenames or node=filename pairs)', default=[], nargs='+')
 parser.add_argument('--output_files', help='Specify output files for last subgraph', default=[], nargs='+')
-parser.add_argument('--check_against_ref', help='Compare produced subgraph output npy files against compiler provided goldens in local directory; use none (defalt), last, all, all_available, all_internal', default='none')
+parser.add_argument('--check_against_ref', help='Compare produced subgraph output npy files against compiler provided goldens in local directory; use none (default), last, all, all_available, all_internal, only_golden', default='none')
 parser.add_argument('--working_dir', help='all output will be stored here', default="")
 parser.add_argument('--inkling_debugflags', help='inkling extra args', default=[], nargs='*')
 parser.add_argument('--env', help='Set envvars pairs var=val var1=val1. Used to pass experimental controls to low-level tools', nargs='+', default=[])
@@ -410,6 +410,13 @@ class NnExec:
       sgList = [lastSg]
     elif sgMode.startswith('all'):
       sgList = self.subGraphs
+    elif sgMode == "only_golden":
+      if cachedGoldensPath is None:
+        print("INFO: No cached goldens path specified for only_goldens comparison. Skipping.")
+        return 0
+      assert os.path.isdir(cachedGoldensPath), \
+          "cachedGoldensPath %s is not a directory" % (cachedGoldensPath)
+      sgList = []
     else:
       raise ValueError("ERROR: Unsupported subgraph mode --check_against_ref '%s'" % sgMode)
     comparedFiles = []
@@ -458,8 +465,17 @@ class NnExec:
       # if we are doing cachedKelf make sure we do that compare even if this fails
       if retAll != 0 and not cachedGoldensPath:
         return retAll
-    
+
     if cachedGoldensPath:
+      # In the check_against_ref=only_golden case, we don't do any comparison
+      # against TF so we need to detect the golden files here.
+      if sgMode == "only_golden":
+        for f in os.listdir(cachedGoldensPath):
+          if f.endswith("-out.npy"):
+            print("INFO: Found cached golden ouput %s/%s, adding to compare list." % \
+                (cachedGoldensPath, f))
+            comparedFiles.append(f)
+
       print("\nINFO: nn_executor.check Comparing %d cached golden tensors" % (len(comparedFiles)), flush=True)
       for f in comparedFiles:
         refFile = "%s/%s" % (cachedGoldensPath, f)
