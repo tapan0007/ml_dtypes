@@ -1044,7 +1044,7 @@ class FileMapper():
         # find the smallest free segment that fits
         st = -1
         for i in list_of_seg:
-            if region_sz < i[1]:
+            if region_sz <= i[1]:
                 st = i[0]
         if st < 0:
             for i in list_of_seg:

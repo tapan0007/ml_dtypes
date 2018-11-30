@@ -150,7 +150,7 @@ testConfigMap = {
   "0-rtl-act_relu_minisweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c64-relu-wmin2-wmax2.2-imin-1-imax1",          "act", MEv2("Generic")],
   "0-rtl-act_identity_minisweep_wave"      : [ "trivnet_biasadd",      "tfloat32-b1-h128-c64-wmin2-wmax2.2-imin-1-imax1",          "act", MEv2("Generic")],
 
-  "0-act_exp_minisweep_wave"           : [ "trivnet_act", "tfloat32-b1-h128-c64-exp-wmin2-wmax2.2-imin-1-imin-1-imax1", "act", MEv2("Generic")],
+  "0-act_exp_minisweep_wave"           : [ "trivnet_act", "tfloat32-b1-h128-c64-exp-wmin2-wmax2.2-imin-1-imax1", "act", MEv2("Generic")],
   "0-act_lrelu_minisweep_wave"         : [ "trivnet_act", "tfloat32-b1-h128-c64-lrelu-wmin2-wmax2.2-imin-1-imax1", "act", MEv2("Generic")],
   "0-act_fused_lrelu_minisweep_wave"   : [ "trivnet_act", "tfloat32-b1-h128-c64-lrelu-wmin2-wmax2.2-imin-1-imax1", "act", "--scheduler wave2  --schedule_options ' --nname=generic --fuse_lrelu '"],
   "0-act_sqrt_minisweep_wave"          : [ "trivnet_act", "tfloat32-b1-h128-c64-sqrt-wmin2-wmax2.2-imin0-imax1", "act", MEv2("Generic")],  
@@ -309,8 +309,7 @@ testConfigMap = {
   "0-scaleadd_wave"       : [ "trivnet_scaleadd", "tfloat16-b1-h1-c16-wmin2-wmax2.2-amin3-amax3.5-imin3-imax6-xmin2-xmax5", "scaleadd", MEv2("Generic")],
   "0-resadd_wave"         : [ "trivnet_add",    "tfloat16-b1-h2-c1-wmin2-wmax2.2-imin3-imax6", "add", MEv2("Generic")],
   "0-resadd_fp32_wave"    : [ "trivnet_add",    "tfloat32-b1-h17-c4-wmin-0.1-wmax0.11-imin1-imax5", "add", MEv2("Generic")],
-  "0-resadd_uint8_wave"   : [ "trivnet_add",    "tuint8-b1-h4-c3-wmin1-wmax4-imin5-imax53", "add", MEv2("Generic")],
-  "0-resadd_2in_wave"    : [ "trivnet_add_2in",    "tfloat16-b1-h2-c1-wmin2-wmax2.2-imin3-imax6", "add", MEv2("Generic")],
+  "0-resadd_2in_wave"    : [ "trivnet_add_2in",    "tfloat16-b1-h2-c1-wmin2-wmax2.2-imin3-imax6", "add", " --images linspace1 linspace1 " + MEv2("Generic"), "--input_files input0:0=trivnet_input0:0.npy input1:0=trivnet_input1:0.npy "],
   "0-subtract_psum_sb_wave"    : [ "trivnet_add",    "tfloat16-b1-h2-c1-SUB-wmin2-wmax2.2-imin3-imax6", "add", MEv2("Generic")],
   "0-sqrt_wave"            : [ "trivnet_act", "tfloat16-b1-h2-c64-sqrt-wmin2-wmax2.2-imin0.1-imax2", "act", MEv2("Generic")],
   "0-reciprocal_wave"       : [ "trivnet_reciprocal", "tfloat16-b1-h2-c64-wmin2-wmax2.2-imin-10-imax10", "reciprocal", MEv2("Generic")],
@@ -400,10 +399,9 @@ testConfigMap = {
   "2-1conv_transpose_1d_h30r20s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-l1-b1-h30-r20-s10-c1-m1-wmin-0.1-wmax0.2-imin-0.1-imax0.2", "1conv", MEv2("Generic")],
   "2-1conv_transpose_1d_h30r40s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-l1-b1-h30-r40-s10-c1-m1-wmin-0.1-wmax0.2-imin-0.1-imax0.2", "1conv", MEv2("Generic")],
 
-  "3-1conv_transpose_1d_h10r40s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-l1-b1-h10-r40-s10-c80-m256-wmin-0.1-wmax0.2-imin0-imax0.2", "1conv", MEv2("Generic")],
   "3-1conv_transpose_1d_h89r40s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-l1-b1-h89-r40-s10-c32-m32-wmin-0.1-wmax0.2-imin-0.1-imax0.2", "1conv", MEv2("Generic")],
-  "3-1conv_transpose_1d_h100r80s20_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-l1-b1-h100-r80-s20-c256-m256-wmin-0.1-wmax0.2-imin-0.1-imax0.2", "1conv", MEv2("Generic-NoVerify")],
-  "3-1conv_transpose_1d_h10r40s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-l1-b1-h10-r40-s10-c256-m256-wmin-0.1-wmax0.12-imin-0.1-imax0.12", "1conv", MEv2("Generic-NoVerify")],
+  "3-1conv_transpose_1d_h100r80s20_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-l1-b1-h100-r80-s20-c256-m256-wmin-0.1-wmax0.2-imin-0.1-imax0.2", "1conv", MEv2("Generic-NoVerify"), "--diff_options '--tolerance 1.5 1e-5' "],
+  "3-1conv_transpose_1d_h10r40s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-l1-b1-h10-r40-s10-c256-m256-wmin-0.1-wmax0.12-imin-0.1-imax0.12", "1conv", MEv2("Generic-NoVerify"), "--diff_options '--tolerance 1.3 1e-5' "],
 
   "2-1conv3_64s8_wave" : [ "trivnet_conv1",  "tfloat16-b1-h16-r3-s8-c64-m64-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv", MEv2("Generic")],
   "2-1conv9_64s8_wave" : [ "trivnet_conv1",  "tfloat16-b1-h16-r9-s8-c64-m64-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv", MEv2("Generic")],
@@ -1152,14 +1150,8 @@ testWaiver = [
     ['0-1stridedslice_wave', 'WAIVE_KAENA711'],
     #['.*reshape.*', 'WAIVE_KAENA597'],
     ['3-parwavenet_.*_waveopt$', 'WAIVE_KAENA711'],
-    ['3-1conv_transpose_1d_h100r80s20_wave', 'WAIVE_KAENA768'],
-    ['3-1conv_transpose_1d_h10r40s10_wave', 'WAIVE_KAENA768'],
 
     #['^0-act_wave$',   'WAIVE-KAENA452'],
-
-    # UINT8 support
-    ['^0-resadd_uint8_wave$', 'WAIVE-UINT8'],
-    ['0-resadd_2in_wave', 'WAIVE-2INPUTS'],
 
     ['4-rn50_matmul_plus_softmax_fp32_wave$',      'WAIVE-S10_BE_SOFTMAX'],
     ['4-rn50_matmul_plus_softmax_fp16_wave$',      'WAIVE-S10_BE_SOFTMAX'],
@@ -1171,9 +1163,6 @@ testWaiver = [
     ['^[8]-resnet50',  'WAIVE-BENCH'],
     ['8-rn50_nne_auto', 'WAIVE-NNE'],
 
-    # ME accuracy failure
-    #['0-116conv_tanh_wave', 'WAIVE-ME_ACC'],
-
     # LSMT
     ['4-ptb_word_lm1_host$', 'WAIVE-LSTM_HOST'],
     ['4-ptb_word_lm1$', 'WAIVE-LSTM'],
@@ -1182,22 +1171,12 @@ testWaiver = [
     ['4-ptb_word_small_sigmoid_2l_auto_waveopt',   'WAIVE-L_PART'],
     ['4-ptb_word_small_sigmoid_2l_b64_wave',   'WAIVE-LSTM_ME'],
 
-    # Multi-tpb partitioning - passes in host mode so no need to waive
-    #['7-rn50_fp16_multi_tpb_o_wave', 'WAIVE_MTPB'],
-    #['7-rn50_fp16_multi_tpb_w_wave', 'WAIVE_MTPB'],
-
     # batching
     #['7-rn50_nne_fp16_waveopt_b\d+$', 'WAIVE_BATCH'],
     ['7-rn50_nne_fp32_wave$', 'WAIVE_SB_PRESERVE'],
     ['8-rn50_nne_fp32_meauto$', 'WAIVE_SB_PRESERVE'],
 
     # bugs
-    ['0-act_exp_sweep_wave', 'WAIVE-KAENA773'],
-    #['0-act_lrelu_sweep_wave', 'WAIVE-KAENA773'],
-    ['0-act_fused_lrelu_sweep_wave', 'WAIVE-KAENA773'],
-    ['0-act_exp_minisweep_wave', 'WAIVE-KAENA773'],
-    #['0-act_lrelu_minisweep_wave', 'WAIVE-KAENA773'],
-    ['0-act_fused_lrelu_minisweep_wave', 'WAIVE-KAENA773'],
     ['7-rn50_nne_fp16_wave-no_repl-all-layers$', 'WAIVE_KAENA734'],
 
     # Replication
@@ -1209,11 +1188,6 @@ testWaiver = [
 
     # Resnet 152
     ['^9-resnet152', 'WAIVE_RN152'],
-    #['0-10conv_relu_wave', 'WAIVE_BUG_KAENA411'],
-    #['0-3conv_relu_wave', 'WAIVE_BUG_KAENA411'],
-
-    # Qemu only works on C5 (till we add VDI to S3)
-    #['^0-1conv0_qemu_wave$', 'WAIVE_QEMU'],
 
     # Transformer
     # Comment calling kp.reportOpAndSizes() to see ME failure

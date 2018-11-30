@@ -520,44 +520,6 @@ class FusedOp(list):
         print ("\tstart_addr = %d"%file_params.mapped_params.start_addr)
         print ("\tend_addr = %d"%file_params.mapped_params.end_addr)
 
-    """Get list of free sections
-    """
-    def get_list_of_free_sections(self
-                                , file_mapper
-                                , min_region_start
-                                , live_mapped_file_params
-                                ):
-        live_mapped_file_params.sort(key = lambda x : x.mapped_params.start_addr, reverse=False)
-        num_live_tensors = len(live_mapped_file_params)
-        item_sz = live_mapped_file_params[0].item_sz
-        # get list of free segments (start, length)
-        list_of_seg = []
-        for i in range(num_live_tensors):
-            mapped_cur = live_mapped_file_params[i].mapped_params
-            end_of_cur = align_addr_8B(mapped_cur.start_addr + mapped_cur.region_sz)
-            if (self.args.debug > 3):
-                print("%d: (current) start %d size %d (%s)"%(i, mapped_cur.start_addr, mapped_cur.region_sz, live_mapped_file_params[i].file_name))
-            if i+1 < num_live_tensors:
-                mapped_nxt = live_mapped_file_params[i+1].mapped_params
-                if (self.args.debug > 3):
-                    print("%d: (next) start %d size %d (%s)"%(i, mapped_nxt.start_addr, mapped_nxt.region_sz, live_mapped_file_params[i+1].file_name))
-            else:
-                mapped_nxt = None
-            if len(list_of_seg) == 0:
-                list_of_seg.append((align_addr_8B(min_region_start), mapped_cur.start_addr - min_region_start))
-            if mapped_nxt is None:
-                list_of_seg.append((end_of_cur, 96*1024 - end_of_cur))
-            else:
-                if not file_mapper.check_overlap(
-                        mapped_cur.start_addr, mapped_cur.region_sz,
-                        mapped_nxt.start_addr, mapped_nxt.region_sz):
-                    list_of_seg.append((end_of_cur, mapped_nxt.start_addr - end_of_cur))
-        #for i in list_of_seg:
-        #    print("free (start, len) = (%d, %d), next start = %d"%(i[0], i[1], i[0]+i[1]))
-        # sort list of free segments            
-        list_of_seg.sort(key = lambda x: x[1], reverse = False)
-        return list_of_seg
-
     """Map tensors to SB
         args:
             tpb: TPB object (TODO: pass only needed objects: statebuffer batcher/file_mapper)

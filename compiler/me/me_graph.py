@@ -972,6 +972,7 @@ class KGraph:
                                 other_prev_layer = prev_layers[len(prev_layers) - 1 - prev_node_idx]
                                 if other_prev_layer in self.node_dict \
                                         and prev_node.prev[0] == self.node_dict[other_prev_layer]:
+                                    # Lrelu: check if the other branch comes from fork before Multiply
                                     mult_scalar = prev_node.data['mul_scalar']
                                     mult_prev = prev_node.data['previous_layers']
                                     new_node.dissolve_node(prev_node)
@@ -993,7 +994,9 @@ class KGraph:
                                 new_node.data['previous_layers'] = previous_layers
                                 new_node.data['layer_type'] = l['layer_type']
                             else:
-                                new_node.add_prev(self.node_dict[i])
+                                # Lrelu: don't keep the other branch (duplicate since Multiply is dissolved)
+                                if new_node.data['layer_type'] != 'Lrelu':
+                                    new_node.add_prev(self.node_dict[i])
                         else:
                             print("ERROR: node %s isn't declared before %s"%(i, l['layer_name']))
                             exit(-1)
