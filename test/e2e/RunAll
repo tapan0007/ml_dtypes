@@ -75,7 +75,7 @@ parser.add_argument('--small_first', help='Start N small tests before next large
 parser.add_argument('--no_gpu', help='wave tests that require a GPU', action='store_true', default=False)
 parser.add_argument('--force_qemu', help='Apply additional --filter and various customization for Qemu flow, '
                     'e.g., wave-qemu_inkling instead by auto modifying --scheduler wave.*  to  --scheduler qemu_wave.*; '
-                    'tests with \"fp32\", \"waveopt\", and \"host\" are filtered out. '
+                    'tests with \"fp32\", \"waveopt\", \"fast_dram\", \"two_banks\", and \"host\" are filtered out. '
                     'Due to qemu reliability issues the --parallel is limited to 16 and 30 sec spacing added between jobs', action='store_true', default=False)
 parser.add_argument('--sealife', help='Use sealife compiler instead of kcc', action='store_true', default=False)
 parser.add_argument('--waive', help='Additional test to waive', nargs='+', default=[])
@@ -181,7 +181,7 @@ def selectTests(testConfigMap, testWaiver, argLevel, argTest,
     testListFiltered = []
     for testName in testsPreCustom:
       isWaived = calcIsWaived(testName, testWaiver)
-      if not re.search(r'waveopt', testName) and not re.search(r'host', testName) and not re.search(r'fp32', testName):
+      if not re.search(r'waveopt|host|fp32|fast_dram|two_banks', testName):
         testListFiltered.append(testName)
   # Remove duplicates
   testListFinal = sorted(list(set(testListFiltered)))
