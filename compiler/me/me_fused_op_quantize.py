@@ -105,7 +105,8 @@ def execute_quantize_tile(self, tpb, ifmap_tile, ofmap_tile, psum_bank_id):
     quant_scale = self.first_op.data['quant_scale']
     zero_point = self.first_op.data['zero_point']
     tile_data_flatten = tpb.pool.quantize_uint8(ifmaps_data_extract, quant_scale, zero_point)
-    tpb.pearray.write_psum(psum_bank_id, 0, tile_data_flatten.shape[0], tile_data_flatten)
+    if psum_bank_id >= 0:
+        tpb.pearray.write_psum(psum_bank_id, 0, tile_data_flatten.shape[0], tile_data_flatten)
 
 def emit_waveops_quantize_tile(self, tpb, ifmap_tile, ofmap_tile, psum_bank_id):
     # wave loop ordering scheme: nmhw
@@ -147,13 +148,12 @@ def emit_waveops_quantize_tile(self, tpb, ifmap_tile, ofmap_tile, psum_bank_id):
 def gen_dequantize_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_waveops, dequant_scale, zero_point):
     batch_item = ofmap_tile.n_id * op.Tn
     layer_name = op.data["layer_name"]
-    out_dtype = "float32"
-    assert dst_is_psum
+    out_dtype = op.get_out_data_type()
     if (src_is_psum):
         in_dtype = "int32"
         src_sb_address = 0
     else:
-        in_dtype = op.data_type
+        in_dtype = op.prev[0].get_out_data_type()
         src_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ifmaps_file_params, batch_item, ifmap_tile.lower_addr[0])
     dst_x_num = op.ofmap_full_tilex_sz
     dst_y_step = op.E
@@ -214,11 +214,10 @@ def gen_dequantize_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_p
 
 # generate quantize (float32 --> uint8) instruction and add it to instruction stream
 def gen_quantize_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_waveops, quant_scale, zero_point):
-    assert src_is_psum
     batch_item = ofmap_tile.n_id * op.Tn
     layer_name = op.data["layer_name"]
-    in_dtype = "float32"
-    out_dtype = op.data_type
+    in_dtype = 'float32'
+    out_dtype = op.get_out_data_type()
     if src_is_psum:
         src_sb_address = 0
     else:

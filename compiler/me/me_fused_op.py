@@ -966,21 +966,23 @@ class FusedOp(list):
             repl_multiple_of_C=1, 
             conv_transpose=False):
         batch_item = ofmap_pewave.tile.n_id * ofmap_pewave.tile.Tn
-        quant_offset_ifmaps = 0
-        quant_offset_weights = 0
-        if (self.first_op.item_sz == 1):
-            in_dtype = 'uint8'
-            out_dtype = 'int32'
+        # assumes this function is always called due to the first op self[0]
+        # but right now I do not have a way to assert this
+        out_dtype = self[0].get_out_data_type()
+        assert out_dtype in {'float16', 'bfloat16', 'float32', 'int32'}
+        assert len(self[0].prev) > 0
+        in_dtype = self[0].prev[0].get_out_data_type() # hack to infer in_dtype from prev[0]
+        assert in_dtype in {'float16', 'bfloat16', 'float32', 'uint8'}
+        if 'int32' == out_dtype: # quantized conv; needs offsets
+            self[0].item_sz = np.dtype(in_dtype).itemsize # TODO: fix this hack
             quant_offset_ifmaps = int(self.first_op.data['zero_point_input'])
             quant_offset_weights = int(self.first_op.data['zero_point_filter'])
-        elif (self.first_op.item_sz == 2):
-            in_dtype = "float16"
-            out_dtype = "float32"
-        elif (self.first_op.item_sz == 4):
-            in_dtype = "float32"
-            out_dtype = "float32"
-        else:            
-            raise RuntimeError("ERROR: item_sz %d not yet supported"%self.first_op.item_sz)
+        elif out_dtype in {'float16', 'bfloat16', 'float32'}:
+            out_dtype = 'float32'
+            quant_offset_ifmaps = 0
+            quant_offset_weights = 0
+        else:
+            raise NotImplementedError('out_dtype %s is not supported' % out_dtype)
 
         weights_sb_address = -1
         if load_weights_into_pearray:
@@ -1257,7 +1259,20 @@ class FusedOp(list):
                         , self.conv_op.stride)         
             else:
                 #assert(self.conv_op.psum_bank_offset == ofmap_pewave.subtile_psum_offset)
-                if self.conv_op.data_type == 'uint8':
+                conv_op_out_data_type = self.conv_op.get_out_data_type()
+                assert conv_op_out_data_type in {'float16', 'bfloat16', 'float32', 'int32'}
+                if 'int32' == conv_op_out_data_type:
+                    # todo: fix these hacks once statebuffer is taking consideration of mixed data types
+                    conv_op_in_data_type = self.conv_op.prev[0].get_out_data_type()
+                    if conv_op_in_data_type == 'uint8':
+                        hack_item_sz = 1
+                    elif conv_op_in_data_type == 'uint16':
+                        hack_item_sz = 2
+                    else:
+                        raise NotImplementedError('conv_op_in_data_type %s is not supported' % conv_op_in_data_type)
+                    self.conv_op.item_sz = hack_item_sz
+                    original_statebuffer_item_sz = tpb.statebuffer.file_mapper.item_sz
+                    tpb.statebuffer.file_mapper.item_sz = hack_item_sz
                     tpb.pearray.wave_uint8_mm(pearray_packed_ifmaps, pearray_packed_weights, psum_bank_id, psum_add,
                         offset_ifmaps=self.conv_op.data['zero_point_input'],
                         offset_weights=self.conv_op.data['zero_point_filter'])
@@ -1284,6 +1299,10 @@ class FusedOp(list):
                                         repl_multiple_of_C = repl_multiple_of_C)
                 if (self.args.debug > 2): print("DBG %s: MatMul weight_wave_lower_addr %d weight_wave_upper_addr %d"%(self.conv_op.data['layer_name'], self.conv_op.weight_wave_lower_addr, self.conv_op.weight_wave_upper_addr))                
                 for i in dram_weights_waveops: tpb.waveop_stream.add_linked(i, [], -1)
+
+            # restore the hacked statebuffer item_sz
+            if not self.conv_op.is_conv_transpose and self.conv_op.get_out_data_type() == 'int32':
+                tpb.statebuffer.file_mapper.item_sz = original_statebuffer_item_sz
 
             dram_ifmaps_waveops = []
             list_of_accessors = writers
@@ -1467,7 +1486,7 @@ class FusedOp(list):
                                                     residue_file_params,
                                                     batch_item + z,
                                                     ofmap_tile.lower_addr[z], 
-                                                    ofmap_tile.upper_addr[z] - ofmap_tile.lower_addr[z] + self.first_op.item_sz,
+                                                    ofmap_tile.upper_addr[z] - ofmap_tile.lower_addr[z] + self[i].item_sz,
                                                     EngineEnum.POOL,
                                                     )
                         #if self.args.no_inter_layer_load:
@@ -1765,44 +1784,30 @@ class FusedOp(list):
         # kaena-452: load zeros into start of SB and use it for Activation instruction when there's no BiasAdd
         bias_add_en = True
         bias_sb_address = 0
-        # TODO: update in_dtype when src_is_psum is added
-        in_dtype = "float32"
-        out_dtype = "float32"
         act_or_biasadd_op = None
         alpha = 1.0
-        if (biasadd_op != None):
+        if biasadd_op is not None:
             act_or_biasadd_op = biasadd_op
             bias_add_en = True
-            bias_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(biasadd_op.bias_file_params, 0, bias_start)
+            bias_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(biasadd_op.parent.combined_bias_file_params, 0, bias_start)
             layer_name = biasadd_op.data['layer_name']
-            if (biasadd_op.item_sz == 2 and not src_is_psum):
-                in_dtype = "float16"
-            elif (biasadd_op.item_sz == 1 and not src_is_psum):
-                raise RuntimeError("ERROR: item_sz %d not yet supported"%biasadd_op.item_sz)
-            if (biasadd_op.item_sz == 2 and not dst_is_psum):
-                out_dtype = "float16"
-            elif (biasadd_op.item_sz == 1 and not dst_is_psum):
-                raise RuntimeError("ERROR: item_sz %d not yet supported"%biasadd_op.item_sz)
         act_type = "Identity"    
-        if (act_op != None):
+        if act_op is not None:
             act_or_biasadd_op = act_op
             act_type = act_op.data['layer_type']
             if not re.search(self.act_ops_regex, act_type):
                 act_type = "Identity"
             layer_name = act_op.data['layer_name']
-            # TODO: refactor to some class to determine in_dtype and out_dtype
-            if (act_op.item_sz == 2 and not src_is_psum):
-                in_dtype = "float16"
-            elif (act_op.item_sz == 1 and not src_is_psum):
-                raise RuntimeError("ERROR: item_sz %d not yet supported"%act_op.item_sz)
-            if (act_op.item_sz == 2 and not dst_is_psum):
-                out_dtype = "float16"
-            elif (act_op.item_sz == 1 and not dst_is_psum):
-                raise RuntimeError("ERROR: item_sz %d not yet supported"%act_op.item_sz)
             if act_type == 'Lrelu':
                 alpha = act_op.data['mul_scalar']
-        if act_or_biasadd_op.data_type == 'uint8':
-            in_dtype = 'int32'
+        first_op = biasadd_op if biasadd_op is not None else act_or_biasadd_op
+        in_dtype = first_op.prev[0].get_out_data_type()
+        assert in_dtype in {'float16', 'bfloat16', 'float32', 'int32'}
+        if src_is_psum and in_dtype in {'float16', 'bfloat16'}:
+            in_dtype = 'float32'
+        out_dtype = act_or_biasadd_op.get_out_data_type()
+        assert in_dtype in {'float16', 'bfloat16', 'float32', 'int32'}
+        if dst_is_psum and out_dtype in {'float16', 'bfloat16'}:
             out_dtype = 'float32'
         if biasadd_op is not None and 'scale' in biasadd_op.data: # pass scale to act op
             act_or_biasadd_op.data['scale'] = biasadd_op.data['scale']

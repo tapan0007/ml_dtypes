@@ -48,11 +48,12 @@ if __name__ == '__main__':
         input_uint8, filter_uint8,
         min_input=conf.IMIN, max_input=conf.IMAX,
         min_filter=conf.WMIN, max_filter=conf.WMAX,
-        strides=strides, padding='VALID', out_type=tf.qint32,
+        strides=strides, padding='SAME', out_type=tf.qint32,
         name='%s/quantized_conv2d' % conf.netName)
     result_float32 = tf.dequantize(conv2d_int32,
         min_range=min_output_int32, max_range=max_output_int32,
         name='%s/dequantize_int32_float32' % conf.netName, mode='MIN_FIRST')
+
     if 'HASBA' in conf.__dict__:
         result_float32 = tf.nn.bias_add(result_float32, bias=bias_float32_np,
             name='%s/biasadd_float32' % conf.netName)
@@ -60,15 +61,6 @@ if __name__ == '__main__':
         result_float32 = tf.nn.relu(result_float32,
             name='%s/relu_float32' % conf.netName)
 
-    # requantize
-    min_output_requant = conf.RQMIN
-    max_output_requant = conf.RQMAX
-    result_uint8, _, _ = tf.quantize(result_float32,
-        min_range=min_output_requant, max_range=max_output_requant, T=tf.quint8,
-        name='%s/quantize_float32_uint8' % conf.netName)
-
-    output = tf.dequantize(result_uint8,
-        min_range=min_output_requant, max_range=max_output_requant,
-        name='%s/output' % conf.netName, mode='MIN_FIRST')
+    output = tf.identity(result_float32, name='%s/output' % conf.netName)
 
     conf.gen_graph(output, input_data=input_float32_np)

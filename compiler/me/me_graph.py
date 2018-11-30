@@ -140,7 +140,7 @@ class KNode:
         self.ofmaps_file_params = FileParams(
                                     file_name   = file_name,
                                     file_dims   = ofmaps_shape_dims,
-                                    data_type   = self.parent.data_type,
+                                    data_type   = self.get_out_data_type(),
                                     op_params   = self,
                                     args        = self.parent.args)
         self.ofmaps_file_params.layer_name =  layer_info['layer_name']
@@ -278,10 +278,14 @@ class KNode:
                 kernel_format = 'CRSM'
             weights_shape_dims = ShapeDims(kernel_format, layer_info['kernel_shape'])
             weights_file = self.data['kernel_file']
+        try:
+            weights_data_type = str(np.load(weights_file, mmap_mode='r').dtype)
+        except IOError:
+            weights_data_type = self.data_type
         self.weights_file_params = FileParams(
                                         file_name       = weights_file,
                                         file_dims       = weights_shape_dims,
-                                        data_type       = self.data_type,
+                                        data_type       = weights_data_type,
                                         op_params       = self,
                                         args            = self.parent.args,
                                         contain_weights = True)
@@ -703,6 +707,9 @@ class KNode:
                                             ofmap_pewave.tile.channel_stop - 1)
         return out_array
 
+    def get_out_data_type(self):
+        return self.data['out_data_type']
+
 
 """Graph class for KGraph or WaveGraph
 """
@@ -782,6 +789,7 @@ class KGraph:
         "layer_type"      : "Conv",                    
         "ofmap_shape"     : layer['ofmap_shape'],
         "ofmap_format"    : layer['ofmap_format'],
+        "out_data_type"   : layer['out_data_type'],
         "ref_file"        : layer['ref_file'],
         "padding"         : [ [ 0, 0 ], [ 0, 0 ], [ 0, 0 ], [ 0, 0 ] ],
         "previous_layers" : layer['previous_layers'],
@@ -804,6 +812,7 @@ class KGraph:
         "layer_name"      : layer['layer_name'] + '/sqrt',
         "ofmap_shape"     : layer['ofmap_shape'],
         "ofmap_format"    : layer['ofmap_format'],
+        "out_data_type"   : layer['out_data_type'],
         # this file doesn't exist but the file name is still used
         # to name the output file.
         "ref_file"        : sqrt_filename,
@@ -815,6 +824,7 @@ class KGraph:
         "layer_name"      : layer['layer_name'] + '/reciprocal',
         "ofmap_shape"     : layer['ofmap_shape'],
         "ofmap_format"    : layer['ofmap_format'],
+        "out_data_type"   : layer['out_data_type'],
         "ref_file"        : layer['ref_file'],
         "previous_layers" : [ sqrt_layer['layer_name'] ],
         "#comment"        : "Reciprocal expanded from Rsqrt"
@@ -1320,6 +1330,7 @@ class KGraph:
           "layer_type"      : "MaxPool",
           "ofmap_format"    : last_op.data['ofmap_format'],
           "ofmap_shape"     : last_op.data['ofmap_shape'],
+          "out_data_type"   : last_op.data['out_data_type'],
           "padding"         : [ [ 0, 0 ], [ 0, 0 ], [ 0, 0 ], [ 0, 0 ] ],
           "previous_layers" : [ last_op.data['layer_name'] ],
           "stride"          : [ 1, 1, 1, 1 ],
@@ -1351,10 +1362,19 @@ class KGraph:
         bias_file = op.data['ref_file'].replace(".npy", "-constants.npy")
         if os.path.isfile(bias_file):
             os.remove(bias_file)
+        # self.data_type possibilities: float16, bfloat16, float32, uint8
+        # tpb_activate requires bias_dtype to be float16/bfloat16/float32
+        # tpb_activate_quantize requires bias_dtype to be float32
+        if self.data_type in {'float16', 'bfloat16'}:
+            bias_data_type = self.data_type
+        elif self.data_type in {'float32', 'uint8', 'uint16'}:
+            bias_data_type = 'float32'
+        else:
+            raise NotImplementedError('data type %s is not supported' % self.data_type)
         bias_file_params = FileParams(
                                     file_name       = bias_file,
                                     file_dims       = bias_shape_dims, 
-                                    data_type       = 'float32' if 'uint8' == self.data_type else self.data_type,
+                                    data_type       = bias_data_type,
                                     op_params       = op,
                                     args            = self.args,
                                     contain_weights = True)

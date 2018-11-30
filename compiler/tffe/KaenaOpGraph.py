@@ -212,6 +212,7 @@ class Node(Object):
   def genCompilerLayerJson(self, tensorFormatMap):
     return([{"layer_type" :  self.getOpType(),
             "layer_name" :  self.getOpName(),
+            "out_data_type": self.getNpInfo()[0].dType,
             "#comment"   :  "Unsupported operation"
             }], [])
 
