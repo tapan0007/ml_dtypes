@@ -312,7 +312,7 @@ testConfigMap = {
   "0-resadd_2in_wave"    : [ "trivnet_add_2in",    "tfloat16-b1-h2-c1-wmin2-wmax2.2-imin3-imax6", "add", " --images linspace1 linspace1 " + MEv2("Generic"), "--input_files input0:0=trivnet_input0:0.npy input1:0=trivnet_input1:0.npy "],
   "0-subtract_psum_sb_wave"    : [ "trivnet_add",    "tfloat16-b1-h2-c1-SUB-wmin2-wmax2.2-imin3-imax6", "add", MEv2("Generic")],
   "0-sqrt_wave"            : [ "trivnet_act", "tfloat16-b1-h2-c64-sqrt-wmin2-wmax2.2-imin0.1-imax2", "act", MEv2("Generic")],
-  "0-reciprocal_wave"       : [ "trivnet_reciprocal", "tfloat16-b1-h2-c64-wmin2-wmax2.2-imin-10-imax10", "reciprocal", MEv2("Generic")],
+  "0-reciprocal_wave"       : [ "trivnet_reciprocal", "tfloat16-b1-h2-c64-reciprocal-wmin2-wmax2.2-imin-10-imax10", "reciprocal", MEv2("Generic")],
   "0-reciprocal_fp32_wave"  : [ "trivnet_reciprocal", "tfloat32-b1-h80-c64-reciprocal-wmin2-wmax2.2-imin-10000000-imax10000000", "reciprocal", MEv2("Generic")],   
   "0-rsqrt_fp32_wave"      : [ "trivnet_reciprocal", "tfloat32-b1-h2-c64-rsqrt-wmin2-wmax2.2-imin0.1-imax10000000", "rsqrt_fp32", MEv2("Generic")],  
   "0-sqrt_wave"            : [ "trivnet_act", "tfloat16-b1-h2-c64-sqrt-wmin2-wmax2.2-imin0.1-imax2", "act", MEv2("Generic")],
