@@ -124,34 +124,6 @@ pipeline{
         }
         stage('test_emu') {
             stages {
-                stage('non_compiler_test') {
-                    steps {
-                        catchError {
-                            sh '''
-                            [ -z "$RUNNC_ARGS" ] || (cd $TEST_DIR/test_emu_non_compiler && export KAENA_ZEBU_SERVER=$ZEBU_SERVER && $KAENA_PATH/runtime/util/qemu_rt $RUNNC_ARGS --zebu "$KAENA_ZEBU_SERVER")
-                            '''
-                        }
-                    }
-                    post {
-                        always {
-                            catchError {
-                               sh '''
-                               [ -z "$RUNNC_ARGS" ] || ([ -f $TEST_DIR/test_emu_non_compiler/pytestResult.xml ] && /bin/cp $TEST_DIR/test_emu_non_compiler/pytestResult.xml $WORKSPACE/.)
-                               '''
-                               junit allowEmptyResults: true, testResults: 'pytestResult.xml'
-                               sh 'mkdir /artifact/test_emu_non_compiler'
-                               sh 'find $TEST_DIR/test_emu_non_compiler -iname "*.txt" -print0 | tar -czvf /artifact/test_emu_non_compiler/logs.tgz -T -'
-                               sh 'chmod -R a+wX /artifact/'
-                               archiveArtifacts artifacts:'test_emu_non_compiler/logs.tgz'
-                            }
-                        }
-                        failure {
-                            catchError {
-                                sh 'find $TEST_DIR/test_emu_non_compiler -type f -name "*.vdi" -delete'
-                            }
-                        }
-                    }
-                }
                 stage('inst-sweep test') {
                     steps {
                         catchError {
@@ -176,6 +148,34 @@ pipeline{
                         failure {
                             catchError {
                                 sh 'find $TEST_DIR/test_emu_sweep -type f -name "*.vdi" -delete'
+                            }
+                        }
+                    }
+                }
+                stage('non_compiler_test') {
+                    steps {
+                        catchError {
+                            sh '''
+                            [ -z "$RUNNC_ARGS" ] || (cd $TEST_DIR/test_emu_non_compiler && export KAENA_ZEBU_SERVER=$ZEBU_SERVER && $KAENA_PATH/runtime/util/qemu_rt $RUNNC_ARGS --zebu "$KAENA_ZEBU_SERVER")
+                            '''
+                        }
+                    }
+                    post {
+                        always {
+                            catchError {
+                               sh '''
+                               [ -z "$RUNNC_ARGS" ] || ([ -f $TEST_DIR/test_emu_non_compiler/pytestResult.xml ] && /bin/cp $TEST_DIR/test_emu_non_compiler/pytestResult.xml $WORKSPACE/.)
+                               '''
+                               junit allowEmptyResults: true, testResults: 'pytestResult.xml'
+                               sh 'mkdir /artifact/test_emu_non_compiler'
+                               sh 'find $TEST_DIR/test_emu_non_compiler -iname "*.txt" -print0 | tar -czvf /artifact/test_emu_non_compiler/logs.tgz -T -'
+                               sh 'chmod -R a+wX /artifact/'
+                               archiveArtifacts artifacts:'test_emu_non_compiler/logs.tgz'
+                            }
+                        }
+                        failure {
+                            catchError {
+                                sh 'find $TEST_DIR/test_emu_non_compiler -type f -name "*.vdi" -delete'
                             }
                         }
                     }
