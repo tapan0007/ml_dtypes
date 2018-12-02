@@ -77,8 +77,8 @@ WaveCodeTensorScalarConst::generate(wave::WaveOp* waveOp)
     AssignWithSizeCheck(tensorscalarInstr.op[0], static_cast<TONGA_ISA_TPB_ALU_OP>(tensorscalarconstWaveop->gAluOp(0)));
     AssignWithSizeCheck(tensorscalarInstr.op[1], static_cast<TONGA_ISA_TPB_ALU_OP>(tensorscalarconstWaveop->gAluOp(1)));
 #endif
-    tensorscalarInstr.imm_val[0] = tensorscalarconstWaveop->gImmVal(0); // float
-    tensorscalarInstr.imm_val[1] = tensorscalarconstWaveop->gImmVal(1); // float
+    tensorscalarInstr.imm_val_float[0] = tensorscalarconstWaveop->gImmVal(0); // float
+    tensorscalarInstr.imm_val_float[1] = tensorscalarconstWaveop->gImmVal(1); // float
 
 
 
