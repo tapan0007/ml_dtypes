@@ -14,7 +14,7 @@ namespace kcc {
 namespace compisa {
 
 using TensorTensorOpInstr = InstrTempl<::TONGA_ISA_TPB_TENSOR_TENSOR_OP_INST,
-                                       ::TONGA_ISA_TPB_OPCODE_TENSOR_TENSOR_OP,
+                                       ::TONGA_ISA_TPB_OPCODE_TENSOR_TENSOR_ARITH_OP,
                                        ::tonga_isa_tpb_tensortensor_check_validity>;
 
 }}

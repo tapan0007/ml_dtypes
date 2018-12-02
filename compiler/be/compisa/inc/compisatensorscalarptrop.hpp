@@ -14,7 +14,7 @@ namespace kcc {
 namespace compisa {
 
 using TensorScalarPtrOpInstr = InstrTempl<::TONGA_ISA_TPB_TENSOR_SCALAR_PTR_OP_INST,
-                                          ::TONGA_ISA_TPB_OPCODE_TENSOR_SCALAR_PTR_OP,
+                                          ::TONGA_ISA_TPB_OPCODE_TENSOR_SCALAR_PTR_ARITH_OP,
                                           ::tonga_isa_tpb_tensorscalarptr_check_validity>;
 
 }}
