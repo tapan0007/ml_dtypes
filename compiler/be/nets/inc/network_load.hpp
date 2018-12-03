@@ -38,7 +38,7 @@ private:
     template <typename ParamsType>
     void loadSrc(ParamsType& PARAMS, const serialize::SerWaveOp& serWaveOp, Dims dims)
     {
-        PARAMS.m_InDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
+        PARAMS.m_InDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_InDtype.c_str());
         KCC_UNSERIALIZE(SrcIsPsum);
         if (serWaveOp.m_SrcIsPsum) {
             KCC_UNSERIALIZE(SrcPsumBankId);
@@ -72,7 +72,7 @@ private:
     template <typename ParamsType>
     void loadSrcA(ParamsType& PARAMS, const serialize::SerWaveOp& serWaveOp, Dims dims)
     {
-        PARAMS.m_InADtypeId = DataType::dataTypeStr2Id(serWaveOp.m_InADtype);
+        PARAMS.m_InADtypeId = DataType::dataTypeStr2Id(serWaveOp.m_InADtype.c_str());
         KCC_UNSERIALIZE(SrcAIsPsum);
         if (serWaveOp.m_SrcAIsPsum) {
             KCC_UNSERIALIZE(SrcAPsumBankId);
@@ -106,7 +106,7 @@ private:
     template <typename ParamsType>
     void loadSrcB(ParamsType& PARAMS, const serialize::SerWaveOp& serWaveOp, Dims dims)
     {
-        PARAMS.m_InBDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_InBDtype);
+        PARAMS.m_InBDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_InBDtype.c_str());
         KCC_UNSERIALIZE(SrcBIsPsum);
         if (serWaveOp.m_SrcBIsPsum) {
             KCC_UNSERIALIZE(SrcBPsumBankId);
@@ -147,7 +147,7 @@ private:
     template <typename ParamsType>
     void loadDst(ParamsType& PARAMS, const serialize::SerWaveOp& serWaveOp, Dims dims)
     {
-        PARAMS.m_OutDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
+        PARAMS.m_OutDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype.c_str());
         KCC_UNSERIALIZE(DstStartAtMidPart);
         KCC_UNSERIALIZE(DstIsPsum);
         if (serWaveOp.m_DstIsPsum) {

@@ -152,7 +152,7 @@ Network::Load::loadSbAtomLoad(const serialize::SerWaveOp& serWaveOp)
 
     KCC_UNSERIALIZE(SbAddress);
     KCC_UNSERIALIZE(StartAtMidPart);
-    sbatomLoadParams.m_DataType = DataType::dataTypeStr2Id(serWaveOp.m_DataType);
+    sbatomLoadParams.m_DataType = DataType::dataTypeStr2Id(serWaveOp.m_DataType.c_str());
     KCC_UNSERIALIZE(Length);
     KCC_UNSERIALIZE(OffsetInFile);
     KCC_UNSERIALIZE(PartitionStepBytes);
@@ -191,7 +191,7 @@ Network::Load::loadSbAtomSave(const serialize::SerWaveOp& serWaveOp)
 
     KCC_UNSERIALIZE(SbAddress);
     KCC_UNSERIALIZE(StartAtMidPart);
-    sbatomsaveParams.m_DataType = DataType::dataTypeStr2Id(serWaveOp.m_DataType);
+    sbatomsaveParams.m_DataType = DataType::dataTypeStr2Id(serWaveOp.m_DataType.c_str());
     KCC_UNSERIALIZE(Length);
     KCC_UNSERIALIZE(OffsetInFile);
     KCC_UNSERIALIZE(PartitionStepBytes);
@@ -226,7 +226,7 @@ Network::Load::loadPool(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(SrcWStep);
     loadDst(PARAMS, serWaveOp, Dims::XYZ);
 
-    poolParams.m_InDtypeId  = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
+    poolParams.m_InDtypeId  = DataType::dataTypeStr2Id(serWaveOp.m_InDtype.c_str());
 
     KCC_UNSERIALIZE(NumPartitions);
     KCC_UNSERIALIZE(PoolFrequency);
@@ -258,7 +258,7 @@ Network::Load::loadReciprocal(const serialize::SerWaveOp& serWaveOp)
     loadSrc(PARAMS, serWaveOp, Dims::XYZ);
     loadDst(PARAMS, serWaveOp, Dims::XYZ);
 
-    reciprocalParams.m_InDtypeId  = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
+    reciprocalParams.m_InDtypeId  = DataType::dataTypeStr2Id(serWaveOp.m_InDtype.c_str());
 
     KCC_UNSERIALIZE(NumPartitions);
 
@@ -292,10 +292,10 @@ Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(FmapZNum);
     KCC_UNSERIALIZE(FmapZStep);
     KCC_UNSERIALIZE(IfmapsSbAddress);
-    PARAMS.m_InDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
+    PARAMS.m_InDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_InDtype.c_str());
     KCC_UNSERIALIZE(NumColumnPartitions);
     KCC_UNSERIALIZE(NumRowPartitions);
-    PARAMS.m_OutDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
+    PARAMS.m_OutDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype.c_str());
     KCC_UNSERIALIZE(PsumBankId);
     KCC_UNSERIALIZE(PsumBankOffset);
     KCC_UNSERIALIZE(PsumXNum);
@@ -316,8 +316,7 @@ Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(IfmapReplicationResolution);
     KCC_UNSERIALIZE(IfmapReplicationShiftAmnt);
 
-    if (kcc::utils::DataTypeId::Uint8 == PARAMS.m_InDtypeId ||
-        kcc::utils::DataTypeId::Uint16 == PARAMS.m_InDtypeId) {
+    if (utils::DataType::qNeedsQuantization(PARAMS.m_InDtypeId)) {
         KCC_UNSERIALIZE(QuantOffsetIfmaps);
         KCC_UNSERIALIZE(QuantOffsetWeights);
     }
@@ -339,7 +338,7 @@ Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)
 
     PARAMS.m_ActivationFunc   = serialize::SerWaveOp::str2ActivationFunc(serWaveOp.m_ActivationFunc);
 
-    PARAMS.m_BiasDtypeId      = DataType::dataTypeStr2Id(serWaveOp.m_BiasDtype);
+    PARAMS.m_BiasDtypeId      = DataType::dataTypeStr2Id(serWaveOp.m_BiasDtype.c_str());
     KCC_UNSERIALIZE(BiasAddEn);
     KCC_UNSERIALIZE(BiasSbAddress);
     KCC_UNSERIALIZE(BiasStartAtMidPart);
@@ -466,9 +465,9 @@ Network::Load::loadTensorTensor(const serialize::SerWaveOp& serWaveOp, TensorAlu
     wave::TensorTensorWaveOp::Params PARAMS;
     fillWaveOpParams(serWaveOp, prevWaveOps, PARAMS);
 
-    PARAMS.m_InADtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InADtype);
-    PARAMS.m_InBDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InBDtype);
-    PARAMS.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
+    PARAMS.m_InADtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InADtype.c_str());
+    PARAMS.m_InBDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InBDtype.c_str());
+    PARAMS.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype.c_str());
     KCC_UNSERIALIZE(NumPartitions);
 
     loadSrcAB(PARAMS, serWaveOp, Dims::XYZ);
@@ -491,8 +490,8 @@ Network::Load::loadTensorScalarConst(const serialize::SerWaveOp& serWaveOp, Tens
     wave::TensorScalarConstWaveOp::Params PARAMS;
     fillWaveOpParams(serWaveOp, prevWaveOps, tensorScalarAddParams);
 
-    PARAMS.m_InDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
-    PARAMS.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
+    PARAMS.m_InDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InDtype.c_str());
+    PARAMS.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype.c_str());
     KCC_UNSERIALIZE(NumPartitions);
 
     loadSrc(PARAMS, serWaveOp, Dims::XYZ);

@@ -159,7 +159,7 @@ SerWaveOp::saveMatMul(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(IfmapReplicationResolution);
     KCC_ARCHIVE(IfmapReplicationShiftAmnt);
 
-    if (!m_InDtype.compare("uint8") || !m_InDtype.compare("uint16")) {
+    if (utils::DataType::qNeedsQuantization(m_InDtype.c_str())) {
         KCC_ARCHIVE(QuantOffsetIfmaps);
         KCC_ARCHIVE(QuantOffsetWeights);
     }

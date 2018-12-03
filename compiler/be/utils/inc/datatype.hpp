@@ -35,7 +35,7 @@ public:
     {}
 
     static const DataType& dataTypeId2DataType(DataTypeId typeId);
-    static DataTypeId dataTypeStr2Id(const std::string& dataTypeStr);
+    static DataTypeId dataTypeStr2Id(const char* dataTypeStr);
     static const std::string& dataTypeId2Str(DataTypeId typeId);
 
     virtual kcc_int64 gSizeInBytes() const = 0;
@@ -46,7 +46,13 @@ public:
     virtual const char* gName() const = 0;
 
     virtual const char* gTccName() const = 0;
-};
+
+    static bool qNeedsQuantization(const char* dtypeName);
+    static bool qNeedsQuantization(DataTypeId typeId);
+    bool qNeedsQuantization() const {
+        return qNeedsQuantization(gDataTypeId());
+    }
+}; // class DataType
 
 
 //########################################################
@@ -82,6 +88,7 @@ public:
         return "UINT8";
     }
 };
+// DataTypeUint8 : public DataType
 
 //########################################################
 class DataTypeUint16 : public DataType {
@@ -116,7 +123,7 @@ public:
     {
         return "INT16";
     }
-};
+}; // DataTypeUint16 : public DataType
 
 //########################################################
 class DataTypeFloat16 : public DataType {
@@ -148,7 +155,7 @@ public:
     {
         return "FP16";
     }
-};
+}; // DataTypeFloat16 : public DataType
 
 //########################################################
 class DataTypeBFloat16 : public DataType {
@@ -180,7 +187,7 @@ public:
     {
         return "BF16";
     }
-};
+}; // DataTypeBFloat16 : public DataType
 
 //########################################################
 class DataTypeFloat32 : public DataType {
@@ -215,7 +222,7 @@ public:
     {
         return "FP32";
     }
-};
+}; // DataTypeFloat32 : public DataType;
 
 
 //########################################################
@@ -252,7 +259,7 @@ public:
         assert(false && "Cannot use int32 as TCC dtype");
         return nullptr;
     }
-};
+}; // DataTypeInt32 : public DataType
 
 //########################################################
 class DataTypeInt64 : public DataType {
@@ -288,7 +295,7 @@ public:
         assert(false && "Cannot use int32 as TCC dtype");
         return nullptr;
     }
-};
+}; // DataTypeInt64 : public DataType
 
 } // namespace utils
 } // namespace kcc

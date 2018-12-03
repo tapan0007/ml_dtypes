@@ -127,21 +127,21 @@ DataType::dataTypeId2DataType(DataTypeId typeId)
 }
 
 DataTypeId
-DataType::dataTypeStr2Id(const std::string& dataTypeStr)
+DataType::dataTypeStr2Id(const char* dataTypeStr)
 {
-    if (dataTypeStr == DataTypeUint8::gNameStatic()) {
+    if (0 == strcmp(dataTypeStr, DataTypeUint8::gNameStatic())) {
         return DataTypeId::Uint8;
-    } else if (dataTypeStr == DataTypeUint16::gNameStatic()) {
+    } else if (0 == strcmp(dataTypeStr, DataTypeUint16::gNameStatic())) {
         return DataTypeId::Uint16;
-    } else if (dataTypeStr == DataTypeFloat16::gNameStatic()) {
+    } else if (0 == strcmp(dataTypeStr, DataTypeFloat16::gNameStatic())) {
         return DataTypeId::Float16;
-    } else if (dataTypeStr == DataTypeBFloat16::gNameStatic()) {
+    } else if (0 == strcmp(dataTypeStr, DataTypeBFloat16::gNameStatic())) {
         return DataTypeId::BFloat16;
-    } else if (dataTypeStr == DataTypeFloat32::gNameStatic()) {
+    } else if (0 == strcmp(dataTypeStr, DataTypeFloat32::gNameStatic())) {
         return DataTypeId::Float32;
-    } else if (dataTypeStr == DataTypeInt32::gNameStatic()) {
+    } else if (0 == strcmp(dataTypeStr, DataTypeInt32::gNameStatic())) {
         return DataTypeId::Int32;
-    } else if (dataTypeStr == DataTypeInt64::gNameStatic()) {
+    } else if (0 == strcmp(dataTypeStr, DataTypeInt64::gNameStatic())) {
         return DataTypeId::Int64;
     } else {
         assert(false && "Wrong DataTypeId");
@@ -190,6 +190,18 @@ DataType::dataTypeId2Str(DataTypeId typeId)
     }
     assert(false && "Wrong DataTypeId");
     return float32Str;
+}
+
+bool
+DataType::qNeedsQuantization(const char* dtypeName)
+{
+    return qNeedsQuantization(dataTypeStr2Id(dtypeName));
+}
+
+bool
+DataType::qNeedsQuantization(DataTypeId typeId)
+{
+    return DataTypeId::Uint8 == typeId || DataTypeId::Uint16 == typeId;
 }
 
 }}
