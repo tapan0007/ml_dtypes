@@ -163,7 +163,7 @@ parser.add_argument('--grpcPort', help='GRPC port to use for talking to krtd', t
 parser.add_argument('--pool', help='Port range that defines Qemu process pool', type=int, nargs='+', default=[])
 parser.add_argument('--mem', help='Memory for the qemu VM, default 1024MB', type=int, default=1024)
 parser.add_argument('--kelf', help='Kelf directory to compile', default=None)
-parser.add_argument('--sg', help='Subgraph label for identifying which SG executes', default=None)
+parser.add_argument('--sg', help='Subgraph label for identifying which SG executes', default="sg00")
 parser.add_argument('--ifmaps', help='List of input images in sim ifmap format', nargs='+', default=None)
 parser.add_argument('--zebu', help='Zebu host to use emulator model of Tonga instead of starting Qemu with SW Tonga locally', default=None)
 parser.add_argument('--pytest', action="store_true", help='Run non-compiler pytest')
@@ -341,12 +341,12 @@ class Qemu(BePlat):
       pass  # the guest OS is tested separately, no need for return code
     time.sleep(30)  # ssh to the qemu guest is getting random errors, maybe this can help
 
-  def testGuest(self, numAttempts):
+  def testGuest(self, numAttempts, sg):
     # Make sure the qemu quest is functional
     phaseId = self.restartId
     for attempId in range(numAttempts):
-      print("\nINFO: testGuest  phase %d  attempt %d" % (phaseId, attempId), flush=True)
-      testFile = "test_qemu_guest-%02d-%02d.txt" % (phaseId, attempId)
+      print("\nINFO: %s testGuest  phase %d  attempt %d" % (sg, phaseId, attempId), flush=True)
+      testFile = "test_qemu_guest-%s-%02d-%02d.txt" % (sg, phaseId, attempId)
       testFileVm = "/tmp/" + testFile
       testFileReturned = testFile.replace(".txt", "-ret.txt")
       with open(testFile, 'w') as f:
@@ -814,7 +814,7 @@ class Krtd():
     self.cwd = os.getcwd()
     self.inklingTimeout = timeout
     self.kelfVmDir = kelfVmDirGlobal  # non-sg spefic, for --action cleanup_pool
-    self.sg = "sg00"
+    #self.sg = "sg00"   # JeffH: unused? Comment-out to avoid confusing with args.sg
     # env needed for the installed krt
     p = krtVmPath
     epath = os.getenv('PATH')
@@ -1018,7 +1018,7 @@ class QemuPool:
         os.chdir(d)
         for qemuRestartId in range(3):
           qemu.start(qemuRestartId)
-          if qemu.testGuest(4):
+          if qemu.testGuest(4, args.sg):
             krt.install()
             break
           else:
@@ -1218,7 +1218,7 @@ else:
   for qemuRestartId in range(3):
     qemu = Qemu(args.vdi, args.mem, port, grpcHost=grpcHost, grpcPort=grpcPort)
     qemu.start(qemuRestartId)
-    if qemu.testGuest(4):
+    if qemu.testGuest(4, args.sg):
       qemuOk = True
       krt = Krtd(qemu, inklingTimeout)
       krt.install()

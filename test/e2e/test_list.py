@@ -1199,8 +1199,6 @@ noGpuTestWaiver = [
 ]
 
 qemuTestWaiver = [
-    ['8-rn50_nne_conv_wave$',  'WAIVE-QEMU'],
-    ['8-rn50_nne_fp16_b16_wave-no_repl', 'WAIVE-V49850304'],
     ['7-rn50_nne_fp16_wave-no_repl-all-layers', 'WAIVE-ManyDescr-SIM742'],
     ['0-300conv_tanh_wave-all-layers', 'WAIVE-TooManyOfmaps-SIM746'],
 ]
