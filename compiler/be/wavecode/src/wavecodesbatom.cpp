@@ -71,7 +71,7 @@ void
 WaveCodeSbAtom::addDmaBarrier(const wave::SbAtomWaveOp* sbAtomWaveop, EngineId engId)
 {
     kcc_int32 cycleWait;
-    if (true) {
+    if (false) {
         const arch::PeArray& peArray(arch::Arch::gArch().gPeArray());
         cycleWait = std::max(peArray.gNumberRows(), peArray.gNumberColumns());
     } else {
