@@ -759,79 +759,6 @@ class KGraph:
         new_node.add_prev(node_to_copy)
         self.node_dict[ new_layer['layer_name'] ] = new_node
         node_top_copy = new_node
-
-
-    def expand_sum_layer(self, layer, visited_nodes, new_layers_list):
-        axes = layer['reduce_axes']
-        # - Only support reduce_sum on C axis now
-        # - For other axes, we need to expand reduce_sum to element-wise additions
-        # - Use MatMaul for C axis now but may want to use Shuffle + ReduceOp instructions later for performance
-        assert(axes[1] == 1 and axes[0] == 0 and axes[2] == 0 and axes[3] == 0)
-        assert(layer['ofmap_format'] == 'NCHW')
-        
-        # Weights
-        inputNode = visited_nodes[layer['previous_layers'][0]]
-        inputChannels = inputNode['ofmap_shape'][1]
-        ones_shape = [inputChannels, 1, 1, 1]
-        ones_tensor = np.ones(ones_shape, dtype=self.data_type)
-        # nn_executor copies *-constants.npy files
-        ones_file = layer['ref_file'].replace(".npy", "-ones-constants.npy")
-        if (not self.args.inference):
-            np.save(ones_file, ones_tensor)
-
-        # Replace the node
-        new_layer= {
-        "layer_type"      : "Conv",
-        "kernel_file"     : ones_file   ,
-        "kernel_format"   : "CRSM",
-        "kernel_shape"    : ones_shape,
-        "layer_name"      : layer['layer_name'],
-        "layer_type"      : "Conv",                    
-        "ofmap_shape"     : layer['ofmap_shape'],
-        "ofmap_format"    : layer['ofmap_format'],
-        "out_data_type"   : layer['out_data_type'],
-        "ref_file"        : layer['ref_file'],
-        "padding"         : [ [ 0, 0 ], [ 0, 0 ], [ 0, 0 ], [ 0, 0 ] ],
-        "previous_layers" : layer['previous_layers'],
-        "stride"          : [1,1,1,1],
-        "#comment"        : "2D Conv expanded from Sum operation"
-        }
-
-        new_layers_list.append(new_layer)
-
-
-    def expand_rsqrt_layer(self, layer, visited_nodes, new_layers_list):
-        
-        sqrt_filename = layer['ref_file']
-        (root, ext) = os.path.splitext(sqrt_filename)
-        sqrt_filename += root + '-do-not-exist' + ext
-
-        # Replace the node
-        sqrt_layer= {
-        "layer_type"      : "Sqrt",
-        "layer_name"      : layer['layer_name'] + '/sqrt',
-        "ofmap_shape"     : layer['ofmap_shape'],
-        "ofmap_format"    : layer['ofmap_format'],
-        "out_data_type"   : layer['out_data_type'],
-        # this file doesn't exist but the file name is still used
-        # to name the output file.
-        "ref_file"        : sqrt_filename,
-        "previous_layers" : layer['previous_layers'],
-        "#comment"        : "Sqrt expanded from Rsqrt"
-        }
-        reciprocal_layer= {
-        "layer_type"      : "Reciprocal",
-        "layer_name"      : layer['layer_name'] + '/reciprocal',
-        "ofmap_shape"     : layer['ofmap_shape'],
-        "ofmap_format"    : layer['ofmap_format'],
-        "out_data_type"   : layer['out_data_type'],
-        "ref_file"        : layer['ref_file'],
-        "previous_layers" : [ sqrt_layer['layer_name'] ],
-        "#comment"        : "Reciprocal expanded from Rsqrt"
-        }        
-
-        new_layers_list += [sqrt_layer, reciprocal_layer]
-
         
     # populate graph using layer info from JSON
     def populate_from_kgraph_json(self, kgraph_json):
@@ -842,24 +769,8 @@ class KGraph:
 
         # Prepare k-graph
         #  - Transform k-graph for ME to better process it
-        if ("layers" in kgraph_json):
-            layers = kgraph_json["layers"]
-            visted_layers = dict()
-
-            new_layers = []
-
-            for l in layers:
-                visted_layers[l['layer_name']] = l
-
-                if (l['layer_type'] == 'Sum'):
-                    self.expand_sum_layer(l, visted_layers, new_layers)
-                elif (l['layer_type'] == 'Rsqrt'):
-                    self.expand_rsqrt_layer(l, visted_layers, new_layers)
-                else:
-                    new_layers.append(l)
-            
-            layers.clear()
-            layers += new_layers
+        prepare_pass = PrepareKGraph(self.data_type, self.args)
+        prepare_pass.run(kgraph_json)
 
 
         # process layers
@@ -1176,8 +1087,11 @@ class KGraph:
                 if next_nodes[0].count_missing_input_results() <= 1:
                     regex = FusedOp.next_is_fusable[last_node_type]
                     if re.search(regex, next_nodes[0].data['layer_type']):
-                        if fused_ops.add(next_nodes[0]):
-                            fused_ops = self.get_next_fused_op(fused_ops)
+                        last_ofmap_C = ShapeDims(last_node.data['ofmap_format'], last_node.data['ofmap_shape'])['C']
+                        next_ofmap_C = ShapeDims(next_nodes[0].data['ofmap_format'], next_nodes[0].data['ofmap_shape'])['C']
+                        if last_ofmap_C == next_ofmap_C:
+                            if fused_ops.add(next_nodes[0]):
+                                fused_ops = self.get_next_fused_op(fused_ops)
                 elif next_nodes[0].is_join:
                     fused_ops.ofmap_is_for_join = True
         return fused_ops
@@ -1399,3 +1313,147 @@ class KGraph:
         bias_file_sz = bias_file_params.tot_partition_usage_sz_padded
         file_mapper.map_file(bias_file_params, 0, wrap_around=True, region_sz=min(region_sz, bias_file_sz))
 
+
+# Transform
+class PrepareKGraph:
+    new_layers_map = dict()
+    new_layers_list = []
+    replace_map = dict()
+    data_type = None
+    args = None
+
+    def __init__(self, data_type, args):
+        self.data_type = data_type
+        self.args = args
+
+    # old: old layer object
+    # new: new layer object (last node fo a chain of new layers)
+    # new_layers: list of all new layers if old is expanded to multiple nodes
+    def _replace_layer(self, old, new, new_layers = None):
+        if old['layer_name'] != new['layer_name']:
+            self.replace_map[old['layer_name']] = new['layer_name']
+        self._add_layer(new, new_layers)
+    
+    def _add_layer(self, new, new_layers = None):
+        if not new_layers:
+            new_layers = [new]
+        for l in new_layers:
+            self.new_layers_map[l['layer_name']] = l
+            self.new_layers_list += [l]
+
+    def _find_layer(self, name):
+        try:
+            return self.new_layers_map[name]
+        except Exception as e:
+            print(str(e))
+
+    # Update previous_layers with new layer names
+    def _update_predecessor(self, layer):
+        pred_list = layer['previous_layers']
+        for i, pred_name in enumerate(pred_list):
+            if pred_name in self.replace_map:
+                pred_list[i] = self.replace_map[pred_name]
+
+
+    def run(self, kgraph_json):
+
+        with (open('compiler.before.json', 'w')) as f:
+            s = json.dumps(kgraph_json, indent=2, sort_keys=True)
+            f.write(s)   
+
+        # Prepare k-graph
+        #  - Transform k-graph for ME to better process it
+        if ("layers" in kgraph_json):
+            layers = kgraph_json["layers"]
+
+            for l in layers:
+
+                self._update_predecessor(l)
+
+                if (l['layer_type'] == 'Sum'):
+                    self._expand_sum_layer(l)
+                elif (l['layer_type'] == 'Rsqrt'):
+                    self._expand_rsqrt_layer(l)
+                else:
+                    self._add_layer(l)
+
+            layers.clear()
+            layers += self.new_layers_list
+
+        with (open('compiler.expanded.json', 'w')) as f:
+            s = json.dumps(kgraph_json, indent=2, sort_keys=True)
+            f.write(s)    
+
+    def _expand_sum_layer(self, layer):
+        axes = layer['reduce_axes']
+        # - Only support reduce_sum on C axis now
+        # - For other axes, we need to expand reduce_sum to element-wise additions
+        # - Use MatMaul for C axis now but may want to use Shuffle + ReduceOp instructions later for performance
+        assert(axes[1] == 1 and axes[0] == 0 and axes[2] == 0 and axes[3] == 0)
+        assert(layer['ofmap_format'] == 'NCHW')
+        
+        # Weights
+        inputNode = self._find_layer(layer['previous_layers'][0])
+        inputChannels = inputNode['ofmap_shape'][1]
+        ones_shape = [inputChannels, 1, 1, 1]
+        ones_tensor = np.ones(ones_shape, dtype=self.data_type)
+        # nn_executor copies *-constants.npy files
+        ones_file = layer['ref_file'].replace(".npy", "-ones-constants.npy")
+        if (not self.args.inference):
+            np.save(ones_file, ones_tensor)
+
+        # Replace the node
+        new_layer= {
+        "layer_type"      : "Conv",
+        "kernel_file"     : ones_file   ,
+        "kernel_format"   : "CRSM",
+        "kernel_shape"    : ones_shape,
+        "layer_name"      : layer['layer_name'],
+        "layer_type"      : "Conv",                    
+        "ofmap_shape"     : layer['ofmap_shape'],
+        "ofmap_format"    : layer['ofmap_format'],
+        "out_data_type"   : layer['out_data_type'],        
+        "ref_file"        : layer['ref_file'],
+        "padding"         : [ [ 0, 0 ], [ 0, 0 ], [ 0, 0 ], [ 0, 0 ] ],
+        "previous_layers" : layer['previous_layers'],
+        "stride"          : [1,1,1,1],
+        "#comment"        : "2D Conv expanded from Sum operation"
+        }
+
+        self._replace_layer(layer, new_layer)
+        #new_layers_map[new_layer['layer_name']] = new_layer
+        #new_layers_list.append(new_layer)
+
+
+    def _expand_rsqrt_layer(self, layer):
+        
+        sqrt_filename = layer['ref_file']
+        (root, ext) = os.path.splitext(sqrt_filename)
+        sqrt_filename += root + '-output-only' + ext
+
+        # Replace the node
+        sqrt_layer= {
+        "layer_type"      : "Sqrt",
+        "layer_name"      : layer['layer_name'] + '/sqrt',
+        "ofmap_shape"     : layer['ofmap_shape'],
+        "ofmap_format"    : layer['ofmap_format'],
+        "out_data_type"   : layer['out_data_type'],
+        "ref_file"        : sqrt_filename,
+        #"no_tf_ref_file"  : True,
+        "previous_layers" : layer['previous_layers'],
+        "#comment"        : "Sqrt expanded from Rsqrt"
+        }
+        reciprocal_layer= {
+        "layer_type"      : "Reciprocal",
+        "layer_name"      : layer['layer_name'] + '/reciprocal',
+        "out_data_type"   : layer['out_data_type'],
+        "ofmap_shape"     : layer['ofmap_shape'],
+        "ofmap_format"    : layer['ofmap_format'],
+        "ref_file"        : layer['ref_file'],
+        "previous_layers" : [ sqrt_layer['layer_name'] ],
+        "#comment"        : "Reciprocal expanded from Rsqrt"
+        }        
+
+        self._replace_layer(layer, reciprocal_layer, [sqrt_layer, reciprocal_layer])
+        #new_layers_map[reciprocal_layer['layer_name']] = new_layer
+        #new_layers_list += [sqrt_layer, reciprocal_layer]
