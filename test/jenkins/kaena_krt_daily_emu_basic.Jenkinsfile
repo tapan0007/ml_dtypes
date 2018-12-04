@@ -128,7 +128,7 @@ pipeline{
                     steps {
                         catchError {
                             sh '''
-                            [ -z "$RUNNC_ARGS" ] || (cd $TEST_DIR/test_emu_sweep && export KAENA_ZEBU_SERVER=$ZEBU_SERVER && export KRT_INST_SWEEP_TEST_DIR=$KRT_BLD_DIR/tests/inst-sweep/ && pytest $KAENA_RT_PATH/tests/inst-sweep/inst-sweep.py --junitxml=pytestResult.xml -s > log-pytest.txt 2>&1)
+                            [ -z "$RUNNC_ARGS" ] || (cd $TEST_DIR/test_emu_sweep && export KAENA_ZEBU_SERVER=$ZEBU_SERVER && export KRT_INST_SWEEP_TEST_DIR=$KRT_BLD_DIR/tests/inst-sweep/ && export KRT_INST_SWEEP_OUTPUT_DIR=$TEST_DIR/test_emu_sweep && pytest $KAENA_RT_PATH/tests/inst-sweep/inst-sweep.py --junitxml=pytestResult.xml -s > log-pytest.txt 2>&1)
                             '''
                         }
                     }
@@ -140,7 +140,7 @@ pipeline{
                                '''
                                junit allowEmptyResults: true, testResults: 'pytestResult.xml'
                                sh 'mkdir /artifact/test_emu_sweep'
-                               sh 'find $TEST_DIR/test_emu_sweep -iname "*.txt" -print0 | tar -czvf /artifact/test_emu_sweep/logs.tgz -T -'
+                               sh 'find $TEST_DIR/test_emu_sweep -print0 | tar -czvf /artifact/test_emu_sweep/logs.tgz -T -'
                                sh 'chmod -R a+wX /artifact/'
                                archiveArtifacts artifacts:'test_emu_sweep/logs.tgz'
                             }
