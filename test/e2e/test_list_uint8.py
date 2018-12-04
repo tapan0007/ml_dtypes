@@ -53,7 +53,7 @@ testConfigMap = {
         "trivnet_rn50_block_uint8_v0",
         "tuint8-b1-h55-s1-cin64-cout256-wmin-0.03-wmax0.03-amin-0.1-amax0.1-imin0-imax1-rqamin0-rqamax1-rqbmin0-rqbmax1",
         "rn50_block1_uint8",
-        "--executors wave 0 host 1 --scheduler wave2  "
+        "--executors wave 0 host 1 --scheduler wave2 --waive_wavegraph_checks "
         "--schedule_options ' --nname=generic --save_layer_output --no_verify ' " # me options
         "--partition from_multi 'rn50_block1_uint8/output' ",
         rt_options],
