@@ -33,8 +33,9 @@ namespace events {
 ***********************************************************************/
 EventMgr::EventMgr(nets::Network& network)
     : m_Network(network)
+    , m_EventState(*this)
 {
-    m_EventState.init();
+    m_EventState.reset();
 }
 
 /***********************************************************************
@@ -245,7 +246,7 @@ EventMgr::insertBarriers()
     const kcc_int32 numWaveops = m_Network.gNumberWaveops();
     std::vector<wave::WaveOp*> newWaveops;
 
-    m_EventState.init();
+    m_EventState.reset();
     m_NopIdx = 0;
 
     for (kcc_int32 waveopIdx = 0; waveopIdx < numWaveops; ++waveopIdx) {
@@ -296,7 +297,7 @@ EventMgr::verifyWaveop(const wave::WaveOp* waveop) const
 /***********************************************************************
 ***********************************************************************/
 EventId
-EventMgr::gEventIdBetweenEngines(EngineId fromId, EngineId toId)
+EventMgr::gEventIdBetweenEngines(EngineId fromId, EngineId toId) const
 {
     switch (fromId) {
     case EngineId::Activation:
@@ -353,7 +354,7 @@ EventMgr::gEventIdBetweenEngines(EngineId fromId, EngineId toId)
         Assert(false, "Bad from-engine id ", static_cast<int>(fromId));
         break;
     }
-    return ReservedEvent_FirstNonReserved;
+    return this->EventId_FirstNonReserved();
 }
 
 
@@ -361,9 +362,8 @@ EventMgr::gEventIdBetweenEngines(EngineId fromId, EngineId toId)
 /***********************************************************************
 ***********************************************************************/
 void
-EventMgr::processWaveops(bool kelf, bool useSem)
+EventMgr::processWaveops(bool useSem)
 {
-    m_Kelf = kelf;
     m_UseSemaphore = useSem;
     determineQueuesAndSemaphoreValues();
     insertBarriers();

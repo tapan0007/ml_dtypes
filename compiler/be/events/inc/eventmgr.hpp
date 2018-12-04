@@ -30,6 +30,12 @@ private:
     using EventSet = std::set<EventId>;
     class EventState {
     public:
+        EventState(const EventMgr& eventMgr)
+            : m_EventMgr(eventMgr)
+        {}
+
+        EventState() = delete;
+
         void clearAll();
         void clearCompleted();
 
@@ -46,13 +52,13 @@ private:
             return *m_Available.begin();
         }
 
-        void init();
+        void reset();
         void mvFromAvailableToInFlight(EventId eventId);
         void moveCompletedEventsToAvailable();
         void mvFromInFlightToCompleted(EventId eventId);
         void mvFromCompletedToAvailable(EventId eventId);
 
-        static void mvEventFromSetToSet(EventId evtId, EventSet& from, EventSet& to,
+        void mvEventFromSetToSet(EventId evtId, EventSet& from, EventSet& to,
             const char* fromStr, const char* toStr);
 
         size_t gNumAvailable() const {
@@ -61,6 +67,7 @@ private:
 
 
     private:
+        const EventMgr& m_EventMgr;
         EventSet m_Available;
         EventSet m_InFlight;
         EventSet m_Completed;
@@ -70,10 +77,29 @@ public:
     EventMgr(nets::Network& network);
     ~EventMgr();
 
-    void processWaveops(bool kelf, bool useSem);
-    static kcc_int32 gNumberReservedTpbEvents() {
-        return ReservedEvent_FirstNonReserved;
+    void processWaveops(bool useSem);
+
+    bool qKelf() const {
+        return m_Kelf;
     }
+    void rKelf(bool kelf) {
+        m_Kelf = kelf;
+    }
+
+public:
+    kcc_int32 gNumberReservedTpbEvents() const {
+        return 1 + EventId_TpbLastReserved() - EventId_TpbFirstReserved();
+    }
+    static EventId EventId_TpbFirstReserved() {
+        return ReservedEvent_BarrierFirst;
+    }
+    EventId EventId_TpbLastReserved() const {
+        return m_Kelf ? ReservedEvent_BarrierLast_WithKelf : ReservedEvent_BarrierLast_WithAngel;
+    }
+    EventId EventId_FirstNonReserved() const {
+        return EventId_TpbLastReserved() + 1;
+    }
+
     static EventId EventId_MMStartMultiSet()
     {
         return ReservedEvent_MMStartMultiSet;
@@ -86,28 +112,16 @@ public:
     {
         return ReservedEvent_RunTimeLast;
     }
+
 private:
-    void processMatMult(wave::MatMulWaveOp* matmulWaveop);
-    void processWaveop(wave::WaveOp* waveop);
-
-    EventId getLocalEventId(const wave::WaveEdge* edge);
-
     enum  {
         RunTimeReservedEventsCount = 23,
         RunTimeReservedSemaphoresCount = 3,
     };
+
     enum ReservedEvent {
         ReservedEvent_RunTimeFirst = 0,
         ReservedEvent_RunTimeLast = ReservedEvent_RunTimeFirst + RunTimeReservedEventsCount - 1,
-
-
-        ReservedEvent_PeAct,
-        ReservedEvent_ActPool,
-        ReservedEvent_PoolAngel,
-
-        ReservedEvent_AngelPool,
-        ReservedEvent_PoolAct,
-        ReservedEvent_ActPe,
 
         // kaena-531: There's only 1 delay from MM to following event set instr when there are
         // multiple SETs (multiple dependencies), so to properly trigger a dependent load,
@@ -115,15 +129,27 @@ private:
         // followed by the next series of SETs.
         ReservedEvent_MMStartMultiSet,
 
+        ReservedEvent_PeAct,
+            ReservedEvent_BarrierFirst = ReservedEvent_PeAct,
+        ReservedEvent_ActPool,
+        ReservedEvent_PoolAct,
+        ReservedEvent_ActPe,
+            ReservedEvent_BarrierLast_WithKelf = ReservedEvent_ActPe,
 
-        ReservedEvent_FirstNonReserved
+        ReservedEvent_PoolAngel,
+        ReservedEvent_AngelPool,
+            ReservedEvent_BarrierLast_WithAngel = ReservedEvent_AngelPool,
     };
+
     enum ReservedSemaphore {
         ReservedSemaphore_RunTimeFirst = 0,
         ReservedSemaphore_RunTimeLast = ReservedSemaphore_RunTimeFirst + RunTimeReservedSemaphoresCount - 1,
         ReservedSemaphore_FirstNonReserved
     };
 
+
+
+private:
     void assignEventsToNewSuccEdges(wave::WaveOp* waveop);
     void completeEventsOnPrevEdges(wave::WaveOp* waveop);
 
@@ -134,16 +160,21 @@ private:
     void determineQueuesAndSemaphoreValues();
     const dma::DmaQueue* findQueue(const wave::SbAtomWaveOp* sbatomWop);
 
-    static EventId gEventIdBetweenEngines(EngineId fromId, EngineId toId);
+    EventId gEventIdBetweenEngines(EngineId fromId, EngineId toId) const;
 
-    static bool qReservedEvent(EventId evtId) {
-        return 0 <= evtId && evtId < ReservedEvent_FirstNonReserved;
+    bool qReservedEvent(EventId evtId) const {
+        return 0 <= evtId && evtId < EventId_FirstNonReserved();
     }
-    static bool qEventRegular(EventId eventId) {
-        return ReservedEvent_FirstNonReserved <= eventId
+    bool qEventRegular(EventId eventId) const {
+        return EventId_FirstNonReserved() <= eventId
                && eventId <= EventId_LastNonReserved();
     }
 
+private:
+    void processMatMult(wave::MatMulWaveOp* matmulWaveop);
+    void processWaveop(wave::WaveOp* waveop);
+
+    EventId getLocalEventId(const wave::WaveEdge* edge);
 
     wave::NopWaveOp* mkNopWaveop(wave::WaveOp* prevWaveop, EngineId engId, kcc_int32 waveopIdx);
 
@@ -169,7 +200,7 @@ private:
 
     EventState m_EventState;
     kcc_int32 m_NopIdx = 0;
-    bool m_Kelf;
+    bool m_Kelf = true;
 };
 
 }}

@@ -28,10 +28,11 @@ namespace events {
 /***************************************************************
 ***************************************************************/
 void
-EventMgr::EventState::mvEventFromSetToSet(EventId evtId, EventSet& fromSet, EventSet& toSet,
+EventMgr::EventState::mvEventFromSetToSet(
+        EventId evtId, EventSet& fromSet, EventSet& toSet,
         const char* fromStr, const char* toStr)
 {
-    Assert(qEventRegular(evtId), "Cannot move non-regular event id from ", fromStr, " to ", toStr);
+    Assert(m_EventMgr.qEventRegular(evtId), "Cannot move non-regular event id from ", fromStr, " to ", toStr);
     Assert(fromSet.find(evtId) != fromSet.end(), "Event from prev edge not in ", fromStr);
     Assert(toSet.find(evtId) == toSet.end(), "Event from prev edge already in the ", toStr, " set");
     fromSet.erase(evtId);
@@ -100,11 +101,11 @@ EventMgr::EventState::moveCompletedEventsToAvailable()
 /***********************************************************************
 ***********************************************************************/
 void
-EventMgr::EventState::init()
+EventMgr::EventState::reset()
 {
     clearAll();
 
-    for (EventId eventId = ReservedEvent_FirstNonReserved;
+    for (EventId eventId = m_EventMgr.EventId_FirstNonReserved();
          eventId <= EventId_LastNonReserved(); ++eventId)
     {
         addAvailable(eventId);

@@ -623,12 +623,14 @@ DmaDescription::writeDefinitions(const char* peInstrFileName,
 
         j["var"] = jVars;
 
-        auto runtimeEventsJson = json::array();
-        for (uint8_t e = events::EventMgr::EventId_RunTimeFirst(); e <= events::EventMgr::EventId_RunTimeLast(); e++){
-            json e_json = e;
-            runtimeEventsJson.push_back(e_json);
+        if (false) {
+            auto runtimeEventsJson = json::array();
+            for (uint8_t e = events::EventMgr::EventId_RunTimeFirst(); e <= events::EventMgr::EventId_RunTimeLast(); e++){
+                json e_json = e;
+                runtimeEventsJson.push_back(e_json);
+            }
+            j["runtime_events"] = runtimeEventsJson;
         }
-        j["runtime_events"] = runtimeEventsJson;
 
     }
 

@@ -156,19 +156,6 @@ Main(int argc, char* argv[])
                 << psumBuf.gEntryTpbAddress(1, 0, dtypeFloat32) << "'\n";
         }
 
-        std::cout << "Events:\n"
-                  << "    Arch: number of all TPB events = " << arch::Arch::gArch().gNumberAllTpbEvents() << "\n"
-
-                  << "    Invalid: " << events::EventId_Invalid() << "\n"
-
-                  << "    First runtime reserved events = " << events::EventMgr::EventId_RunTimeFirst() << "\n"
-                  << "    Last runtime reserved events = " << events::EventMgr::EventId_RunTimeLast() << "\n"
-                  << "    MatMult multi fanout = " << events::EventMgr::EventId_MMStartMultiSet() << "\n"
-
-                  << "    First non-reserved = " << events::EventMgr::gNumberReservedTpbEvents() << "\n"
-                  << "    Last non-reserved = " << events::EventId_LastNonReserved() << "\n"
-
-                ;
     }
 
 
@@ -206,9 +193,19 @@ Main(int argc, char* argv[])
             std::string objFileName;
             events::EventMgr eventMgr(*ntwk);
             wavecode::WaveCode waveCode(*ntwk, arch, useSem);
+            std::cout << "Events:\n"
+                << "    Arch: number of all TPB events = " << arch::Arch::gArch().gNumberAllTpbEvents() << "\n"
+                << "    Invalid event: " << events::EventId_Invalid() << "\n"
+                << "    First runtime reserved events = " << eventMgr.EventId_RunTimeFirst() << "\n"
+                << "    Last runtime reserved events = "  << eventMgr.EventId_RunTimeLast() << "\n"
+                << "    MatMult multi fanout = "          << eventMgr.EventId_MMStartMultiSet() << "\n";
 
             // with Angel
             if (!dmaOnly) {
+                eventMgr.rKelf(kelf);
+                std::cout << "  Angel non-reserved events:\n"
+                          << "    First non-reserved = " << eventMgr.EventId_FirstNonReserved() << "\n"
+                          << "    Last non-reserved = "  << events::EventId_LastNonReserved()   << "\n";
                 ntwk->rUseSem(false);
                 std::cout << "Wavegraph code generation for SIM/Angel:\n";
                 std::cout << "    " << std::setw(EnginePrintFormatSize) << std::left << "Engine" << "File\n";
@@ -232,7 +229,7 @@ Main(int argc, char* argv[])
 
                 waveCode.rBinFileType(BinFileType::SimAngel);
                 waveCode.DetermineEngines();
-                eventMgr.processWaveops(kelf, false);
+                eventMgr.processWaveops(false);
                 waveCode.generate(instrStreams, ParallelStreams);
 
                 writeOutJson(ntwk, JsonInFileName, "tpb");
@@ -243,6 +240,10 @@ Main(int argc, char* argv[])
             // Runtime Kelf
             if (true) {
                 kelf = true;
+                eventMgr.rKelf(kelf);
+                std::cout << "  Kelf non-reserved events:\n"
+                          << "    First non-reserved = " << eventMgr.EventId_FirstNonReserved() << "\n"
+                          << "    Last non-reserved = "  << events::EventId_LastNonReserved()   << "\n";
                 ntwk->rUseSem(useSem);
                 std::cout << "Wavegraph code generation for Qemu/Emu:\n";
                 std::cout << "    " << std::setw(EnginePrintFormatSize) << std::left << "Engine" << "File\n";
@@ -269,7 +270,7 @@ Main(int argc, char* argv[])
 
                 waveCode.rBinFileType(BinFileType::RuntimeKelf);
                 waveCode.DetermineEngines();
-                eventMgr.processWaveops(kelf, useSem);
+                eventMgr.processWaveops(useSem);
                 waveCode.generate(instrStreams, ParallelStreams);
 
                 writeOutJson(ntwk, JsonInFileName, "bin");
@@ -312,4 +313,5 @@ main(int argc, char* argv[])
 {
     return kcc::Main(argc, argv);
 }
+
 
