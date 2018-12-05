@@ -4,7 +4,7 @@ import sys
 import argparse
 import numpy as np
 from PIL import Image
-from keras.applications.resnet50 import preprocess_input
+from keras.applications.inception_v3 import preprocess_input
 
 
 def _img_to_numpy_array(imgFile, size, dtype):

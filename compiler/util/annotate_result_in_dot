@@ -20,7 +20,9 @@ if __name__ == "__main__":
 
     # parse results
     passfail = {}
+    reldiff = {}
     name = ""
+    reldiff_found = "0.0"
     for line in result_lines:
         if re.search("^Allclose", line):
             m = re.search("gold (.*) vs .* (PASS|FAIL)", line)
@@ -29,7 +31,13 @@ if __name__ == "__main__":
                 name = re.sub("^([^_]+)_", "", name)
                 name = re.sub("__", "/", name)
                 passfail[name] = m.group(2)
+                reldiff[name] = reldiff_found
                 print(name, m.group(2))
+                reldiff_found = "0.0"
+        if re.search("^INFO", line):
+            m = re.search("rel diff = (\d+\.\d+)", line)
+            if m:
+                reldiff_found = m.group(1)
         if re.search("^GOLD", line):
             toks = line.split()
             name = toks[6]
@@ -85,7 +93,10 @@ if __name__ == "__main__":
                 if first_word in passfail:
                     line = re.sub(second_word, second_word + " " + passfail[first_word], line)
                     if first_word in fusedop_id:
-                        line = re.sub(second_word, second_word + " FOP_ID" + fusedop_id[first_word], line)
+                        reldiff_str = " "
+                        if first_word in reldiff:
+                            reldiff_str = " " + reldiff[first_word] + "% "
+                        line = re.sub(second_word, second_word + " FOP_ID" + fusedop_id[first_word] + reldiff_str, line)
                     seeking_end_of_node = True
                     last_status = passfail[first_word]
         new_lines.append(line)                    
