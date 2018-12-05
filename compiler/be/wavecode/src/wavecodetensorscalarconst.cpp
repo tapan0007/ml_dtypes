@@ -40,7 +40,14 @@ WaveCodeTensorScalarConst::generate(wave::WaveOp* waveOp)
     Assert(EngineId::Pooling == engineId, "Engine id for TensorScalarConst should be Pooling");
 
     //-----------------------------------------------------------------
-    compisa::TensorScalarOpInstr tensorscalarInstr;
+    // For now use ARITH opcode
+    compisa::TensorScalarOpInstr tensorscalarInstr(TONGA_ISA_TPB_OPCODE_TENSOR_SCALAR_ARITH_OP);
+
+    AssignWithSizeCheck(tensorscalarInstr.op[0], static_cast<TONGA_ISA_TPB_ALU_OP>(tensorscalarconstWaveop->gAluOp(0)));
+    AssignWithSizeCheck(tensorscalarInstr.op[1], static_cast<TONGA_ISA_TPB_ALU_OP>(tensorscalarconstWaveop->gAluOp(1)));
+    tensorscalarInstr.imm_val_float[0] = tensorscalarconstWaveop->gImmVal(0); // float
+    tensorscalarInstr.imm_val_float[1] = tensorscalarconstWaveop->gImmVal(1); // float
+
     const utils::DataType& srcDtype(tensorscalarconstWaveop->gInDtype());
 
     TONGA_ISA_TPB_MEM_ACCESS_3D& srcPat(tensorscalarInstr.src_mem_pattern);
@@ -70,15 +77,6 @@ WaveCodeTensorScalarConst::generate(wave::WaveOp* waveOp)
 
     AssignWithSizeCheck(tensorscalarInstr.num_active_channels, tensorscalarconstWaveop->gNumPartitions());
 
-#if 0
-    tensorscalarInstr.op[0] = static_cast<TONGA_ISA_TPB_ALU_OP>(tensorscalarconstWaveop->gAluOp(0));
-    tensorscalarInstr.op[1] = static_cast<TONGA_ISA_TPB_ALU_OP>(tensorscalarconstWaveop->gAluOp(1));
-#else
-    AssignWithSizeCheck(tensorscalarInstr.op[0], static_cast<TONGA_ISA_TPB_ALU_OP>(tensorscalarconstWaveop->gAluOp(0)));
-    AssignWithSizeCheck(tensorscalarInstr.op[1], static_cast<TONGA_ISA_TPB_ALU_OP>(tensorscalarconstWaveop->gAluOp(1)));
-#endif
-    tensorscalarInstr.imm_val_float[0] = tensorscalarconstWaveop->gImmVal(0); // float
-    tensorscalarInstr.imm_val_float[1] = tensorscalarconstWaveop->gImmVal(1); // float
 
 
 

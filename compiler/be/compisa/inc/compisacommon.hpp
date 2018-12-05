@@ -23,16 +23,20 @@ using TongaErrorCode     = ::TONGA_ISA_ERROR_CODE;
 using TongaTpbInstHeader = ::TONGA_ISA_TPB_INST_HEADER;
 using TongaTpbEvents     = ::TONGA_ISA_TPB_INST_EVENTS;
 
+
 template<typename INSTR, TongaTpbOpcode opcode, TongaErrorCode (*Checker)(const INSTR*)>
 class InstrTempl : public INSTR {
+private:
+    using SubClass = INSTR;
+    using Class = InstrTempl;
 public:
-    InstrTempl() : INSTR() {
+    InstrTempl() : SubClass() {
         enum { BYTES_PER_WORD = ::TONGA_ISA_TPB_INST_NBYTES / ::TONGA_ISA_TPB_INST_NWORDS };
 
-        std::memset(this, 0, sizeof(InstrTempl)); // zero out instruction
+        std::memset(this, 0, sizeof(Class)); // zero out instruction
         TongaTpbInstHeader& header(this->inst_header);
         header.opcode = opcode;
-        header.inst_word_len = sizeof(INSTR) / BYTES_PER_WORD;
+        header.inst_word_len = sizeof(SubClass) / BYTES_PER_WORD;
         header.debug_cmd        = 0;
         header.debug_hint       = 0;
     }
@@ -41,7 +45,33 @@ public:
     {
         const TongaErrorCode errCode = Checker(this);
         Assert(errCode == ::TONGA_ISA_ERR_CODE_SUCCESS,
-               "Invalid instruction of type ", typeid(INSTR()).name(), "    Error code: ", errCode);
+               "Invalid instruction of type ", typeid(Class).name(), "    Error code: ", errCode);
+    }
+};
+
+
+template<typename INSTR, TongaErrorCode (*Checker)(const INSTR*)>
+class InstrTempl2 : public INSTR {
+private:
+    using SubClass = INSTR;
+    using Class = InstrTempl2;
+public:
+    InstrTempl2(TongaTpbOpcode opcode) : SubClass() {
+        enum { BYTES_PER_WORD = ::TONGA_ISA_TPB_INST_NBYTES / ::TONGA_ISA_TPB_INST_NWORDS };
+
+        std::memset(this, 0, sizeof(Class)); // zero out instruction
+        TongaTpbInstHeader& header(this->inst_header);
+        header.opcode = opcode;
+        header.inst_word_len = sizeof(SubClass) / BYTES_PER_WORD;
+        header.debug_cmd        = 0;
+        header.debug_hint       = 0;
+    }
+
+    void CheckValidity() const
+    {
+        const TongaErrorCode errCode = Checker(this);
+        Assert(errCode == ::TONGA_ISA_ERR_CODE_SUCCESS,
+               "Invalid instruction of type ", typeid(Class).name(), "    Error code: ", errCode);
     }
 };
 

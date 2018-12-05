@@ -67,12 +67,14 @@ WaveCodeTensorTensor::generateDiffBufSrc(wave::TensorTensorWaveOp* tensortensorW
         srcBIdx = 1,
     };
     //-----------------------------------------------------------------
-    compisa::TensorTensorOpInstr tensortensorInstr;
+    // For now ARITH tensor-tensor
+    compisa::TensorTensorOpInstr tensortensorInstr(TONGA_ISA_TPB_OPCODE_TENSOR_TENSOR_ARITH_OP);
+
     const utils::DataType& srcADtype(tensortensorWaveop->gInADtype());
     const utils::DataType& srcBDtype(tensortensorWaveop->gInBDtype());
-
     TONGA_ISA_TPB_MEM_ACCESS_3D& srcAPat(tensortensorInstr.src_mem_pattern[srcAIdx]);
     TONGA_ISA_TPB_MEM_ACCESS_3D& srcBPat(tensortensorInstr.src_mem_pattern[srcBIdx]);
+
     initMemAccess(srcAPat);
     initMemAccess(srcBPat);
 
@@ -179,7 +181,8 @@ WaveCodeTensorTensor::generateSameBufSrc(wave::TensorTensorWaveOp* tensortensorW
     Assert(EngineId::Pooling == engineId, "Engine id for TensorTensor should be Pooling");
 
     //-----------------------------------------------------------------
-    compisa::TensorReduceOpInstr tensorReduceInstr;
+    //For now ARITH
+    compisa::TensorReduceOpInstr tensorReduceInstr(TONGA_ISA_TPB_OPCODE_TENSOR_REDUCE_ARITH_OP);
 
     Assert(tensortensorWaveop->gInADtype().gSimTypeId() == tensortensorWaveop->gInBDtype().gSimTypeId(),
         "TensorTensor waveop that has sources in one buffer cannot have different data types");

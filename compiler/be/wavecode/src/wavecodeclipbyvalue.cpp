@@ -36,11 +36,11 @@ WaveCodeClipByValue::generate(wave::WaveOp* waveop)
     const EngineId engineId = clipByValueWaveop->gEngineId();
     Assert(EngineId::Pooling == engineId, "Engine id for ClipByValue waveop should be Pooling engine");
 
-    compisa::TensorScalarOpInstr tensorScalarOpInstr;
+    // For now ARITH
+    compisa::TensorScalarOpInstr tensorScalarOpInstr(TONGA_ISA_TPB_OPCODE_TENSOR_SCALAR_ARITH_OP);
 
     AssignWithSizeCheck(tensorScalarOpInstr.in_dtype, clipByValueWaveop->gInDtype().gSimTypeId());
     AssignWithSizeCheck(tensorScalarOpInstr.out_dtype, clipByValueWaveop->gOutDtype().gSimTypeId());
-
 
     // TODO: for now Activation reads from 0 elem in bank.
     initMemAccess(tensorScalarOpInstr.src_mem_pattern);

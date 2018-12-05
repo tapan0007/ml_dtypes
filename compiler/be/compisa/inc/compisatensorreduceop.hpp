@@ -13,13 +13,12 @@
 namespace kcc {
 namespace compisa {
 
-using TensorReduceOpInstr = InstrTempl<::TONGA_ISA_TPB_TENSOR_REDUCE_OP_INST,
-                                       ::TONGA_ISA_TPB_OPCODE_TENSOR_REDUCE_ARITH_OP,
-                                       ::tonga_isa_tpb_tensorreduce_check_validity>;
-
+using TensorReduceOpInstr = InstrTempl2<
+    ::TONGA_ISA_TPB_TENSOR_REDUCE_OP_INST,
+    ::tonga_isa_tpb_tensorreduce_check_validity>;
 
 }}
 
-#endif // KCC_COMPISA_TENSORREDUCE_OP_H
+#endif
 
 

@@ -89,10 +89,20 @@ AllInstructions()
     SimMemCpyInstr          memcpyInstr;
     SimRdNpyInstr           rdnpyInstr;
     SimWrNpyInstr           wrnpyInstr;
-    TensorReduceOpInstr     tensorredInstr;
-    TensorScalarOpInstr     tensorscalarInstr;
-    TensorScalarPtrOpInstr  tensorscalarptrInstr;
-    TensorTensorOpInstr     tensortensorInstr;
+
+    TensorReduceOpInstr     tensorredInstrA(TONGA_ISA_TPB_OPCODE_TENSOR_REDUCE_ARITH_OP);
+    TensorReduceOpInstr     tensorredInstrB(TONGA_ISA_TPB_OPCODE_TENSOR_REDUCE_BITVEC_OP);
+
+    TensorScalarOpInstr     tensorscalarInstrA(TONGA_ISA_TPB_OPCODE_TENSOR_SCALAR_ARITH_OP);
+    TensorScalarOpInstr     tensorscalarInstrB(TONGA_ISA_TPB_OPCODE_TENSOR_SCALAR_BITVEC_OP);
+
+    TensorScalarPtrOpInstr  tensorscalarptrInstrA(TONGA_ISA_TPB_OPCODE_TENSOR_SCALAR_PTR_ARITH_OP);
+    TensorScalarPtrOpInstr  tensorscalarptrInstrB(TONGA_ISA_TPB_OPCODE_TENSOR_SCALAR_PTR_BITVEC_OP);
+
+    TensorTensorOpInstr     tensortensorInstrA(TONGA_ISA_TPB_OPCODE_TENSOR_TENSOR_ARITH_OP);
+    TensorTensorOpInstr     tensortensorInstrB(TONGA_ISA_TPB_OPCODE_TENSOR_TENSOR_BITVEC_OP);
+
+
     WaitInstr               waitInstr;
     WriteInstr              writeInstr;
 }
