@@ -119,6 +119,8 @@ pipeline{
                         ([ -f $TEST_DIR/test_qemu_compiler/RunAllReport.xml ] && /bin/cp $TEST_DIR/test_qemu_compiler/RunAllReport.xml $WORKSPACE/RunAllReportFull.xml)
                         '''
                         junit allowEmptyResults: true, testResults: 'RunAllReportFull.xml'
+                    }
+                    catchError {
                         sh 'mkdir /artifact/test_qemu_compiler'
                         sh '/bin/cp $TEST_DIR/test_qemu_compiler/qor* /artifact/test_qemu_compiler/ || touch /artifact/test_qemu_compiler/qor_RunAllWithArgs_qor_available.txt'
                         sh 'for f in `find $TEST_DIR/test_qemu_compiler  -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" -o -iname "*.png" -o -iname "*.csv" -o -iname "*.asm" `; do cp $f --parents  /artifact/test_qemu_compiler/;done; '
@@ -175,6 +177,8 @@ pipeline{
                                 ([ -f $TEST_DIR/test_emu_compiler/RunAllReport.xml ] && /bin/cp $TEST_DIR/test_emu_compiler/RunAllReport.xml $WORKSPACE/RunAllReportFull.xml)
                                 '''
                                 junit allowEmptyResults: true, testResults: 'RunAllReportFull.xml'
+                            }
+                            catchError {
                                 sh 'mkdir /artifact/test_emu_compiler'
                                 sh '/bin/cp $TEST_DIR/test_emu_compiler/qor* /artifact/test_emu_compiler/ || touch /artifact/test_emu_compiler/qor_RunAllWithArgs_qor_available.txt'
                                 sh 'for f in `find $TEST_DIR/test_emu_compiler  -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" -o -iname "*.png" -o -iname "*.csv" -o -iname "*.asm" `; do cp $f --parents  /artifact/test_emu_compiler/;done; '
@@ -208,6 +212,8 @@ pipeline{
                                [ -z "$RUNNC_ARGS" ] || ([ -f $TEST_DIR/test_emu_non_compiler/pytestResult.xml ] && /bin/cp $TEST_DIR/test_emu_non_compiler/pytestResult.xml $WORKSPACE/.)
                                '''
                                junit allowEmptyResults: true, testResults: 'pytestResult.xml'
+                            }
+                            catchError {
                                sh 'mkdir /artifact/test_emu_non_compiler'
                                sh 'find $TEST_DIR/test_emu_non_compiler -iname "*.txt" -print0 | tar -czvf /artifact/test_emu_non_compiler/logs.tgz -T -'
                                sh 'chmod -R a+wX /artifact/'

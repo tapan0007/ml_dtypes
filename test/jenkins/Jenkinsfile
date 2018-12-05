@@ -129,10 +129,12 @@ pipeline{
                     }
                     post {
                         always {
+                            catchError {
 			    sh '''
 			    ([ -f $TEST_DIR/precheckin/RunAllReport.xml ] && /bin/cp $TEST_DIR/precheckin/RunAllReport.xml $WORKSPACE/RunAllReportCheck.xml)
 			    '''
 			    junit allowEmptyResults: true, testResults: 'RunAllReportCheck.xml'
+                            }
                             sh 'find $TEST_DIR/precheckin -type f -name "*.vdi" -delete'
                             sh '/bin/cp -r $TEST_DIR/precheckin /artifact/precheckin'
                             archiveArtifacts artifacts:'precheckin/*.txt,*.tgz, precheckin/**/*.txt,tgz, precheckin/**/*.json, precheckin/**/*.bin, precheckin/**/*.svg, precheckin/**/*.png, precheckin/**/*.csv, precheckin/**/*.asm, precheckin/**/*.npy'
@@ -153,10 +155,12 @@ pipeline{
                     }
                     post {
                         always {
+                            catchError {
 		            sh '''
 			    [ -z "$RUNALL_ARGS" ] || ([ -f $TEST_DIR/RunAllWithArgs/RunAllReport.xml ] && /bin/cp $TEST_DIR/RunAllWithArgs/RunAllReport.xml $WORKSPACE/RunAllReportFull.xml)
 			    '''
 			    junit allowEmptyResults: true, testResults: 'RunAllReportFull.xml'
+                            }
                             sh 'mkdir /artifact/RunAllWithArgs'
                             sh '/bin/cp $TEST_DIR/RunAllWithArgs/qor* /artifact/RunAllWithArgs/ || touch /artifact/RunAllWithArgs/qor_RunAllWithArgs_qor_available.txt'
                             sh 'for f in `find $TEST_DIR/RunAllWithArgs  -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" -o -iname "*.png" -o -iname "*.csv" -o -iname "*.asm" -o -iname "kelf.tar.gz"`; do cp $f --parents  /artifact/RunAllWithArgs/;done; '
@@ -182,10 +186,12 @@ pipeline{
                     }
                     post {
                         always {
+                            catchError {
 			    sh '''
 			    [ -z "$RUNNC_ARGS" ] || ([ -f $TEST_DIR/RunPytest/pytestResult.xml ] && /bin/cp $TEST_DIR/RunPytest/pytestResult.xml $WORKSPACE/.)
 			    '''
 			    junit allowEmptyResults: true, testResults: 'pytestResult.xml'
+                            }
                             sh 'mkdir /artifact/RunPytest'
                             sh 'find $TEST_DIR/RunPytest -iname "*.txt" -print0 | tar -czvf /artifact/RunPytest/logs.tgz -T -'
                             sh 'chmod -R a+wX /artifact/'
@@ -206,10 +212,12 @@ pipeline{
                     }
                     post {
                         always {
+                            catchError {
                             sh '''
                             [ -f $TEST_DIR/RunToolsPytest/pytestResult.xml ] && /bin/cp $TEST_DIR/RunToolsPytest/pytestResult.xml $WORKSPACE/.
                             '''
                             junit allowEmptyResults: true, testResults: 'pytestResult.xml'
+                            }
                             sh 'mkdir /artifact/RunToolsPytest'
                             sh 'find $TEST_DIR/RunToolsPytest -iname "*.txt" -print0 | tar -czvf /artifact/RunToolsPytest/logs.tgz -T -'
                             sh 'chmod -R a+wX /artifact/'
