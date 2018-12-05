@@ -44,6 +44,8 @@ import tensorflow as tf
 import numpy as np
 import sys
 import re
+import os
+from tensorflow.python.platform import gfile
 
 # To minimize likelihood of float16 overflow
 # Example  0 1 2 3 4 5  =>  0 5 1 4 2 3
@@ -179,7 +181,7 @@ class trivnet_conf():
                                 dtype       = self.tfDataType)
 
     # Generate graph and checkpoint for freezing (freezgin done in Makefile)
-    def gen_graph(self, output, input_data):
+    def gen_graph(self, output, input_data, need_freezing=True):
         np.save( self.outPrefix + 'ref_input.npy', input_data)
         print("Inp=\n", input_data)
         # Grow GPU memory as needed at the cost of fragmentation.
@@ -193,12 +195,16 @@ class trivnet_conf():
                 res = sess.run(output, feed_dict={"input:0" : input_data})
             print("Res=\n", res)
             print("INFO: the result contains %d infinite numbers" % (res.size - np.count_nonzero(np.isfinite(res))))
-            graph = tf.get_default_graph()
-            tf.train.write_graph(graph, '.', self.outPrefix + 'graph.pb')
-            saver = tf.train.Saver()
-            prefixTFfix = ""
-            if not self.outPrefix.startswith("/"):
-                prefixTFfix = "./"
-            saver.save(sess, prefixTFfix + self.outPrefix + "checkpoint.data")
+            if need_freezing:
+                graph = tf.get_default_graph()
+                tf.train.write_graph(graph, '.', self.outPrefix + 'graph.pb')
+                saver = tf.train.Saver()
+                prefixTFfix = ""
+                if not self.outPrefix.startswith("/"):
+                    prefixTFfix = "./"
+                saver.save(sess, prefixTFfix + self.outPrefix + "checkpoint.data")
+            else:
+                with gfile.GFile(os.path.join('.', self.outPrefix + 'freeze.pb'), "wb") as f:
+                    f.write(sess.graph_def.SerializeToString())
 
 conf = trivnet_conf()

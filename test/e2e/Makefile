@@ -61,7 +61,7 @@ run_kelf:
 
 trivnet_%:
 	python3 ${KAENA_E2E}/$@.py $(NN_CONFIG) $(OUT_PREFIX) $(NN_NAME) $(DATA_TYPE)
-	export CUDA_VISIBLE_DEVICES=""; python3 $(TF_PATH)/python/tools/freeze_graph.py --input_graph $(OUT_PREFIX)graph.pb --input_checkpoint $(OUT_PREFIX)checkpoint.data --output_graph $(OUT_PREFIX)freeze.pb --output_node_names $(NN_NAME)/output
+	export CUDA_VISIBLE_DEVICES=""; test -f $(OUT_PREFIX)freeze.pb || python3 $(TF_PATH)/python/tools/freeze_graph.py --input_graph $(OUT_PREFIX)graph.pb --input_checkpoint $(OUT_PREFIX)checkpoint.data --output_graph $(OUT_PREFIX)freeze.pb --output_node_names $(NN_NAME)/output
 	$(MAKE) -f $(MKFILE) compile_pb  PB_FILE=$(OUT_PREFIX)freeze.pb
 	$(MAKE) -f $(MKFILE) run_kelf    PB_FILE=$(OUT_PREFIX)freeze.pb
 

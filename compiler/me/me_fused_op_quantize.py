@@ -38,8 +38,8 @@ def execute_dequantize_tile(self, tpb, ifmap_tile, ofmap_tile, psum_bank_id):
     dequant_scale = self.first_op.data['dequant_scale']
     zero_point = self.first_op.data['zero_point']
     tile_data_flatten = tpb.pool.dequantize(ifmaps_data_extract, dequant_scale, zero_point)
-    assert first_op.dst_is_psum
-    tpb.pearray.write_psum(psum_bank_id, 0, tile_data_flatten.shape[0], tile_data_flatten)
+    if first_op.dst_is_psum:
+        tpb.pearray.write_psum(psum_bank_id, 0, tile_data_flatten.shape[0], tile_data_flatten)
 
 def emit_waveops_dequantize_tile(self, tpb, ifmap_tile, ofmap_tile, psum_bank_id):
     # wave loop ordering scheme: nmhw
@@ -66,7 +66,7 @@ def emit_waveops_dequantize_tile(self, tpb, ifmap_tile, ofmap_tile, psum_bank_id
                 ofmap_tile       = ofmap_tile,
                 src_is_psum      = first_op.src_is_psum,
                 psum_bank_src    = -1,
-                dst_is_psum      = True,
+                dst_is_psum      = first_op.dst_is_psum,
                 psum_bank_dst    = psum_bank_id if first_op.dst_is_psum else -1,
                 dram_waveops     = dram_ifmaps_waveops,
                 dequant_scale    = dequant_scale,

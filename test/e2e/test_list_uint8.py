@@ -87,6 +87,14 @@ testConfigMap = {
         "conv_ba_relu_uint8",
         tffe_options_v1,
         rt_options],
+    "0-1quantize1dequantize_uint8_wave": [
+        "trivnet_quantize_uint8",
+        "tuint8-b1-h10-r3-s1-c1-m1-wmin-1-wmax2-amin-1-amax1-imin-3-imax4",
+        "quantize_uint8",
+        "--executors wave all --scheduler wave2  "
+        "--schedule_options ' --nname=generic --save_layer_output --no_verify ' " # me options
+        "--partition none ",
+        rt_options],
 }
 
 
