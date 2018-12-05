@@ -138,6 +138,15 @@ class KgraphPart(object):
     predFanout = len(predNode.getFanoutMainFlowEdges())
     return(predFanout > 1)
   
+  # Color all nodes with color 0 (--partition none)
+  def colorNodes0(self):
+    sourceGraph = self.__kgraph
+    n = sourceGraph.getInputNode()
+    color = self.getNewColor()
+    for n in sourceGraph.getNodes():
+      if n.isMainFlowNode():
+        self.setNodeColor(n, color)
+
   # Auto color nodes to define subgraph partitions
   def colorNodesAuto(self):
     sourceGraph = self.__kgraph
@@ -579,6 +588,8 @@ class KgraphPart(object):
       metric = partitioningStrategy[1]
       numTpbs = float(partitioningStrategy[2])
       self.colorNodesMultiTpb(metric, numTpbs)
+    elif strategy == "none":
+      self.colorNodes0()
     else:
       assert 0
     if len(nodeColorAdjustment) > 0:

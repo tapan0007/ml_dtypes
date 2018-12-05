@@ -67,7 +67,7 @@ def MEv2(optstr):
         test_options = tffe_options if i == "waivewc" else sched_options
         if i in optsdec.keys(): i = optsdec[i]
         test_options.append("--" + i)
-    return " --scheduler wave2 --schedule_options \' %s \' %s "%(" ".join(sched_options), " ".join(tffe_options))
+    return " --show_op_name_in_kgraph --scheduler wave2 --schedule_options \' %s \' %s "%(" ".join(sched_options), " ".join(tffe_options))
 
 TFFE_OPTION_IDX = 3
 NNE_OPTION_IDX = 4
@@ -965,6 +965,9 @@ testConfigMap = {
   "7-amoebanet_fp16_cell11" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_11/cell_output/concat --partition from_multi cell_11/Relu,cell_11/Relu_1 --executors host all wave 1 %s --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s --euler_options '--max_events 210'" % (MEv2("Generic"), rnDogJpg), "--input_files %s" % (rnDogJpg)],
   "7-amoebanet_fp16_rcell0" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to reduction_cell_0/cell_output/concat --partition from_multi reduction_cell_0/Relu,reduction_cell_0/Relu_1 --executors host all wave 1 %s --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (MEv2("Generic"), rnDogJpg), "--input_files %s" % (rnDogJpg)],
   "7-amoebanet_fp16_rcell1" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to reduction_cell_1/cell_output/concat --partition from_multi reduction_cell_1/Relu,reduction_cell_1/Relu_1 --executors host all wave 1 %s --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (MEv2("Generic"), rnDogJpg), "--input_files %s" % (rnDogJpg)],
+
+  # Single subgraph resnet50 without softmax
+  "7-rn50_nosm_fp16_wave-no_repl"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", " --depth 2  --debug 1 --focus_to fc1000/BiasAdd --partition none --executors wave all  %s --images linspace1 " % MEv2("RN50"), "--input_files trivnet_input_1:0.npy" ],
 
   # CNN MNIST
   "5-cnn_mnist_fp16"     : [ "tf_s3",  "s3://kaena-nn-models", "cnn_mnist_opt_fp16.pb",  "--input_node Reshape --partition from softmax_tensor --executors host all wave 0 %s --images %s "%(MEv2("Generic-NoVerify"), mnistSample), "--input_files %s"%mnistSample],
