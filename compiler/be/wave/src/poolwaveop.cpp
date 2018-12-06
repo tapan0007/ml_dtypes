@@ -72,9 +72,20 @@ PoolWaveOp::verify() const
     if (! this->BaseClass::verify()) {
         RETURN_ASSERT(false);
     }
-    if (m_DstSbAddress < 0) {
-        RETURN_ASSERT(false);
+
+    if (m_DstIsPsum) {
+        if (m_DstPsumBankId < 0 || m_DstPsumBankId >= psumBuf.gNumberBanks()) {
+            RETURN_ASSERT(false);
+        }
+        if (m_DstPsumBankOffset < 0 || m_DstPsumBankOffset >= psumBuf.gNumberBankEntries()) {
+            RETURN_ASSERT(false);
+        }
+    } else {
+        if (m_DstSbAddress < 0) {
+            RETURN_ASSERT(false);
+        }
     }
+
     if (m_DstXNum < 1) {
         RETURN_ASSERT(false);
     }
