@@ -5,7 +5,7 @@ RELEASE_ROOT=/proj/trench/sw/kaena-release
 cp krt-*.*-dv-hal.tar.gz ${RELEASE_ROOT}
 
 cd ${RELEASE_ROOT}
-RELEASE_NAME=`ls *.tar.gz | sort -V -r | head -n 1 | xargs -I{} basename {} .tar.gz`
+RELEASE_NAME=`ls *.tar.gz | sed "s/-dv-hal//" | sort -V -r | head -n 1 | sed "s/\.tar/-dv-hal\.tar//" | xargs -I{} basename {} .tar.gz`
 RELEASE_DIRECTORY=${RELEASE_ROOT}/${RELEASE_NAME}
 echo 'Release directory ${RELEASE_DIRECTORY}'
 
