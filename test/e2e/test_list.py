@@ -9,18 +9,18 @@
 #   Columns: (nnStruct, nnConfig, nnLabel, nnArgs, rtArgs)
 
 import os
+import glob
 
 kPath = os.environ.get('KAENA_PATH')
 kePath = os.environ.get('KAENA_EXT_PATH')
 
 rnDogJpg = "%s/%s" % (kePath, "images/dog.jpg")
 rnCatJpg = "%s/%s" % (kePath, "images/cat.jpeg")
-#rnPandaJpg = "%s/%s" % (kePath, "images/cropped_panda.jpg")    # Fails comparison on C5 for some intermediate FP16 ResNet50 layers
+rnPandaJpg = "%s/%s" % (kePath, "images/cropped_panda.jpg")    # Fails comparison on C5 for some intermediate FP16 ResNet50 layers
 rnKoalaJpg = "%s/%s" % (kePath, "images/koala_bear.jpeg")
 fp16AccJpg = "%s/%s" % (kePath, "images/3404.jpg")
 
 rnDogCatB2Fp32 = "%s/%s" % (kePath, "images/res50_dog_cat_fp32.npy")
-
 rnBfloat16Npy = "%s/%s" % (kePath, "images/res50_bfp16infp16.npy")
 
 transformerInX = '{0}/images/transformer_x.npy'.format(kePath)
@@ -34,9 +34,15 @@ transformerEncoderRtIn = 'infer_x:0={0}/images/transformer_x.npy infer_y:0={0}/i
 
 transformerEncoderLen1In = "{0}/images/transformer_x_len1.npy".format(kePath)
 
+imgList = glob.glob(kePath + "/images/*.jpg") + glob.glob(kePath + "/images/*.jpeg")
+#print("INFO: List of images found in %s/images:"%kePath)
+#for idx, img in enumerate(imgList):
+#    print ("INFO: index %d file %s"%(idx, img))
 
 def getBatchedJpgs(batchLevel):
-    listExtraJpgs = [rnDogJpg, rnCatJpg, rnKoalaJpg] * ((batchLevel+3)//3)
+    #listExtraJpgs = [rnPandaJpg, rnCatJpg, rnKoalaJpg] * ((batchLevel+3)//3)
+    listExtraJpgs = imgList * 2
+    assert(len(listExtraJpgs) >= batchLevel)
     return ' '.join(tuple(listExtraJpgs[0:batchLevel]))
 
 rnPre = os.path.join(kPath, "compiler/util/res50_preprocessor.py")
@@ -596,23 +602,23 @@ testConfigMap = {
     ) %(rnPreFp16, rnDogJpg),
     "--input_files %s --check_against_ref all_available" % rnDogJpg ],
 
-  "7-rn50_nne_fp16_wave-no_repl"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  %s --images %s " %(rnPreFp16, MEv2("RN50"), rnDogJpg), "--input_files %s" % rnDogJpg ],
-  #"7-rn50_nne_fp16_ap_wave-no_repl"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from_multi flatten_1/Shape,flatten_1/Reshape --executors wave 0 host 1  --scheduler wave2 --images %s" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
-  "7-rn50_nne_fp16_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  %s --images %s " %(rnPreFp16, MEv2("RN50-Repl"), rnDogJpg), "--input_files %s" % rnDogJpg ],
-  "7-rn50_nne_fp16_ap_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from_multi flatten_1/Shape,flatten_1/Reshape --executors wave 0 host 1 %s --images %s " %(rnPreFp16, MEv2("RN50-Repl"), rnDogJpg), "--input_files %s" % rnDogJpg ],
+  "7-rn50_nne_fp16_wave-no_repl"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  %s --images %s " %(rnPreFp16, MEv2("RN50"), getBatchedJpgs(1)), "--diff_options '--tolerance 1.1 1e-5' --input_files %s" % getBatchedJpgs(1) ],
+  #"7-rn50_nne_fp16_ap_wave-no_repl"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from_multi flatten_1/Shape,flatten_1/Reshape --executors wave 0 host 1  --scheduler wave2 --images %s" %(rnPreFp16, getBatchedJpgs(1)), "--input_files %s" % getBatchedJpgs(1) ],
+  "7-rn50_nne_fp16_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  %s --images %s " %(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(1)), "--diff_options '--tolerance 1.1 1e-5' --input_files %s" % getBatchedJpgs(1) ],
+  "7-rn50_nne_fp16_ap_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from_multi flatten_1/Shape,flatten_1/Reshape --executors wave 0 host 1 %s --images %s " %(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(1)), "--input_files %s" % getBatchedJpgs(1) ],
 
-  "7-rn50_nne_fp16_wave-two_banks" : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 %s --images %s " %(rnPreFp16, MEv2("RN50-Repl"), rnDogJpg), "--env SIM_ADD_FLAGS=' --dram_frequency 6400'  --input_files %s" % rnDogJpg ],
-  "7-rn50_nne_fp16_wave-fast_dram" : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 %s --images %s " %(rnPreFp16, MEv2("RN50-Repl"), rnDogJpg), "--env SIM_ADD_FLAGS=' --dram_frequency 0 --dram_latency 1' --input_files %s" % rnDogJpg ],
+  "7-rn50_nne_fp16_wave-two_banks" : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 %s --images %s " %(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(1)), "--env SIM_ADD_FLAGS=' --dram_frequency 6400' --diff_options '--tolerance 1.1 1e-5'  --input_files %s" % getBatchedJpgs(1) ],
+  "7-rn50_nne_fp16_wave-fast_dram" : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 %s --images %s " %(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(1)), "--env SIM_ADD_FLAGS=' --dram_frequency 0 --dram_latency 1' --diff_options '--tolerance 1.1 1e-5' --input_files %s" % getBatchedJpgs(1) ],
   #"7-rn50_nne_fp16_b2_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave2 --batch 2 --images %s"%(rnPreFp16, getBatchedJpgs(2)), "--input_files %s" % (getBatchedJpgs(2))],
   "7-rn50_nne_fp16_b4_wave-no_repl"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  %s --batch 4 --images %s "%(rnPreFp16, MEv2("RN50"), getBatchedJpgs(4)), "--input_files %s" % (getBatchedJpgs(4))],
   "7-rn50_nne_fp16_b4_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 %s --batch 4 --images %s "%(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(4)), "--input_files %s" % (getBatchedJpgs(4))],
   "7-rn50_nne_fp16_b4_wave-two_banks"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  %s --batch 4 --images %s "%(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(4)), "--env SIM_ADD_FLAGS=' --dram_frequency 6400' --input_files %s" % (getBatchedJpgs(4))],
   "7-rn50_nne_fp16_b4_wave-fast_dram"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  %s --batch 4 --images %s "%(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(4)), "--env SIM_ADD_FLAGS=' --dram_frequency 0 --dram_latency 1' --input_files %s" % (getBatchedJpgs(4))],
-  "8-rn50_nne_fp16_b8_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 %s --batch 8 --images %s "%(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(8)), "--input_files %s" % (getBatchedJpgs(8))],
-  "8-rn50_nne_fp16_b16_wave-no_repl"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 %s --batch 16 --images %s "%(rnPreFp16, MEv2("RN50"), getBatchedJpgs(16)), "--input_files %s" % (getBatchedJpgs(16))],
-  "8-rn50_nne_fp16_b16_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 %s --batch 16 --images %s "%(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(16)), "--input_files %s" % (getBatchedJpgs(16))],
-  "8-rn50_nne_fp16_b16_wave-two_banks"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 %s --batch 16 --images %s "%(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(16)), "--env SIM_ADD_FLAGS=' --dram_frequency 6400' --input_files %s" % (getBatchedJpgs(16))],
-  "8-rn50_nne_fp16_b16_wave-fast_dram"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 %s --batch 16 --images %s "%(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(16)), "--env SIM_ADD_FLAGS=' --dram_frequency 0 --dram_latency 1' --input_files %s" % (getBatchedJpgs(16))],
+  "8-rn50_nne_fp16_b8_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 %s --batch 8 --images %s "%(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(8)), "--diff_options '--tolerance 1.2 1e-5' --input_files %s" % (getBatchedJpgs(8))],
+  "8-rn50_nne_fp16_b16_wave-no_repl"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 %s --batch 16 --images %s "%(rnPreFp16, MEv2("RN50"), getBatchedJpgs(16)), "--diff_options '--tolerance 1.1 1e-5' --input_files %s" % (getBatchedJpgs(16))],
+  "8-rn50_nne_fp16_b16_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 %s --batch 16 --images %s "%(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(16)), "--diff_options '--tolerance 1.1 1e-5' --input_files %s" % (getBatchedJpgs(16))],
+  "8-rn50_nne_fp16_b16_wave-two_banks"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 %s --batch 16 --images %s "%(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(16)), "--env SIM_ADD_FLAGS=' --dram_frequency 6400' --diff_options '--tolerance 1.1 1e-5' --input_files %s" % (getBatchedJpgs(16))],
+  "8-rn50_nne_fp16_b16_wave-fast_dram"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 %s --batch 16 --images %s "%(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(16)), "--env SIM_ADD_FLAGS=' --dram_frequency 0 --dram_latency 1' --diff_options '--tolerance 1.1 1e-5' --input_files %s" % (getBatchedJpgs(16))],
   #"7-rn50_nne_fp16_wave-two_banks"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave2 --images %s" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg,  ],
   #"7-rn50_nne_fp16_wave-fast_dram"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave2 --images %s" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg,  ],
   "7-rn50_nne_fp16_host"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors host all --batch 2 --images %s %s" % (rnPreFp16, rnDogJpg, rnCatJpg), "--input_files %s %s" % (rnDogJpg, rnCatJpg)],
