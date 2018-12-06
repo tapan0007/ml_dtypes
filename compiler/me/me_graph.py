@@ -49,7 +49,6 @@ class KNode:
         self.node_number = node_number
         self.slice_offset = Coord(0,0)
         self.slice_size = Dim2D(0,0)
-        self.stridedslice_chan_offset = 0
         self.unstack_h_offset = 0
         self.result_avail = False
         self.filter = Dim2D(0,0)
@@ -628,8 +627,8 @@ class KNode:
         # also need to add zeros for padding
         self.psum_bank_offset = 0
         # for pooling, the "row" below actually means output columns
-        pe_row_start = fmap_folding_idx * out_array_dim_y + self.stridedslice_chan_offset
-        pe_row_stop = min(fmap_total_count + self.stridedslice_chan_offset, pe_row_start + out_array_dim_y)
+        pe_row_start = fmap_folding_idx * out_array_dim_y
+        pe_row_stop = min(fmap_total_count, pe_row_start + out_array_dim_y)
         assert(pe_row_start < pe_row_stop)
         # make use of the upper 64 partitions by resetting address back to 128-channels boundary
         row_adjust = (pewave.tile.m_id%2)*PEArray.NUM_COLS
@@ -838,12 +837,7 @@ class KGraph:
                                     # to avg pool.  Should we always pass the padding on regardless of op?
                                     # and when the padding is consumed, clear it??
                                     new_node.data['padding'] = prev_node.data['padding']
-                                if (prev_node.data['channel_slice'][0]%128) == 0:
-                                    new_node.stridedslice_chan_offset = prev_node.data['channel_slice'][0]
-                                    print("%s: stridedslice_chan_offset %d"%(new_node.data['layer_name'], new_node.stridedslice_chan_offset))
-                                    new_node.dissolve_node(prev_node)
-                                else:
-                                    new_node.add_prev(self.node_dict[i])
+                                new_node.add_prev(prev_node)
                             elif (prev_node.data['layer_type'] == "Unstack"):
                                 for j in prev_node.data['next_layer_order']:
                                     if j[1] == new_node.data['layer_name']:
@@ -958,6 +952,9 @@ class KGraph:
                                 and const_shape_dims.H == 1 \
                                 and const_shape_dims.W == 1:
                             l['layer_type'] = "BiasAdd"
+                elif (l['layer_type'] == "StridedSlice"):
+                    # TODO: switch to using slice_begin and get rid of channel_slice, and merge with "Slice" code below
+                    new_node.is_nop = (l['channel_slice'][0] % PEArray.NUM_ROWS) == 0
                 elif (l['layer_type'] == "Slice"):
                     new_node.is_nop = True
                     error = False
@@ -1173,7 +1170,7 @@ class KGraph:
         if (last_node_type == "Conv"
                 or last_node_type == "ConvTranspose"
                 or last_node_type == "MatMul"
-                or last_node_type == "StridedSlice"
+                or (last_node_type == "StridedSlice" and not fused_ops[-1].is_nop)
                 or last_node_type == "Concat"):
             fused_ops.add(self.gen_id_pool_op(fused_ops[-1]))
 
@@ -1208,7 +1205,7 @@ class KGraph:
             residue_op = fused_ops.join_op.prev[fused_ops.join_op.residue_index]
             if residue_op.ofmaps_file_params is not None:
                 residue_op.ofmaps_file_params.load_file()
-            assert(residue_op.ofmaps_file_params.file_dims.shape_tuple == fused_ops.join_op.ofmaps_file_params.file_dims.shape_tuple)
+            #assert(residue_op.ofmaps_file_params.file_dims.shape_tuple == fused_ops.join_op.ofmaps_file_params.file_dims.shape_tuple)
             # must change readers of shared FMAP before changing writers, because one of the writers is residue_op itself
             for i in residue_op.ofmaps_file_params.readers_of_shared_fmap:
                 fused_ops.last_op.ofmaps_file_params.readers_of_shared_fmap.append(i)

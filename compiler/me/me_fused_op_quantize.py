@@ -18,8 +18,7 @@ def execute_dequantize_op(self, tpb, batch_item):
         for h_id in range(first_op.h):
             for w_id in range(first_op.w):
                 tile_id = (n_id, m_id, h_id, w_id, first_op.n, first_op.m, first_op.h, first_op.w)
-                ifmap_tile = Tile(tile_id, self.first_op.ifmaps_file_params, self.first_op.Tn, is_pe_input=False,
-                                    stridedslice_chan_offset = first_op.stridedslice_chan_offset)
+                ifmap_tile = Tile(tile_id, self.first_op.ifmaps_file_params, self.first_op.Tn, is_pe_input=False)
                 ofmap_tile = Tile(tile_id, self.last_op.ofmaps_file_params, self.last_op.Tn, is_pe_input=False)
                 self.first_op.compute_ifmap_ofmap_tile_info(ifmap_tile, ofmap_tile)
                 psum_bank_id = tpb.pearray.use_psum_bank_and_adv_ptr(dst_is_psum = self.first_op.dst_is_psum)
@@ -31,7 +30,7 @@ def execute_dequantize_op(self, tpb, batch_item):
 
 def execute_dequantize_tile(self, tpb, ifmap_tile, ofmap_tile, psum_bank_id):
     first_op = self.first_op
-    ifmap_subtile = ifmap_tile.make_pewave(self.first_op.stridedslice_chan_offset)
+    ifmap_subtile = ifmap_tile.make_pewave()
     ifmaps_data = first_op.pack_wave_ifmaps_unfused_pooling(ifmap_tile.file_params.dram_data, ifmap_subtile)
     input_tilex = ifmap_tile.tile_rect.dim2d.x
     input_tiley = ifmap_tile.tile_rect.dim2d.y
@@ -91,8 +90,7 @@ def execute_quantize_op(self, tpb, batch_item):
         for h_id in range(first_op.h):
             for w_id in range(first_op.w):
                 tile_id = (n_id, m_id, h_id, w_id, first_op.n, first_op.m, first_op.h, first_op.w)
-                ifmap_tile = Tile(tile_id, self.first_op.ifmaps_file_params, self.first_op.Tn, is_pe_input=False,
-                                    stridedslice_chan_offset = first_op.stridedslice_chan_offset)
+                ifmap_tile = Tile(tile_id, self.first_op.ifmaps_file_params, self.first_op.Tn, is_pe_input=False)
                 ofmap_tile = Tile(tile_id, self.last_op.ofmaps_file_params, self.last_op.Tn, is_pe_input=False)
                 self.first_op.compute_ifmap_ofmap_tile_info(ifmap_tile, ofmap_tile)
                 psum_bank_id = tpb.pearray.use_psum_bank_and_adv_ptr(dst_is_psum = self.first_op.dst_is_psum)
@@ -101,7 +99,7 @@ def execute_quantize_op(self, tpb, batch_item):
 
 def execute_quantize_tile(self, tpb, ifmap_tile, ofmap_tile, psum_bank_id):
     first_op = self.first_op
-    ifmap_subtile = ifmap_tile.make_pewave(self.first_op.stridedslice_chan_offset)
+    ifmap_subtile = ifmap_tile.make_pewave()
     ifmaps_data = first_op.pack_wave_ifmaps_unfused_pooling(ifmap_tile.file_params.dram_data, ifmap_subtile)
     input_tilex = ifmap_tile.tile_rect.dim2d.x
     input_tiley = ifmap_tile.tile_rect.dim2d.y
