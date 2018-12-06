@@ -87,7 +87,7 @@ WaveCode::determinePrecSbEdges()
     const std::array<EngineId, 3> engineIds = { {
         EngineId::Pooling,
         EngineId::Activation,
-        EngineId::PeArray
+        // never put DmaTrigger on PeArray
     } };
 
     for (auto waveop : m_Network.gWaveOps()) {
@@ -100,11 +100,7 @@ WaveCode::determinePrecSbEdges()
         if (waveop->gPrevWaveEdges().size() == 0) {
             // initial loads
             if (const auto loadWop = dynamic_cast<wave::SbAtomLoadWaveOp*>(sbWop)) {
-                if (loadWop->qContainWeights()) {
-                    loadWop->rEngineId(EngineId::PeArray);
-                } else {
-                    loadWop->rEngineId(EngineId::Pooling);
-                }
+                loadWop->rEngineId(EngineId::Pooling);
             } else {
                 Assert(false, "Waveop without input edges (", sbWop->gName(), ") is not Load");
                 sbWop->rEngineId(EngineId::Pooling);

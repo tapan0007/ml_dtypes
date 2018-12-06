@@ -140,14 +140,6 @@ WaveCodeSbAtom::findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWaveop,
         if (! prevWaveEdge->qNeedToImplementSync()) {
             continue;
         }
-        const wave::WaveOp* const fromWop = prevWaveEdge->gFromOp();
-
-        if (prevWaveEdge == chosenPrevEdge
-            && fromWop->gEngineId() == chosenEngId
-            && !fromWop->qSbAtomWaveOp())
-        {
-            continue;
-        }
 
         ++numSyncs;
         if (prevWaveEdge->qSyncedWithEvent()) {

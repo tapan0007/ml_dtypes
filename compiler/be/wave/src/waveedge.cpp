@@ -122,7 +122,8 @@ WaveEdge::qNeedToSync() const
         }
         return true;
     }
-    // when two waveops execute on the same engine, no need for sync except for DMA.
+    // when two waveops execute on the same engine, no need for sync except for DMA
+    // or for first waveop being async.
     // The only case that does NOT need sync is two saves.
     //
     // Load -> Save: this is necessary (probably very rare) because we are rely on data
@@ -145,6 +146,12 @@ WaveEdge::qNeedToSync() const
             }
         }
         return true;
+    } else if (prevWaveop->qMatMulWaveOp()) {
+        if (!succWaveop->qMatMulWaveOp() ) {
+            // "MatMul waveop -> MatMul waveop" does not need synchronication, 
+            // but "MatMul waveop -> SbAtom waveop" does
+            return true;
+        }
     }
     return false;
 }

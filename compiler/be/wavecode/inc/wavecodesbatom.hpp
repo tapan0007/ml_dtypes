@@ -33,8 +33,6 @@ public:
     //----------------------------------------------------------------
     WaveCodeSbAtom(WaveCodeRef waveCode);
 
-private:
-    static compisa::DmaTriggerInstr s_dmaTrig;
 protected:
     void processOutgoingEdgesAlreadyEmb(wave::SbAtomWaveOp* waveop, events::EventId);
     void addDmaBarrier(const wave::SbAtomWaveOp* sbAtomWaveop, EngineId engId);
