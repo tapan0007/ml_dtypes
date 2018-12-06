@@ -20,7 +20,7 @@ def calcTransform(sf, st):
 
 class NpTrans:
   # See spec for method  genCompilerPy
-  for c in ["TF", "SIM", "Fmaps", "Weights", "WeightsTrans", "NHWC", "NCHW", "RSCM", "MCRS", "CRSM", "MRSC", "C", "NC", "NW", "HNC", "HNWC", "CM", "NWC"]:
+  for c in ["TF", "SIM", "Fmaps", "Weights", "WeightsTrans", "NHWC", "NCHW", "RSCM", "MCRS", "CRSM", "MRSC", "C", "NC", "WC", "NW", "HNC", "HNWC", "CM", "NWC", "HWC"]:
     exec("%s = '%s'" %(c, c))
   
   # Define tensorFlow (TF) to Inkling simulator (SIM) translation
@@ -149,7 +149,19 @@ class NpTrans:
     assert len(shape) == 2
     tmpShape = [shape[0], 1, 1, shape[1]]
     return tmpShape
+
+  @staticmethod
+  def wcShapeToNHWC(shape):
+    assert len(shape) == 2
+    tmpShape = [ 1, 1, shape[0], shape[1]]
+    return tmpShape
   
+  @staticmethod
+  def hwcShapeToNHWC(shape):
+    assert len(shape) == 3
+    tmpShape = [1, shape[0], shape[1], shape[2]]
+    return tmpShape
+
   @staticmethod
   def nwcShapeToNHWC(shape):
     assert len(shape) == 3

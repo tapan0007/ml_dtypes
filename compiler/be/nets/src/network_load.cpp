@@ -327,6 +327,8 @@ Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
         KCC_UNSERIALIZE(QuantOffsetWeights);
     }
 
+    KCC_UNSERIALIZE(IsDynamicWeights);
+
     auto waveOp = new wave::MatMulWaveOp(PARAMS, prevWaveOps);
     Assert(waveOp->gName() == PARAMS.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
     return waveOp;

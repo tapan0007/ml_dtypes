@@ -1855,6 +1855,7 @@ class FusedOp(list):
 
             if (args.debug > 2): print("DBG %s: MatMul wave %s subwave %d weights_sb_address %d, fmap_sb_address %d, fmap_y_num %d"%(self.conv_op.data['layer_name'], waveop_name, i, weights_sb_address, fmap_sb_address, fmap_y_num))                
             matmul_waveop.append({ 
+                  'is_dynamic_weights'      : False,
                   'previous_waveops'        : dram_waveop_names,
                   'waveop_type'             : 'MatMul',
                   'waveop_name'             : waveop_name,

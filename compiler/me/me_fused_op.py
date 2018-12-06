@@ -767,6 +767,11 @@ class FusedOp(list):
                 else:                    
                     # also in case that file is already mapped, keep the mapped values
                     weights_file_start_addr = weights_file_params.mapped_params.start_addr
+                    # For dynamic weights, weights_file_params points to the ofmap
+                    # of a predecessor of this matmul. It should be marked as live-in.
+                    if not (weights_file_params in live_mapped_file_params):
+                        live_mapped_file_params.append(weights_file_params)
+
                 weights_region_start_addr = weights_file_start_addr
             # OFMAPs region
             if ofmaps_file_params.mapped_params is None:
@@ -1006,12 +1011,14 @@ class FusedOp(list):
             raise NotImplementedError('out_dtype %s is not supported' % out_dtype)
 
         weights_sb_address = -1
+        has_dynamic_weights = False
         if load_weights_into_pearray:
             # find the weights offset within atom; -1 means don't load new weights
             weights_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(
                                         self.first_op.weights_file_params, 
                                         0, 
                                         self.first_op.weight_wave_lower_addr)
+            has_dynamic_weights =  self.first_op.weights_file_params.is_dynamic_weights
 
         # If wave crosses atom boundaries, break it into multiple waves
         # The following assumes noodle tile (width is equal to FMAP width)
@@ -1103,6 +1110,7 @@ class FusedOp(list):
             waveop_name = self.first_op.data['layer_name']+"/MatMul_"+ofmap_pewave.id_string+"__"+str(i)
             if (self.args.debug > 2): print("DBG %s: MatMul wave %s subwave %d weights_sb_address %d, fmap_sb_address %d, fmap_y_num %d"%(self.first_op.data['layer_name'], waveop_name, i, weights_sb_address, fmap_sb_address, fmap_y_num))                
             matmul_waveop.append({ 
+                  'is_dynamic_weights'      : has_dynamic_weights,
                   'previous_waveops'        : dram_waveop_names,
                   'waveop_type'             : 'MatMul',
                   'waveop_name'             : waveop_name,
@@ -1223,14 +1231,15 @@ class FusedOp(list):
         return instr
 
     # execute PEArray matrix multiply; returns True if successful (IFMAP wave is non-zero)
-    def execute_matmul_waveop(self, tpb, ifmap_pewave, ofmap_pewave, inputs, weights, psum_add, psum_bank_id, repl_multiple_of_C):
+    def execute_matmul_waveop(self, tpb, ifmap_pewave, ofmap_pewave, inputs, weights, psum_add, psum_bank_id, repl_multiple_of_C, is_const_weights = True):
         batch_item = ofmap_pewave.tile.n_id * self.conv_op.Tn
         self.conv_op.compute_ifmap_ofmap_pewave_info(ifmap_pewave, ofmap_pewave, self.conv_op.is_conv_transpose)
         pearray_packed_weights = self.conv_op.pack_wave_conv_weights(
                                         weights, 
                                         ifmap_pewave,
                                         ofmap_pewave, 
-                                        repl_multiple_of_C
+                                        repl_multiple_of_C,
+                                        is_const_weights
                                         )
         if self.conv_op.is_conv_transpose:
             pearray_packed_ifmaps = self.conv_op.pack_wave_ifmaps_deconv(
@@ -1304,6 +1313,9 @@ class FusedOp(list):
                                             batch_item) \
                                         or self.first_op.is_concat   # always load weights for concat
             (writers, readers, dram_weights_waveops, new_reader_morsels) = ([], [], [], [])
+            
+            # if weights are dynamic, it will be collected to weight_writer_waveop.
+            weight_writer_waveops = []
             if load_weights_into_pearray:
                 (writers, readers, dram_weights_waveops, new_reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
                                         tpb.waveop_stream.waveop_count,
@@ -1316,6 +1328,7 @@ class FusedOp(list):
                                         start_at_mid_part = False,
                                         end_after_mid_part = True,
                                         repl_multiple_of_C = repl_multiple_of_C)
+                weight_writer_waveops = [ tpb.waveop_stream[waveop_id] for waveop_id in weight_writer_waveops ]
                 if (self.args.debug > 2): print("DBG %s: MatMul weight_wave_lower_addr %d weight_wave_upper_addr %d"%(self.conv_op.data['layer_name'], self.conv_op.weight_wave_lower_addr, self.conv_op.weight_wave_upper_addr))                
                 for i in dram_weights_waveops: tpb.waveop_stream.add_linked(i, [], -1)
 
@@ -1355,7 +1368,7 @@ class FusedOp(list):
                     ofmap_pewave, 
                     psum_add, 
                     psum_bank_id, 
-                    dram_weights_waveops, 
+                    dram_weights_waveops + weight_writer_waveops, 
                     load_weights_into_pearray,
                     repl_multiple_of_C, 
                     self.conv_op.is_conv_transpose)
@@ -3019,6 +3032,8 @@ class FusedOp(list):
         inputs = self.first_op.ifmaps_file_params.dram_data
         weights = self.conv_op.weights_file_params.dram_data
 
+        is_const_weights = not self.conv_op.weights_file_params.is_dynamic_weights
+
         # start tensor computation by clearing psum bank
         psum_add = False                               
 
@@ -3048,7 +3063,7 @@ class FusedOp(list):
                                     if self.conv_op.repl_multiple_of_C > 1:
                                         repl_multiple_per_wave = min(remaining_filter_elems, self.conv_op.repl_multiple_of_C)
                                         remaining_filter_elems -= self.conv_op.repl_multiple_of_C
-                                    if (self.execute_matmul_waveop(tpb, ifmap_pewave, ofmap_pewave, inputs, weights, psum_add, psum_bank_id, repl_multiple_per_wave)):
+                                    if (self.execute_matmul_waveop(tpb, ifmap_pewave, ofmap_pewave, inputs, weights, psum_add, psum_bank_id, repl_multiple_per_wave, is_const_weights)):
                                         psum_add = True
                                     s_id += self.conv_op.repl_multiple_of_C
                                 r_id += s_id//self.conv_op.S

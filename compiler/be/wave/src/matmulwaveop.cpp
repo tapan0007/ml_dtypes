@@ -47,6 +47,7 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
     , m_IfmapReplicationShiftAmnt(params.m_IfmapReplicationShiftAmnt)
     , m_QuantOffsetIfmaps(params.m_QuantOffsetIfmaps)
     , m_QuantOffsetWeights(params.m_QuantOffsetWeights)
+    , m_IsDynamicWeights(params.m_IsDynamicWeights)
 {
     assert(params.verify());
     assert(verify());

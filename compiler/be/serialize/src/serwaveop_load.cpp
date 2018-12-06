@@ -166,6 +166,8 @@ SerWaveOp::loadMatMul(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(IfmapReplicationResolution);
     KCC_ARCHIVE(IfmapReplicationShiftAmnt);
 
+    KCC_ARCHIVE(IsDynamicWeights);
+
     if (utils::DataType::qNeedsQuantization(m_InDtype.c_str())) {
         KCC_ARCHIVE(QuantOffsetIfmaps);
         KCC_ARCHIVE(QuantOffsetWeights);

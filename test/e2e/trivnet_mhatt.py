@@ -89,10 +89,16 @@ if __name__ == '__main__':
         b_input_x_r_np = b_input_x_np.reshape([batch_input_len, conf.NUMHID])
         b_input_y_r_np = b_input_y_np.reshape([batch_output_len, conf.NUMHID])
 
-        q_kernel_t = q_kernel.T
-        k_kernel_t = k_kernel.T
-        v_kernel_t = v_kernel.T
-        tr_kernel_t = tr_kernel.T
+        np_q_kernel_t = q_kernel.T
+        np_k_kernel_t = k_kernel.T
+        np_v_kernel_t = v_kernel.T
+        np_tr_kernel_t = tr_kernel.T
+
+        q_kernel_t = tf.placeholder(conf.tfDataType, name='input_q', shape=np_q_kernel_t.shape)
+        k_kernel_t = tf.placeholder(conf.tfDataType, name='input_k', shape=np_q_kernel_t.shape)
+        v_kernel_t = tf.placeholder(conf.tfDataType, name='input_v', shape=np_q_kernel_t.shape)
+        tr_kernel_t = tf.placeholder(conf.tfDataType, name='input_tr', shape=np_q_kernel_t.shape)
+
 
         b_input_x_r = tf.placeholder(conf.tfDataType, name='input_x_r',
             shape=[batch_input_len, conf.NUMHID])
@@ -116,15 +122,27 @@ if __name__ == '__main__':
         b_v_t_heads_tiled = tf.matmul(v_kernel_t, b_input_y_r, transpose_b=True, # (1024, 64), 88.88%
             name='%s/part1/b_v_heads_t_tiled' % conf.netName)
 
+        # if there is no node from input to output in subgraph, runtime is not happy
+        # it cannot find npy files.
+        tr_kernel_t = tf.nn.relu(tr_kernel_t, name='sg00_out__input_tr')
+        b_bias_br = tf.nn.relu(b_bias_br, name='sg00_out__b_bias_br')
+
+        ############ first multi cut between sg0 and sg1 #################
+
+        tr_kernel_t = tf.nn.relu(tr_kernel_t, name='tr_part')
+
         # must have transpose for efficiency reasons
         b_q_heads_tiled = tf.transpose(b_q_t_heads_tiled, perm=[1, 0], # (64, 1024)
             name='%s/part1/b_q_heads_tiled' % conf.netName)
         b_k_heads_tiled = tf.transpose(b_k_t_heads_tiled, perm=[1, 0], # (64, 1024)
             name='%s/part1/b_k_heads_tiled' % conf.netName)
-        b_v_t_heads_tiled = tf.identity(b_v_t_heads_tiled,
+
+        b_v_t_heads_tiled = tf.nn.relu(b_v_t_heads_tiled,
             name='%s/part1/b_v_heads_t_tiled_for_partition' % conf.netName)
-        b_bias_br = tf.identity(b_bias_br,
+        b_bias_br = tf.nn.relu(b_bias_br,
             name='%s/part1/b_bias_br_for_partition' % conf.netName)
+
+        ################## END OF CUT #######################
 
         with tf.name_scope('%s/part2' % conf.netName):
             # no way to make this efficient but matrices are small
@@ -160,9 +178,15 @@ if __name__ == '__main__':
             b_weighted_v_tiled = tf.concat(b_weighted_v_list, axis=0, # (64, 1024)
                 name='b_weighted_v_tiled')
 
+        # cut point between sg01 and sg02
+        tr_kernel_t = tf.nn.relu(tr_kernel_t, name = 'tr_part2')
+
         # (1024, 1024) * (1024, 64) --> (1024, 64), 88.88%
-        output_t = tf.matmul(tr_kernel_t, b_weighted_v_tiled,
+        b_weighted_v_tiled_wa = tf.nn.relu(b_weighted_v_tiled, name='%s/part3/pre_output' % conf.netName)
+        output_t = tf.matmul(tr_kernel_t, b_weighted_v_tiled_wa,
             transpose_b=True, name='%s/part3/output' % conf.netName) # (1024, 64)
+
+        """
         sess = tf.Session()
         b_att_t_np = sess.run(output_t, feed_dict={
             b_input_x_r: b_input_x_r_np,
@@ -172,8 +196,13 @@ if __name__ == '__main__':
         print(b_att_np, b_att_np.shape)
         error = b_att_ref_np.ravel() - b_att_np.ravel()
         print('rms error:', np.sqrt((error * error).mean()))
+        """
 
         input_data = {
+            'input_q:0': np_q_kernel_t,
+            'input_k:0': np_k_kernel_t,
+            'input_v:0': np_v_kernel_t,
+            'input_tr:0': np_tr_kernel_t,
             'input_x_r:0': b_input_x_r_np,
             'input_y_r:0': b_input_y_r_np,
             'input_bias_br:0': b_bias_br_np,

@@ -80,7 +80,6 @@ NNE_OPTION_IDX = 4
 
 testConfigMap = {
 
-
 #  Activation
   "0-rtl-2conv3_relu_h1c1m1r3_wave"      : [ "trivnet_lin", "tfloat16-l2-b1-h1-r3-s1-c1-m1-relu-wmin-0.2-wmax0.24-imin-10000-imax10100", "1conv3", MEv2("Generic")],
   "0-rtl-2conv3_relu_h16c64m64r3_wave"  : [ "trivnet_lin", "tfloat16-l2-b1-h16-r3-s1-c64-m64-relu-wmin0.23-wmax0.24-imin-0.1-imax0.2",   "1conv3", MEv2("Generic")],
@@ -127,10 +126,33 @@ testConfigMap = {
     MEv2("Generic")
   ],
 
+  # Matmul with two dynamic values
+  "0-matmul_h1c1m1" : [ "trivnet_matmul_2in", "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv" ,
+    " --partition none --focus_to 1conv/matmul --executor wave 0 host 1 --images linspace1 linspace1 --use_wc_2d_format " + MEv2("Generic"),
+    " --check_against_ref all_available --input_files input0:0=trivnet_input0:0.npy input1:0=trivnet_input1:0.npy "],
+  "0-matmul_h1c4m1" : [ "trivnet_matmul_2in", "tfloat16-b1-h1-r1-s1-c4-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv" ,
+    " --partition none --focus_to 1conv/matmul --executor wave 0 host 1 --images linspace1 linspace1 --use_wc_2d_format " + MEv2("Generic"),
+    " --check_against_ref all_available --input_files input0:0=trivnet_input0:0.npy input1:0=trivnet_input1:0.npy "],
+  "0-matmul_h1c128m1" : [ "trivnet_matmul_2in", "tfloat16-b1-h1-r1-s1-c128-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv" ,
+    " --partition none --focus_to 1conv/matmul --executor wave 0 host 1 --images linspace1 linspace1 --use_wc_2d_format " + MEv2("Generic"),
+    " --check_against_ref all_available --input_files input0:0=trivnet_input0:0.npy input1:0=trivnet_input1:0.npy "],
+  "0-matmul_h16c64m16" : [ "trivnet_matmul_2in", "tfloat16-b1-h16-r1-s1-c64-m16-wmin2-wmax2.2-imin3-imax3.2", "1conv" ,
+    " --partition none --focus_to 1conv/matmul --executor wave 0 host 1 --images linspace1 linspace1 --use_wc_2d_format " + MEv2("Generic"),
+    " --check_against_ref all_available --input_files input0:0=trivnet_input0:0.npy input1:0=trivnet_input1:0.npy "],
+  "0-matmul_h32c64m32" : [ "trivnet_matmul_2in", "tfloat16-b1-h32-r1-s1-c64-m32-wmin2-wmax2.2-imin3-imax3.2", "1conv" ,
+    " --partition none --focus_to 1conv/matmul --executor wave 0 host 1 --images linspace1 linspace1 --use_wc_2d_format " + MEv2("Generic"),
+    " --check_against_ref all_available --input_files input0:0=trivnet_input0:0.npy input1:0=trivnet_input1:0.npy "],
+  "0-matmul_h64c1024m64" : [ "trivnet_matmul_2in", "tfloat16-b1-h64-r1-s1-c1024-m64-wmin2-wmax2.2-imin3-imax3.2", "1conv" ,
+    " --partition none --focus_to 1conv/matmul --executor wave 0 host 1 --images linspace1 linspace1 --use_wc_2d_format " + MEv2("Generic-NoVerify"),
+    " --check_against_ref all_available --input_files input0:0=trivnet_input0:0.npy input1:0=trivnet_input1:0.npy "
+    " --diff_options '--tolerance 3.0 1e-5' "],
+
+
   "0-rtl-10conv_h16c128m64_relu_wave"  : [ "trivnet_lin",    "tfloat16-l10-b1-h4-r3-s1-c1-m1-relu-wmin-0.39-wmax0.4-imin-0.1-imax0.2", "10cr", MEv2("Generic")],
   "0-rtl-10conv_h32c256m128_relu_wave" : [ "trivnet_lin",    "tfloat16-l10-b1-h4-r3-s1-c1-m1-relu-wmin-0.02-wmax0.4-imin-0.1-imax0.2", "10cr", MEv2("Generic")],
  ########### ########### ########### ########### ########### ########### ########### ###########
   "0-rtl-1conv_wave"                   : [ "trivnet_conv1",    "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2",         "1conv" , MEv2("Generic")],
+
   "0-rtl-1conv_m8_wave"                : [ "trivnet_conv1",    "tfloat16-b1-h1-r1-s1-c1-m8-wmin2-wmax2.2-imin3-imax3.2",         "1conv" , MEv2("Generic")],
   "0-rtl-1conv_h2c16_wave"             : [ "trivnet_conv1",    "tfloat16-b1-h2-r1-s1-c16-m1-wmin2-wmax2.2-imin1-imax7",          "1conv" , MEv2("Generic")],
   "0-rtl-1conv_h4r2c8m4_wave"          : [ "trivnet_conv1",    "tfloat16-b1-h4-r2-s1-c8-m4-wmin-0.1-wmax0.12-imin-0.2-imax0.25", "1conv" , MEv2("Generic")],

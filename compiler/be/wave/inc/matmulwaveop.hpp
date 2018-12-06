@@ -167,6 +167,10 @@ public:
         return m_QuantOffsetWeights;
     }
 
+    bool qIsDynamicWeights() const {
+        return m_IsDynamicWeights;
+    }
+
 private:
     MatMulWaveOp() = delete;
     MatMulWaveOp(const MatMulWaveOp&) = delete;
@@ -205,6 +209,7 @@ private:
 
     kcc_uint16      m_QuantOffsetIfmaps     = 0;
     kcc_uint16      m_QuantOffsetWeights    = 0;
+    bool            m_IsDynamicWeights     = false;
 }; // class MatMulWaveOp : public WaveOp
 
 
@@ -247,6 +252,8 @@ public:
 
     kcc_uint16      m_QuantOffsetIfmaps     = 0;
     kcc_uint16      m_QuantOffsetWeights    = 0;
+
+    bool            m_IsDynamicWeights     = false;
 };
 
 }}

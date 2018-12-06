@@ -43,14 +43,14 @@ WaveCodeMatMul::generate(wave::WaveOp* waveOp)
     auto matmulWaveOp = dynamic_cast<wave::MatMulWaveOp*>(waveOp);
     assert(matmulWaveOp);
 
-    generateLoadWeights(matmulWaveOp);
-    generateMatMul(matmulWaveOp);
+    bool SyncPrevWavesOnMatMulInstr = generateLoadWeights(matmulWaveOp);
+    generateMatMul(matmulWaveOp, SyncPrevWavesOnMatMulInstr);
 }
 
 
 
 //************************************************************************
-void
+bool
 WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
 {
     assert(matmulWaveop->verify());
@@ -65,7 +65,8 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
             if (! prevWaveEdge->qNeedToImplementSync()) {
                 continue;
             }
-            if (! qLoadWeightsWaitsFor(prevWaveEdge)) {
+
+            if (!qLoadWeightsWaitsFor(prevWaveEdge)) {
                 continue;
             }
             if (prevWaveEdge->qSyncedWithEvent()) {
@@ -80,7 +81,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
                        " to ", prevWaveEdge->gToOp()->gName());
             }
         }
-        return; // No LdWeights instructions
+        return true; // No LdWeights instructions
     }
     //const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
 
@@ -145,6 +146,9 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     // incoming events
     //************************************************************************
     bool firstEmbEvt = true;
+    // Synchronizations to MatMul predecessors are created on MatMul
+    // except for dynamic weights.
+    bool SyncPrevWavesOnMatMulInstr = !matmulWaveop->qIsDynamicWeights(); 
 
     if (qParallelStreams()) { // incoming events
         std::set<events::EventId> eventIds;
@@ -153,7 +157,11 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
             if (! prevWaveEdge->qNeedToImplementSync()) {
                 continue;
             }
-            if (! qLoadWeightsWaitsFor(prevWaveEdge)) {
+
+            // For dynamic weights, LoadWeight instructions should wait for all predecessors
+            // of MatMul one of which produces dynamic weights. If we have data dependence information,
+            // LoadWeight can wait only for a node producing the weights.
+            if (SyncPrevWavesOnMatMulInstr && !qLoadWeightsWaitsFor(prevWaveEdge)) {
                 continue;
             }
 
@@ -190,6 +198,8 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
         m_WaveCode.SaveName(ldweightsInstr, oss.str().c_str());
     }
     m_WaveCode.writeInstruction(ldweightsInstr);
+
+    return SyncPrevWavesOnMatMulInstr;
 }
 
 
@@ -213,7 +223,7 @@ WaveCodeMatMul::qLoadWeightsWaitsFor(const wave::WaveEdge* prevEdge) const
 
 //************************************************************************
 void
-WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
+WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop, bool SyncPrevWavesOnMatMulInstr)
 {
     const arch::Arch& arch(arch::Arch::gArch());
     const arch::PsumBuffer& psumBuf(arch.gPsumBuffer());
@@ -271,8 +281,9 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
     AssignWithSizeCheck(matmulInstr.inst_events.set_event_idx, 0);
     AssignWithSizeCheck(matmulInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
 
+
     //************************************************************************
-    if (qParallelStreams()) { // incoming events
+    if (SyncPrevWavesOnMatMulInstr && qParallelStreams()) { // incoming events
         std::set<events::EventId> eventIds;
         bool firstEmb = true;
 

@@ -175,7 +175,11 @@ class KNode:
         input_layer = None
         prev_index = 0
         if self.is_join:
-            prev_index = 1-self.residue_index
+            if (self.data['layer_type'] == 'MatMul'):
+                # Matmul with dynamic weights (two runtime operands)
+                prev_index = 0
+            else:
+                prev_index = 1-self.residue_index
             assert(self.residue_index <= 1)
         if len(self.prev) > 0: # should work for 2-input cases (like ResAdd/Multiply)
             #raise RuntimeError("no more input to choose from when trying to decided the main input for layer %s"%(self.data['layer_name']))
@@ -263,6 +267,8 @@ class KNode:
     def populate_conv_params(self):
         # convolution kernel shape
         layer_info = self.data
+
+        is_const_weight = True
         if (layer_info['layer_type'] == 'Softmax2'):
             weights_shape_dims = ShapeDims(layer_info['ofmap_format'], layer_info['ofmap_shape'])
             weights_file = self.data['ref_file'].replace(".npy", "-ones.npy")
@@ -276,25 +282,42 @@ class KNode:
                 assert(kernel_format == 'MRSC')
                 kernel_format = 'CRSM'
             weights_shape_dims = ShapeDims(kernel_format, layer_info['kernel_shape'])
-            weights_file = self.data['kernel_file']
-        try:
-            weights_data_type = str(np.load(weights_file, mmap_mode='r').dtype)
-        except IOError:
-            weights_data_type = self.data_type
-        self.weights_file_params = FileParams(
-                                        file_name       = weights_file,
-                                        file_dims       = weights_shape_dims,
-                                        data_type       = weights_data_type,
-                                        op_params       = self,
-                                        args            = self.parent.args,
-                                        contain_weights = True)
+            is_const_weight = len(self.data['previous_layers']) <= 1
+            if is_const_weight:
+                weights_file = self.data['kernel_file']
+
+        if is_const_weight :
+            try:
+                weights_data_type = str(np.load(weights_file, mmap_mode='r').dtype)
+            except IOError:
+                weights_data_type = self.data_type
+            self.weights_file_params = FileParams(
+                                            file_name       = weights_file,
+                                            file_dims       = weights_shape_dims,
+                                            data_type       = weights_data_type,
+                                            op_params       = self,
+                                            args            = self.parent.args,
+                                            contain_weights = True)
+        else:
+            # Review Me: Can we have more general handling for multiple ifmaps?
+            #
+            self.weights_file_params = self.prev[1].ofmaps_file_params
+            # contain_weights should be false. Otherwise, the backend regards
+            # SBAtomLoad for subgraph input as weights loading, so def.json
+            # will be wrong.
+            self.weights_file_params.contain_weights = False
+            self.weights_file_params.is_dynamic_weights = True
+
         if 'dilation_rate' in self.data:
             self.dilation = Dim2D(self.data['dilation_rate'][3], self.data['dilation_rate'][2])
         else:
             self.dilation = Dim2D(1,1)
-        self.weights_file_params.layer_name =  self.data['layer_name']
-        self.weights_file_params.load_file()
+
+        if is_const_weight:
+            self.weights_file_params.layer_name =  self.data['layer_name']
+            self.weights_file_params.load_file()
         self.weights_file_params.consumers.append(self)
+
         self.R = weights_shape_dims.R
         self.S = weights_shape_dims.S
         self.RS = self.R * self.S
@@ -307,9 +330,15 @@ class KNode:
         if self.parent.args.enable_replication and self.is_input:
             num_replicated_waves = ceildiv(self.RS * weights_shape_dims.C,  PEArray.NUM_ROWS)
             self.repl_multiple_of_C = ceildiv(self.R, num_replicated_waves) * self.S
-        print("Conv params for layer %s: R=%d, S=%d, dilation.y=%d, dilation.x=%d, repl_multiple_of_C=%d"
-                %(self.data['layer_name'], self.weights_file_params.file_dims.R,
-                   self.weights_file_params.file_dims.S, self.dilation.y, self.dilation.x, self.repl_multiple_of_C))
+
+        if is_const_weight:
+            print("Conv params for layer %s: R=%d, S=%d, dilation.y=%d, dilation.x=%d, repl_multiple_of_C=%d"
+                    %(self.data['layer_name'], self.weights_file_params.file_dims.R,
+                    self.weights_file_params.file_dims.S, self.dilation.y, self.dilation.x, self.repl_multiple_of_C))
+        else:
+            print("Conv params for layer %s: R=%d, S=%d, dilation.y=%d, dilation.x=%d, repl_multiple_of_C=%d"
+                    %(self.data['layer_name'], self.R,
+                    self.S, self.dilation.y, self.dilation.x, self.repl_multiple_of_C))
 
     # Compute pooling params
     def populate_pooling_params(self):
@@ -653,7 +682,7 @@ class KNode:
             - this KNode object's ifmap_count/ofmap_count (TODO: consolidate this elsewhere, maybe compute_ifmap_ofmap_tile_info)
             - weight_wave_lower/upper_addr (TODO: consolidate this elsewhere, maybe compute within Wave object when needed to emit waveop)
     """
-    def pack_wave_conv_weights(self, weights, ifmap_pewave, ofmap_pewave, repl_multiple_of_C):
+    def pack_wave_conv_weights(self, weights, ifmap_pewave, ofmap_pewave, repl_multiple_of_C, is_const_weights = True):
         out_array = np.zeros((ifmap_pewave.ifmap_channel_count * repl_multiple_of_C, ofmap_pewave.tile.channel_count))
         r_id = ofmap_pewave.r_id
         s_id = ofmap_pewave.s_id
@@ -671,7 +700,11 @@ class KNode:
             for row in range(ifmap_pewave.ifmap_channel_start, ifmap_pewave.ifmap_channel_stop):
                 pe_row_offset = pe_row_repl_start + row - ifmap_pewave.ifmap_channel_start
                 for col in range(ofmap_pewave.tile.channel_start, ofmap_pewave.tile.channel_stop):
-                    out_array[pe_row_offset, col - ofmap_pewave.tile.channel_start] = weights[row, r_id_temp, s_id_temp, col] # CRSM
+                    if is_const_weights:
+                        out_array[pe_row_offset, col - ofmap_pewave.tile.channel_start] = weights[row, r_id_temp, s_id_temp, col] # CRSM
+                    else:
+                        assert(r_id_temp == 0 and s_id_temp == 0 and 'We only support Matmul now.')
+                        out_array[pe_row_offset, col - ofmap_pewave.tile.channel_start] = weights[r_id_temp, row, s_id_temp, col] # NCHW
             if (self.parent.args.debug > 2): print("DBG: pack_wave_conv_weights for wave %s conv_transpose %d r_id %d s_id %d (repl_multiple_of_C %d)"%(ofmap_pewave.tile.id_array, self.is_conv_transpose, r_id_temp, s_id_temp, repl_multiple_of_C))
             s_id += 1
             if (s_id >= self.S):
@@ -1167,11 +1200,14 @@ class KGraph:
                 #       mul_1
                 #        |
                 #       add
-                unvisited_node = self.last_split_next_nodes[-1].pop()
-                if not (unvisited_node in fused_ops_map) and not (unvisited_node in fused_ops):
-                    self.current_node = unvisited_node
-                if self.last_split_next_nodes[-1] == []:
-                    self.last_split_next_nodes.pop()
+                self.current_node = None
+                while len(self.last_split_next_nodes) > 0:
+                    unvisited_node = self.last_split_next_nodes[-1].pop()
+                    if self.last_split_next_nodes[-1] == []:
+                        self.last_split_next_nodes.pop()
+                    if not (unvisited_node in fused_ops_map) and not (unvisited_node in fused_ops):
+                        self.current_node = unvisited_node
+                        break
             else:
                 self.current_node = None
 

@@ -34,8 +34,8 @@ public:
     void generate(wave::WaveOp* waveOp) override;
 
 private:
-    void generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp);
-    void generateMatMul(wave::MatMulWaveOp* matmulWaveOp);
+    bool generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp);
+    void generateMatMul(wave::MatMulWaveOp* matmulWaveOp, bool noSyncNeededOnMatMulInstr);
     bool qLoadWeightsWaitsFor(const wave::WaveEdge* prevEdge) const;
 };
 

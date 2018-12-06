@@ -205,6 +205,7 @@ constexpr static const char* WaveOpKey_ImmPtr0              = "imm_ptr0";
 constexpr static const char* WaveOpKey_ImmPtr1              = "imm_ptr1";
 
 
+constexpr static const char* WaveOpKey_IsDynamicWeights     = "is_dynamic_weights";
 
 //===================================================
 class SerWaveOp {
@@ -364,6 +365,7 @@ public:
     // waveop name
     // waveop type
     kcc_int64                   m_WeightsSbAddress      = -2;
+    bool                        m_IsDynamicWeights     = false;
 
     // Pool
     kcc_int64                   m_DstSbAddress      = -1;

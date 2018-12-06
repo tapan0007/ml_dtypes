@@ -621,6 +621,7 @@ class FileParams():
         self.args = args
         self.layer_name = "DEPRECATED"
         self.contain_weights = contain_weights # True for weights and bias and constants (used to tie-off BiasAdd in standalone Act)
+        self.is_dynamic_weights = False
         self.input_layer_ifmap = False
         self.final_layer_ofmap = False
         self.share_w_final_layer_ofmap = False

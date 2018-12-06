@@ -250,31 +250,41 @@ class TPBSched:
                     #if i.is_nop:
                     #    raise RuntimeError("Sorry, cannot have a data movement op (Reshape, Squeeze, ExpandDims) as the first node after placeholder")
                     if (i.data['layer_type'] == 'Conv' or i.data['layer_type'] == 'MatMul' or i.data['layer_type'] == 'Softmax2'):
-                        # compute early to detect replication and to obtain some params; will be recomputed in get_fused_ops
-                        i.populate_conv_params()
-                        i.populate_common_params(False)
-                        # IFMAP replication
-                        if i.repl_multiple_of_C > 1 and not i.ifmaps_padded_and_split:
-                            (file_name, new_shape) = pad_and_split_file(
-                                                        first_op.data['ref_file'], 
-                                                        first_op.data['ofmap_format'],
-                                                        i.stride.x,
-                                                        i.padWN.x, i.padES.x,
-                                                        i.padWN.y, i.padES.y)
-                            first_op.data['ref_file'] = file_name
-                            # fake the shape to make convolution work
-                            [N, C, H, W] = new_shape
-                            first_op.data['ofmap_shape'] = [N, C, H//i.stride.x, W*i.stride.x]
-                            #first_op.data['ofmap_shape'] = new_shape
-                            # clear padding info after modifying IFMAP
-                            i.data['padding'][2] = [0, 0]
-                            i.data['padding'][3] = [0, 0]
-                            i.ifmaps_padded_and_split = True
-                            # Populate OFMAP params                        
-                            first_op.populate_ofmaps_file_params()
-                            first_op.ofmaps_file_params.input_layer_ifmap = True
-                            first_op.ofmaps_file_params.compute_params(i.stride, args, repl_multiple_of_C = i.repl_multiple_of_C)
-                            print("INFO: Pad and split input FMAPs due to replication, replication multiple %d, input_layer_ifmap %d"%(i.repl_multiple_of_C, first_op.ofmaps_file_params.input_layer_ifmap))
+                        # We support matmul with the non-constant second operand.
+                        # Fixme: resiude_index is not set before entering populate_common_params..
+                        skip_conv_populate = False
+                        if (i.data['layer_type'] == 'MatMul') and i.is_join:
+                            i.residue_index = 1
+                            # All inputs must be visit and ofmaps have to be created!
+                            skip_conv_populate = i.prev[0].ofmaps_file_params == None or i.prev[1].ofmaps_file_params == None
+                            i.data['previous_layers'][1] == first_op.data['layer_name']
+
+                        if skip_conv_populate == False:
+                            # compute early to detect replication and to obtain some params; will be recomputed in get_fused_ops
+                            i.populate_conv_params()
+                            i.populate_common_params(False)
+                            # IFMAP replication
+                            if i.repl_multiple_of_C > 1 and not i.ifmaps_padded_and_split:
+                                (file_name, new_shape) = pad_and_split_file(
+                                                            first_op.data['ref_file'], 
+                                                            first_op.data['ofmap_format'],
+                                                            i.stride.x,
+                                                            i.padWN.x, i.padES.x,
+                                                            i.padWN.y, i.padES.y)
+                                first_op.data['ref_file'] = file_name
+                                # fake the shape to make convolution work
+                                [N, C, H, W] = new_shape
+                                first_op.data['ofmap_shape'] = [N, C, H//i.stride.x, W*i.stride.x]
+                                #first_op.data['ofmap_shape'] = new_shape
+                                # clear padding info after modifying IFMAP
+                                i.data['padding'][2] = [0, 0]
+                                i.data['padding'][3] = [0, 0]
+                                i.ifmaps_padded_and_split = True
+                                # Populate OFMAP params                        
+                                first_op.populate_ofmaps_file_params()
+                                first_op.ofmaps_file_params.input_layer_ifmap = True
+                                first_op.ofmaps_file_params.compute_params(i.stride, args, repl_multiple_of_C = i.repl_multiple_of_C)
+                                print("INFO: Pad and split input FMAPs due to replication, replication multiple %d, input_layer_ifmap %d"%(i.repl_multiple_of_C, first_op.ofmaps_file_params.input_layer_ifmap))
             else:       
                 # maintain a linked-list of fused_ops
                 # grab the current batch count from previous fused_ops

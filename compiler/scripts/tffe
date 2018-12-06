@@ -66,6 +66,10 @@ parser.add_argument('--input_node', help='Input node in the neural network graph
                     nargs='+', default=[])
 parser.add_argument('--sg_input_format', help='Subgraph input node format (original number of dimensions) to override default format, specified as alternating node and format: <node0> <format0> <node1> <format1>; check subgraphs for proper input node names',
                     nargs='+', default=[])
+parser.add_argument('--use_wc_2d_format', help='Use [W,C] TF format. The default is [N,C]', dest="use_wc_2d_format",
+                    action="store_true",  default=False)                   
+parser.add_argument('--use_hwc_3d_format', help='Use [H,W,C] TF format for 3D tensors w/o batching. The default is [N,W,C]', 
+                    dest="use_hwc_3d_format", action="store_true",  default=False)                   
 parser.add_argument('--dot_timeout', help='Timeout for planarization of op and flow graphs in Graphviz, default 60 sec ',
                     type=int, default=60)
 parser.add_argument('--scheduler', help='Select scheduler method tcc or wave, wave2, qemu_wave, default is tcc',
@@ -176,7 +180,7 @@ if iformat != []:
 
 debugLevel = args.debug
 dotTimeout = args.dot_timeout
-tffe = TfFrontEnd.TfFe(args.width, debugLevel, dotTimeout, args.batch, args.show_op_name_in_kgraph, inputNamesToFormat)
+tffe = TfFrontEnd.TfFe(args.width, debugLevel, dotTimeout, args.batch, args.show_op_name_in_kgraph, inputNamesToFormat, args.use_wc_2d_format, args.use_hwc_3d_format)
 tffe.loadPb(tfpbFile, args.focus, args.focus_to)
 kog = tffe.getKaenaOpGraph()
 kog.setSchedulerMode(args.scheduler)

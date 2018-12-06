@@ -48,6 +48,8 @@ class Config:
 """
     showOpNameInKgraph = False
     inputNamesToFormat = {}
+    useWCFormat = False
+    useHWCFormat = False
   class Dot:
     timeout = 60
   class Scheduler:
@@ -233,13 +235,55 @@ class Node(Object):
       numBytes += npInfo.nbytes()
     return numBytes
 
-  def convertShape(self, npInfo, tensorFormatMap, isConst=False):
+  def getTpbShape(self, npInfo):
     if len(npInfo.npShape) == 3:
-      tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
-      tfFormat = npt.NWC
+      if Config.Graph.useHWCFormat:
+        tfShape4D = npt.hwcShapeToNHWC(npInfo.npShape)
+      else:
+        tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
     elif len(npInfo.npShape) == 2:
-      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-      tfFormat = npt.NC
+      if Config.Graph.useWCFormat:
+        tfShape4D = npt.wcShapeToNHWC(npInfo.npShape)
+      else:
+        tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+    elif len(npInfo.npShape) == 1:
+      tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+    elif len(npInfo.npShape) == 0:
+      tfShape4D = []
+    else:
+      assert len(npInfo.npShape) == 4
+      tfShape4D = npInfo.npShape
+    tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))      
+    return tpbShape
+
+
+  def convertShapeForConstWeights(self, npInfoIF1, tensorFormatMap):
+    # The matrix side input is handled like convolution weights
+    tfShape4Dw = npt.cmShapeToRSCM(npInfoIF1.npShape)
+    (npFileSimW, simFormatW)  = npt.copyNpyFileAs(npInfoIF1.npFile, npt.TF, npt.SIM, npt.Weights, tfShape4Dw)
+    tensorFormatMap.add(npInfoIF1.tensorName,
+                        TensorFormat(npInfoIF1.tensorName, self.getOpName(),
+                                     npInfoIF1.npFile, npt.CM,
+                                     npFileSimW, simFormatW, True))  # const in CNNs, may need to split the node class for LSTMs
+    tpbShape4Dw = list(npt.reorderShape(tfShape4Dw, npt.TF, npt.SIM, npt.Weights))
+    return (tpbShape4Dw, simFormatW, npFileSimW)                        
+
+  def convertShape(self, npInfo, tensorFormatMap, isConst=False):
+
+    if len(npInfo.npShape) == 3:
+      if Config.Graph.useHWCFormat:
+        tfShape4D = npt.hwcShapeToNHWC(npInfo.npShape)
+        tfFormat = npt.HWC  
+      else:
+        tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
+        tfFormat = npt.NWC
+    elif len(npInfo.npShape) == 2:
+      if Config.Graph.useWCFormat:
+        tfShape4D = npt.wcShapeToNHWC(npInfo.npShape)
+        tfFormat = npt.WC        
+      else:
+        tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+        tfFormat = npt.NC
     elif len(npInfo.npShape) == 1:
       tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
       tfFormat = npt.C
@@ -254,6 +298,7 @@ class Node(Object):
     # Overwrite format from command line
     simFormat = ""
     if self.getName() in Config.Graph.inputNamesToFormat:
+      # overriding is limited to Fmaps now.
       tfFormat = Config.Graph.inputNamesToFormat[self.getName()]
       assert(len(tfFormat) == len(npInfo.npShape))
       if tfFormat == npt.NWC:
@@ -568,49 +613,8 @@ class NodeInput(Node):
   def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     npInfo = self.getNpInfo()[0]
-    if len(npInfo.npShape) == 3:
-      tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
-      tfFormat = npt.NWC
-    elif len(npInfo.npShape) == 2:
-      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-      tfFormat = npt.NC
-    elif len(npInfo.npShape) == 1:
-      tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
-      tfFormat = npt.C
-    else:
-      assert len(npInfo.npShape) == 4
-      tfShape4D = npInfo.npShape
-      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
 
-    # Overwrite format from command line
-    simFormat = ""
-    if self.getName() in Config.Graph.inputNamesToFormat:
-      tfFormat = Config.Graph.inputNamesToFormat[self.getName()]
-      assert(len(tfFormat) == len(npInfo.npShape))
-      if tfFormat == npt.NWC:
-        tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
-      elif tfFormat == npt.HNC:
-        tfShape4D = npt.hncShapeToHNWC(npInfo.npShape)
-        simFormat = npt.HNWC
-        (npFileSim, tpbShape) = npt.formatNpyFileAs(npInfo.npFile, npt.HNC, simFormat)
-      elif tfFormat == npt.NC:
-        tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-      elif tfFormat == npt.NW:
-        tfShape4D = npt.nwShapeToNHWC(npInfo.npShape)
-      elif tfFormat == npt.C:
-        tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
-      elif tfFormat == npt.Formats[npt.TF][npt.Fmaps]:
-        tfShape4D = npInfo.npShape
-      else:
-        print("ERROR: input format %s is not recognized (must be one of C, NC, NWC, HNC, or NHWC)"%self.inputFormat)
-
-    if simFormat == "":
-        tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
-        (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
-    tensorFormatMap.add(npInfo.tensorName,
-                        TensorFormat(npInfo.tensorName, self.getOpName(),
-                                     npInfo.npFile, tfFormat,
-                                     npFileSim, simFormat, False))
+    (tpbShape, simFormat, npFileSim) = self.convertShape(npInfo, tensorFormatMap)
 
     # TODO: if assertion fires, this sequence of subgraphs cannot execute on tonga (without help from transpose code on cpu).
     #assert npInfo.getValues().tobytes() == np.load(npFileSim).tobytes()
@@ -790,29 +794,34 @@ class NodeConv2D(NodeBasePaddedStrided):
     npInfo = self.getNpInfo()[0]
     tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
     ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
-    tpbFilterShape = list(npt.reorderShape(npInfoW.npShape, npt.TF, npt.SIM, npt.Weights))
+    
     # OFMAP
     (npFileSim, simFormatOF) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
     tensorFormatMap.add(npInfo.tensorName,
                         TensorFormat(npInfo.tensorName, self.getOpName(),
                                      npInfo.npFile, npt.Formats[npt.TF][npt.Fmaps],
                                      npFileSim, simFormatOF, False))
+    
     # IFMAP, not needed
     (npFileSimF, simFormatIF)  = npt.copyNpyFileAs(npInfoIF.npFile, npt.TF, npt.SIM, npt.Fmaps)
     tensorFormatMap.add(npInfoIF.tensorName,
                         TensorFormat(npInfoIF.tensorName, self.getOpName(),
                                      npInfoIF.npFile, npt.Formats[npt.TF][npt.Fmaps],
                                      npFileSimF, simFormatIF, False))
+   
     # WEIGHT
+    tpbFilterShape = list(npt.reorderShape(npInfoW.npShape, npt.TF, npt.SIM, npt.Weights))
     (npFileSimW, simFormatW) = npt.copyNpyFileAs(npInfoW.npFile, npt.TF, npt.SIM, npt.Weights)
     tensorFormatMap.add(npInfoW.tensorName,
                         TensorFormat(npInfoW.tensorName, self.getOpName(),
-                                     npInfoW.npFile, npt.Formats[npt.TF][npt.Weights],
-                                     npFileSimW, simFormatW, True))
+                                    npInfoW.npFile, npt.Formats[npt.TF][npt.Weights],
+                                    npFileSimW, simFormatW, True))
 
     fileList += [npFileSimW, npFileSim]
     stride = npt.reorderShape(self.getStrides(), npt.TF, npt.SIM, npt.Fmaps)
     padding = self.calcTpbPadding(self.getFilter2D(), self.getPaddingMode())
+   
+
     layerData = {
       "layer_type"      : "Conv",
       "kernel_file"     : npFileSimW,
@@ -826,6 +835,7 @@ class NodeConv2D(NodeBasePaddedStrided):
       "stride"          : stride,
       "#comment"        : "Two dimensional convolution with explicit padding"
     }
+        
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
     layerDataBase[0].update(layerData)
     fileListBase += fileList
@@ -1245,36 +1255,37 @@ class NodeMatMul(Node):
 
     # Output tensor is NC format
     npInfo = self.getNpInfo()[0]
-    tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-    tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
-    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
-    tensorFormatMap.add(npInfo.tensorName,
-                        TensorFormat(npInfo.tensorName, self.getOpName(),
-                                     npInfo.npFile, npt.NC,
-                                     npFileSim, simFormat, False))
-
-    # The IFMAP comes from reshape,  the other is (weight) matrix
+    (tpbShape, simFormat, npFileSim) = self.convertShape(npInfo, tensorFormatMap)
+    
+      # The IFMAP comes from reshape,  the other is (weight) matrix
     ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
+    
+    prevNames = [fromIfNode0.getName()]
+    (faninEdge0, faninEdge1) = self.getFaninEdges()
+    isWeightsConst = not faninEdge1.isInMainFlow()    
 
-    # The matrix side input is handled like convolution weights
-    tfShape4Dw = npt.cmShapeToRSCM(npInfoIF1.npShape)
-    (npFileSimW, simFormatW)  = npt.copyNpyFileAs(npInfoIF1.npFile, npt.TF, npt.SIM, npt.Weights, tfShape4Dw)
-    tensorFormatMap.add(npInfoIF1.tensorName,
-                        TensorFormat(npInfoIF1.tensorName, self.getOpName(),
-                                     npInfoIF1.npFile, npt.CM,
-                                     npFileSimW, simFormatW, True))  # const in CNNs, may need to split the node class for LSTMs
-    tpbShape4Dw = list(npt.reorderShape(tfShape4Dw, npt.TF, npt.SIM, npt.Weights))
+    if isWeightsConst:
+      # The matrix side input is handled like convolution weights
+      (tpbShape4Dw, simFormatW, npFileSimW) = self.convertShapeForConstWeights(npInfoIF1, tensorFormatMap)
+    else:
+      # The matrix side input is handled like convolution weights
+      (tpbShape4Dw, simFormatW, npFileSimW) = self.convertShape(npInfoIF1, tensorFormatMap)
+
+      prevNames += [fromIfNode1.getName()]
 
     layerData = {
-      "kernel_file"     : npFileSimW,
-      "kernel_format"   : simFormatW,
-      "kernel_shape"    : tpbShape4Dw,
-      "ofmap_shape"     : tpbShape,
-      "ofmap_format"    : simFormat,
-      "ref_file"        : npFileSim,
-      "previous_layers" : [fromIfNode0.getName()],
-      "#comment"        : "Two dimensional matrix multiply"
-    }
+        # no kernel_file is needed.
+        "kernel_format"   : simFormatW,
+        "kernel_shape"    : tpbShape4Dw,
+        "ofmap_shape"     : tpbShape,
+        "ofmap_format"    : simFormat,
+        "ref_file"        : npFileSim,
+        "previous_layers" : prevNames,
+        "#comment"        : "Two dimensional matrix multiply with two dynamic operands"
+    }  
+    if isWeightsConst:
+      layerData["kernel_file"] = npFileSimW
+
     fileList.append(npFileSim)
     fileList.append(npFileSimW)
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
@@ -1287,14 +1298,14 @@ class NodeMatMul(Node):
 
   def getOpCount(self, padded=False):
     npInfo = self.getNpInfo()[0]
-    tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-    tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+    tpbShape = self.getTpbShape(npInfo)
     (batch, channels, height, width) = tpbShape
+
     # The IFMAP comes from reshape,  the other is (weight) matrix
     ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
+
     # Get the depth dimension of MatMul by treating the 2nd input as Fmap (unlike TPB's implementation)
-    tfShape4D1 = npt.ncShapeToNHWC(npInfoIF1.npShape)
-    tpbShape1 = list(npt.reorderShape(tfShape4D1, npt.TF, npt.SIM, npt.Fmaps))
+    tpbShape1 = self.getTpbShape(npInfoIF1)
     (batch1_unused, channels1_unused, height1, width1_unused) = tpbShape1
 
     # 5 loops - batch, channels, and 3 for GEMM
@@ -1388,6 +1399,7 @@ class NodeReshape(Node):
 
     # The IFMAP comes from reshape,  the other is (weight) matrix
     ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
+
     # Both nodes are part of the main data flow
     # So use the tensor size to detect which one is reshape vector and which one IFMAP
     # Unsafe on 1x2 or 1x1 IFMAP
@@ -2329,47 +2341,7 @@ class Graph(Object):
       npInfo = inputNode.getNpInfo()[0]
       jsonData["data_type"] = npInfo.dType   # No conversion by npu.dtypeToStr() was needed
 
-      if len(npInfo.npShape) == 3:
-        tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
-        tfFormat = npt.NWC
-      elif len(npInfo.npShape) == 2:
-        tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-        tfFormat = npt.NC
-      elif len(npInfo.npShape) == 1:
-        tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
-        tfFormat = npt.C
-      else:
-        assert len(npInfo.npShape) == 4
-        tfShape4D = npInfo.npShape
-        tfFormat = npt.Formats[npt.TF][npt.Fmaps]
-  
-      # Overwrite format from command line
-      simFormat = ""
-      if self.getName() in Config.Graph.inputNamesToFormat:
-        tfFormat = Config.Graph.inputNamesToFormat[self.getName()]
-        assert(len(tfFormat) == len(npInfo.npShape))
-        if tfFormat == npt.NWC:
-          tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
-        elif tfFormat == npt.HNC:
-          tfShape4D = npt.hncShapeToHNWC(npInfo.npShape)
-          simFormat = npt.HNWC
-          (npFileSim, tpbShape) = npt.formatNpyFileAs(npInfo.npFile, npt.HNC, simFormat)
-        elif tfFormat == npt.NC:
-          tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-        elif tfFormat == npt.C:
-          tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
-        elif tfFormat == npt.Formats[npt.TF][npt.Fmaps]:
-          tfShape4D = npInfo.npShape
-        else:
-          print("ERROR: input format %s is not recognized (must be one of C, NC, NWC, HNC, or NHWC)"%inputNode.inputFormat)
-
-      if simFormat == "":
-         tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
-         (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
-      self.tensorFormatMap.add(npInfo.tensorName,
-                         TensorFormat(npInfo.tensorName, inputNode.getOpName(),
-                                      npInfo.npFile, tfFormat,
-                                      npFileSim, simFormat, False))
+      (tpbShape, simFormat, npFileSim) = inputNode.convertShape(npInfo, self.tensorFormatMap)
 
     outNpy = npFileSim
     # Conv and other layers
@@ -2639,6 +2611,3 @@ class Graph(Object):
     for n in weightNodes:
       weightBytes += n.getNpyInfoBytes()
     return opCount, weightBytes, ifmapBytes, ofmapBytes
-
-
-
