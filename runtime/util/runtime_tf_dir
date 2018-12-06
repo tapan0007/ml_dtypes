@@ -1,0 +1,201 @@
+#!/usr/bin/env python3
+
+# Copyright (C) 2018, Amazon.com. All Rights Reserved
+
+
+description='''
+Generates goldens and Kaena input files for a single subgraph kaena kelf model
+Implements top level of kelf hierachy (anything above krtd) for a single 
+purpose of validating multiple inferences on Tonga
+SIM kaena-1074, Story kaena-1072
+'''
+
+epilog = '''
+  Example for resnet50 float16 batch 1
+
+    $KAENA_PATH/test/e2e/RunAll --test 7-rn50_nosm_fp16_wave-no_repl
+
+    mkdir dir1; cp dog.jpg dir1/img01.jpg; cp cat.jpg dir1/img02.jpg; 
+
+    $KAENA_PATH/runtime/util/runtime_tf_dir --image_dir dir1 --tfpb 7-rn50_nosm_fp16_wave/tf.pb --nn_type rn50fp16 --input_map input_1:0=img%d.jpg --output_map fc1000/BiasAdd:0=gold-%d.npy
+    
+    # Run tonga inference using krtd on img01.jpg-prep_tonga.npy and write to img01.bin
+    
+    $KAENA_PATH/compiler/util/npy_diff_files --gold gold-01_tonga.npy --new img01.bin
+
+'''
+
+
+
+import argparse
+import os, sys, re
+import numpy as np
+from tensorflow.python.platform import gfile
+from tensorflow.core.framework import graph_pb2
+from tensorflow.python.saved_model import tag_constants
+import tensorflow as tf
+
+print("\nINFO: started as  ", " ".join(sys.argv), flush=True)
+
+kPath = os.environ.get('KAENA_PATH')
+kePath = os.environ.get('KAENA_EXT_PATH')
+sys.path.insert(0, kPath + "/compiler")
+import numpy as np
+from tffe.NpTransforms import NpTrans as npt
+
+parser = argparse.ArgumentParser(description=description, epilog=epilog,
+                                 formatter_class=argparse.RawTextHelpFormatter)
+parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb")
+parser.add_argument('--image_dir', help='Directory where to load input images from',
+                    default=None)
+parser.add_argument('--nn_type', help='Neural network type to select the right preprocessor, default rn50fp16',
+                    default='rn50fp16')
+parser.add_argument('--input_map', help='Tensor name to file name map, %%%%d is image id, example '
+                    'input1:0=img%%%%d.jpg input2:0=state%%%%d.npy',
+                    default=[], nargs='+')
+parser.add_argument('--output_map', help='For output tensors and files, same syntax as --input',
+                    default=[], nargs='+')
+
+args = parser.parse_args()
+assert len(args.input_map) > 0
+assert len(args.output_map) > 0
+
+tfpbFile = args.tfpb
+if not os.path.exists(tfpbFile):
+  raise("ERROR: missing --tfpb " + tfpbFile)
+
+class RuntimeTf:
+  
+  def __init__(self):
+    self.tfg = None
+  
+  def load(self, tfpbFile):
+    self.tfpbFile = tfpbFile
+    self.sess = None
+
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    config.gpu_options.per_process_gpu_memory_fraction = 0.08
+
+    if os.path.isdir(self.tfpbFile):
+      # Load model checkpoint
+      graph = tf.Graph()
+      with graph.as_default():
+        # Grow GPU memory as needed at the cost of fragmentation.
+        self.sess = tf.Session(graph=graph, config=config)
+        tf.saved_model.loader.load( self.sess, [tag_constants.SERVING], self.tfpbFile)
+    else:
+      self.tfg = graph_pb2.GraphDef()
+      with gfile.FastGFile(tfpbFile,'rb') as f:
+        self.tfg.ParseFromString(f.read())
+      self.sess = tf.Session(config=config)
+      with self.sess.as_default():
+        tf.import_graph_def(self.tfg, name="")
+
+  def infer(self, inputMap, outputMap):
+    with self.sess.as_default():
+      graph = self.sess.graph
+      
+      # Inject input tensors
+      feedDict = {}
+      for tensorName in inputMap:
+        tensorFile = inputMap[tensorName]
+        inputTensor = graph.get_tensor_by_name(tensorName)
+        inputValue = np.load(tensorFile)
+
+        # Check whether the input is bfloat16, convert if needed
+        if inputValue.dtype == '|V2':
+          inputValue = np.frombuffer(inputValue.tobytes(), dtype=tf.bfloat16.as_numpy_dtype).reshape(inputValue.shape)
+
+        feedDict[inputTensor] = inputValue
+      
+      # Collect results
+      outputVars = []
+      var2file = {}
+      for tensorName in outputMap:
+        outputVars.append(tensorName)
+      tfResults = self.sess.run(outputVars, feed_dict=feedDict)
+      for (var, nd) in zip(outputVars, tfResults):
+        if nd.size > 0:
+          outputFile = outputMap[var]
+          np.save(outputFile, np.ascontiguousarray(nd))
+          print("\nINFO: wrote tensor %s into %s" %
+                (var, outputFile), flush=True)
+
+# maps tensor name to a file pattern
+class TensorFileMap:
+  def __init__(self, tensorMapStr):
+    self.tensorName, self.filePattern = tensorMapStr.split('=')
+    self.fileRe = re.compile(self.filePattern.replace('%d', '(\d+)'))
+
+class Fmaps:
+
+  def __init__(self, imageDir, nnType, inputMaps, outputMaps, runtime):
+    self.imageDir = imageDir
+    self.nnType = nnType
+    self.inputMaps = [TensorFileMap(im) for im in inputMaps]
+    self.outputMap = [TensorFileMap(om) for om in outputMaps]
+    self.runtime = runtime
+    self.inputFiles = {}
+    self.outputFiles = {}
+    # Identify all input files
+    for f in os.listdir(self.imageDir):
+      for im in self.inputMaps:
+        match = re.search(im.fileRe, f)
+        if match:
+          infId = match.group(1)
+          if self.inputFiles.get(infId) == None:
+            self.inputFiles[infId] = {}
+          self.inputFiles[infId][im.tensorName] = f
+          print('INFO: found file ', f, infId, im.tensorName)
+    for infId in self.inputFiles:
+      for om in self.outputMap:
+        pat = om.filePattern.replace('%d', '%s')
+        if self.outputFiles.get(infId) == None:
+          self.outputFiles[infId] = {}
+        self.outputFiles[infId][om.tensorName] = pat % infId
+        print('INFO: mapped output ', infId, om.tensorName, self.outputFiles[infId][om.tensorName])
+
+  # Network specific pre/postprocessors
+  def preprocess(self):
+
+    if self.nnType == 'rn50fp16':
+      for infId in sorted(self.inputFiles):
+        rnPre = os.path.join(kPath, "compiler/util/res50_preprocessor.py --data-type fp16")
+        tensorName = list(self.inputFiles[infId].keys())[0]
+        fin = self.inputFiles[infId][tensorName]
+        fout = fin + '-prep_tf.npy'
+        rnPre += '  --inputs %s/%s' % (self.imageDir, fin)
+        rnPre += '  --output ' + fout
+        print('INFO: ', rnPre)
+        os.system(rnPre)
+        self.inputFiles[infId][tensorName] = fout
+        # Reformat the imput fmap layout for Tonga runtime
+        foutTonga = fin + '-prep_tonga.npy'
+        npt.formatNpyFileAs(fout, 'NHWC', 'NCHW', outFile=foutTonga)
+    else:
+      raise ValueError('ERROR: unrecognized --nn_type ' + self.nnType)
+
+  def postprocess(self):
+
+    if self.nnType == 'rn50fp16':
+      for infId in sorted(self.outputFiles):
+        tensorName = list(self.outputFiles[infId].keys())[0]
+        foutTf = self.outputFiles[infId][tensorName]
+        assert foutTf.endswith('.npy')
+        foutTonga = foutTf.replace('.npy', '_tonga.npy')
+        npt.formatNpyFileAs(foutTf, 'NHWC', 'NCHW', outFile=foutTonga, srcShape=[1,1,1,1000])
+    else:
+      raise ValueError('ERROR: unrecognized --nn_type ' + self.nnType)
+
+  def infer(self):
+    for infId in self.inputFiles:
+      self.runtime.infer(self.inputFiles[infId], self.outputFiles[infId])
+
+
+runtime = RuntimeTf()
+runtime.load(tfpbFile)
+fmaps = Fmaps(args.image_dir, args.nn_type, args.input_map, args.output_map, runtime)
+fmaps.preprocess()
+fmaps.infer()
+fmaps.postprocess()
