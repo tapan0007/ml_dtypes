@@ -951,7 +951,7 @@ class FileMapper():
         last_unused_gap_start = 0
         last_unused_gap_size = 0
         last_unused_gap_tracking = False
-        for i in range(0, self.sb_partition_sz, self.item_sz):
+        for i in range(0, self.sb_partition_sz, self.item_sz): # TODO: make this work for mixed data type
             morsel_unused = True
             for j in range(2):
                 if self.morsels_wr[j][i].accessor_id >= 0:
@@ -1302,7 +1302,7 @@ class FileMapper():
         assert(length > 0)
         #assert(length <= file_params.mapped_params.region_sz)
         assert(start_addr >= 0)
-        end_file_addr       = start_addr + length - self.item_sz
+        end_file_addr       = start_addr + length - file_params.item_sz
         start_sb_addr       = self.get_sb_addr_from_file_addr(file_params, batch_item, start_addr)
         end_sb_addr         = self.get_sb_addr_from_file_addr(file_params, batch_item, end_file_addr)
         start_chunk_id      = self.get_chunk_id_from_file_addr(file_params, batch_item, start_addr)
@@ -1325,7 +1325,7 @@ class FileMapper():
             # kaena-643: track dependencies for the padded morsels also (due to alignment requirement)
             if chunk_len == file_params.chunk_sz:
                 chunk_len = file_params.chunk_sz_padded
-            end_fmap_addr = start_fmap_addr + chunk_len - self.item_sz
+            end_fmap_addr = start_fmap_addr + chunk_len - file_params.item_sz
             # create morsel accessor objects
             new_morsel_wr = SbMorsel(waveop_id, file_params.file_id, i, batch_item)
             # (the morsel reader is initialized no owner, since we are writing fresh data)
@@ -1334,7 +1334,7 @@ class FileMapper():
             if self.debug > 4:
                 print("INFO SB TRACE: batch item %d: Writer waveop ID %d is writing chunk_id %d (full chunk SB range %d-%d, write SB range %d-%d) of file %s"%(batch_item, waveop_id, i, start_fmap_addr, end_fmap_addr, start_sb_addr, end_sb_addr, file_params.file_name))
             if waveop_id >= 0:
-                for j in range(start_fmap_addr, end_fmap_addr + self.item_sz, file_params.item_sz):
+                for j in range(start_fmap_addr, end_fmap_addr + file_params.item_sz, file_params.item_sz):
                     sb_addr = j
                     if is_sb_addr_in_bound(sb_addr, start_sb_addr, end_sb_addr) \
                             or (file_params.args is not None and file_params.args.relax_dependencies):
@@ -1605,12 +1605,12 @@ class FileMapper():
             list_of_writers_per_chunk = []
             fmap_count      = self.get_fmap_count_from_chunk_id(file_params, batch_item, i)
             start_fmap_addr = self.get_sb_addr_from_chunk_id(file_params, batch_item, i)
-            end_fmap_addr = start_fmap_addr + self.get_chunk_len_from_chunk_id(file_params, batch_item, i) - self.item_sz
+            end_fmap_addr = start_fmap_addr + self.get_chunk_len_from_chunk_id(file_params, batch_item, i) - file_params.item_sz
             new_morsel_rd = SbMorsel(waveop_id_tmp, file_params.file_id, i, batch_item)
             eviction_dict.clear()
             if self.debug > 4:
                 print("INFO SB TRACE: batch item %d: DRAM saver (SBAtomSave) waveop ID %d is reading chunk_id %d (full chunk SB range %d-%d) of file %s"%(batch_item, waveop_id_tmp, i, start_fmap_addr, end_fmap_addr, file_params.file_name))
-            for j in range(start_fmap_addr, end_fmap_addr + self.item_sz, file_params.item_sz):
+            for j in range(start_fmap_addr, end_fmap_addr + file_params.item_sz, file_params.item_sz):
                 sb_addr = j
                 for k in range(2):
                     old_morsel_wr = self.morsels_wr[k][sb_addr]
@@ -1677,7 +1677,7 @@ class FileMapper():
         assert(length > 0)
         #assert(length <= file_params.mapped_params.region_sz)
         assert(start_addr >= 0)
-        end_file_addr       = start_addr + length - self.item_sz
+        end_file_addr       = start_addr + length - file_params.item_sz
         start_sb_addr       = self.get_sb_addr_from_file_addr(file_params, batch_item, start_addr)
         end_sb_addr         = self.get_sb_addr_from_file_addr(file_params, batch_item, end_file_addr)
         #assert(start_sb_addr <= end_sb_addr)
@@ -1702,7 +1702,7 @@ class FileMapper():
             # kaena-643: track dependencies for the padded morsels also (due to alignment requirement)
             if chunk_len == file_params.chunk_sz:
                 chunk_len = file_params.chunk_sz_padded
-            end_fmap_addr = start_fmap_addr + chunk_len - self.item_sz
+            end_fmap_addr = start_fmap_addr + chunk_len - file_params.item_sz
             # create morsel accessor objects
             new_morsel_rd = SbMorsel(waveop_id, file_params.file_id, i, batch_item)
             # (the morsel writer is initialized no owner, and only use to tag morsel when we actually do a DRAM load)
@@ -1720,7 +1720,7 @@ class FileMapper():
             load_required = not file_params.mapped_params.chunk_is_mapped[i] \
                             and not file_params.mapped_params.modify_in_place \
                             and not replication_squash
-            for sb_addr in range(start_fmap_addr, end_fmap_addr + self.item_sz, file_params.item_sz):
+            for sb_addr in range(start_fmap_addr, end_fmap_addr + file_params.item_sz, file_params.item_sz):
                 if is_sb_addr_in_bound(sb_addr, start_sb_addr, end_sb_addr) \
                         or not file_params.mapped_params.chunk_is_mapped[i]:
                         #or (file_params.args is not None and file_params.args.relax_dependencies):
@@ -1926,7 +1926,7 @@ class FileMapper():
                         file_params, batch_item, chunk_id+1)
         # collect stats
         #if (args.debug > 1):
-        #    self.DRAM_elem_written += length * ofmap_count / self.item_sz
+        #    self.DRAM_elem_written += length * ofmap_count / file_params.item_sz
         #    self.DRAM_atoms_written += 1
         #    self.circbuf_stats.sb_all_channels_memcpys_out += ofmap_count*((tile_id.m_id%2)+1)
         # if this is last chunk in OFMAP, mark it as last

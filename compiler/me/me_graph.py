@@ -380,7 +380,7 @@ class KNode:
         (ofmap_tile.lower_addr, ofmap_tile.upper_addr) = ofmap_tile.make_pewave().get_subtile_file_addrs()
         ofmap_tile.lower_to_upper_len_bytes = []
         for i in range(len(ofmap_tile.lower_addr)):
-            ofmap_tile.lower_to_upper_len_bytes.append(ofmap_tile.upper_addr[i] - ofmap_tile.lower_addr[i] + self.item_sz)
+            ofmap_tile.lower_to_upper_len_bytes.append(ofmap_tile.upper_addr[i] - ofmap_tile.lower_addr[i] + ofmap_tile.file_params.item_sz)
 
         # obtain file address bounds of the IFMAP tile
         if not self.src_is_psum:
@@ -389,7 +389,7 @@ class KNode:
             (ifmap_tile.lower_addr, ifmap_tile.upper_addr) = (-1, -1)
         ifmap_tile.lower_to_upper_len_bytes = []
         for i in range(len(ifmap_tile.lower_addr)):
-            ifmap_tile.lower_to_upper_len_bytes.append(ifmap_tile.upper_addr[i] - ifmap_tile.lower_addr[i] + self.item_sz)
+            ifmap_tile.lower_to_upper_len_bytes.append(ifmap_tile.upper_addr[i] - ifmap_tile.lower_addr[i] + ifmap_tile.file_params.item_sz)
 
     """ compute input/output PE-Wave info
         Parameters:
@@ -449,7 +449,7 @@ class KNode:
             (ifmap_pewave.lower_addr, ifmap_pewave.upper_addr) = (-1, -1)
         ifmap_pewave.lower_to_upper_len_bytes = []
         for i in range(len(ifmap_pewave.lower_addr)):
-            ifmap_pewave.lower_to_upper_len_bytes.append(ifmap_pewave.upper_addr[i] - ifmap_pewave.lower_addr[i] + self.item_sz)
+            ifmap_pewave.lower_to_upper_len_bytes.append(ifmap_pewave.upper_addr[i] - ifmap_pewave.lower_addr[i] + ifmap_pewave.tile.file_params.item_sz)
 
     # Pack the IFMAPs in columns to create a PE-Array IFMAPs input for a particular wave number
     #   ifmaps: IFMAPs in NCHW format

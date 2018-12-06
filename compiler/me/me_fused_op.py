@@ -603,8 +603,8 @@ class FusedOp(list):
                 if self.first_op.is_nop:
                     ofmaps_region_sz = ifmaps_region_sz
                     ofmaps_region_start_addr = ifmaps_region_start_addr \
-                                                + self.first_op.slice_offset.x * self.first_op.item_sz \
-                                                + self.first_op.slice_offset.y * self.first_op.item_sz * self.first_op.W 
+                                                + self.first_op.slice_offset.x * self.first_op.ifmaps_file_params.item_sz \
+                                                + self.first_op.slice_offset.y * self.first_op.ifmaps_file_params.item_sz * self.first_op.W
                 else:    
                     ofmaps_region_sz = tpb.statebuffer.batcher.sb_scratch_sz[sb_size_set_index]
                     ofmaps_region_start_addr = tpb.statebuffer.file_mapper.sb_partition_sz - ofmaps_region_sz
@@ -759,10 +759,10 @@ class FusedOp(list):
                         ofmaps_region_start_addr = ifmaps_region_start_addr \
                                                     + self.first_op.slice_offset.y \
                                                         * self.first_op.ofmaps_file_params.tot_partition_usage_sz_padded
-                    else:                                                    
+                    else:
                         ofmaps_region_start_addr = ifmaps_region_start_addr \
-                                                    + self.first_op.slice_offset.x * self.first_op.item_sz \
-                                                    + self.first_op.slice_offset.y * self.first_op.item_sz * self.first_op.W 
+                                                    + self.first_op.slice_offset.x * self.first_op.ifmaps_file_params.item_sz \
+                                                    + self.first_op.slice_offset.y * self.first_op.ifmaps_file_params.item_sz * self.first_op.W
                 elif self.has_join and len(self.last_op.ofmaps_file_params.writers_of_shared_fmap) > 1 \
                         and len(residue_file_params.readers_of_shared_fmap) == 1 \
                         and not self.join_op.is_input:
@@ -966,15 +966,14 @@ class FusedOp(list):
             repl_multiple_of_C=1, 
             conv_transpose=False):
         batch_item = ofmap_pewave.tile.n_id * ofmap_pewave.tile.Tn
-        # assumes this function is always called due to the first op self[0]
-        # but right now I do not have a way to assert this
-        out_dtype = self[0].get_out_data_type()
+        # Note (HC): cannot use ofmap_pewave to determine out_dtype because
+        # in quantized cases ofmap_pewave.tile.file_params.data_type == float32
+        # Assumes this function is always called due to the first op self[0]
+        in_dtype = self.first_op.ifmaps_file_params.data_type
+        assert in_dtype in {'float16', 'bfloat16', 'float32', 'uint8', 'uint16'}
+        out_dtype = self.first_op.ofmaps_file_params.data_type
         assert out_dtype in {'float16', 'bfloat16', 'float32', 'int32'}
-        assert len(self[0].prev) > 0
-        in_dtype = self[0].prev[0].get_out_data_type() # hack to infer in_dtype from prev[0]
-        assert in_dtype in {'float16', 'bfloat16', 'float32', 'uint8'}
         if 'int32' == out_dtype: # quantized conv; needs offsets
-            self[0].item_sz = np.dtype(in_dtype).itemsize # TODO: fix this hack
             quant_offset_ifmaps = int(self.first_op.data['zero_point_input'])
             quant_offset_weights = int(self.first_op.data['zero_point_filter'])
         elif out_dtype in {'float16', 'bfloat16', 'float32'}:
@@ -999,7 +998,7 @@ class FusedOp(list):
         break_at_y = []
         break_addr = []
         subtile_rect_dim2d = ifmap_pewave.subtile_rect.dim2d if conv_transpose else ofmap_pewave.subtile_rect.dim2d
-        addr_step_y = self.first_op.W * self.first_op.stride.y * self.first_op.item_sz
+        addr_step_y = self.first_op.W * self.first_op.stride.y * self.first_op.ifmaps_file_params.item_sz
         for i in range(subtile_rect_dim2d.y):
             # TODO: how to deal with partial batching here?
             address = ifmap_pewave.lower_addr[0] + i * addr_step_y
@@ -1073,7 +1072,7 @@ class FusedOp(list):
 
             for z in range(self.first_op.Tn):                    
                 lower_file_address = ifmap_pewave.lower_addr[z] + break_at_y[i] * addr_step_y
-                upper_file_address = min(ifmap_pewave.lower_addr[z] + next_break * addr_step_y - self.first_op.item_sz, ifmap_pewave.upper_addr[z])
+                upper_file_address = min(ifmap_pewave.lower_addr[z] + next_break * addr_step_y - self.first_op.ifmaps_file_params.item_sz, ifmap_pewave.upper_addr[z])
                 list_of_names = tpb.statebuffer.file_mapper.get_dram_waveop_names(self.first_op.ifmaps_file_params, batch_item + z, lower_file_address, upper_file_address)
                 for name in list_of_names:
                     if name not in dram_waveop_names:
@@ -1217,7 +1216,7 @@ class FusedOp(list):
                                         for_softmax=False
                                         )
             """
-            length = self.conv_op.ifmap_wave_upper_addr[0] - self.conv_op.ifmap_wave_lower_addr[0] + self.conv_op.item_sz
+            length = self.conv_op.ifmap_wave_upper_addr[0] - self.conv_op.ifmap_wave_lower_addr[0] + self.conv_op.ifmaps_file_params.item_sz
             print("ifmap tile rect: ", ifmap_pewave.tile.tile_rect, " ifmap wave rect: ", ifmap_pewave.subtile_rect)
             print("ofmap tile rect: ", ofmap_pewave.tile.tile_rect, " ofmap wave rect: ", ofmap_pewave.subtile_rect)
             print(self.conv_op.ifmap_wave_lower_addr[0], 
@@ -1256,28 +1255,18 @@ class FusedOp(list):
                         , ofmap_pewave
                         , tpb.pearray.psum_buf[psum_bank_id]
                         , not psum_add
-                        , self.conv_op.stride)         
+                        , self.conv_op.stride)
             else:
                 #assert(self.conv_op.psum_bank_offset == ofmap_pewave.subtile_psum_offset)
-                conv_op_out_data_type = self.conv_op.get_out_data_type()
-                assert conv_op_out_data_type in {'float16', 'bfloat16', 'float32', 'int32'}
-                if 'int32' == conv_op_out_data_type:
-                    # todo: fix these hacks once statebuffer is taking consideration of mixed data types
-                    conv_op_in_data_type = self.conv_op.prev[0].get_out_data_type()
-                    if conv_op_in_data_type == 'uint8':
-                        hack_item_sz = 1
-                    elif conv_op_in_data_type == 'uint16':
-                        hack_item_sz = 2
-                    else:
-                        raise NotImplementedError('conv_op_in_data_type %s is not supported' % conv_op_in_data_type)
-                    self.conv_op.item_sz = hack_item_sz
-                    original_statebuffer_item_sz = tpb.statebuffer.file_mapper.item_sz
-                    tpb.statebuffer.file_mapper.item_sz = hack_item_sz
+                ifmap_data_type = ifmap_pewave.tile.file_params.data_type
+                if ifmap_data_type in {'uint8', 'uint16'}:
                     tpb.pearray.wave_uint8_mm(pearray_packed_ifmaps, pearray_packed_weights, psum_bank_id, psum_add,
                         offset_ifmaps=self.conv_op.data['zero_point_input'],
                         offset_weights=self.conv_op.data['zero_point_filter'])
-                else:
+                elif ifmap_data_type in {'float16', 'bfloat16', 'float32'}:
                     tpb.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, psum_bank_id, psum_add)
+                else:
+                    raise NotImplementedError('ifmap_pewave has wrong data type %s' % ifmap_data_type)
             # Generate weights waveops
             load_weights_into_pearray = not tpb.pearray.check_loaded_weights(
                                             self.conv_op.weights_file_params, 
@@ -1292,17 +1281,13 @@ class FusedOp(list):
                                         self.conv_op.weights_file_params,
                                         0,  # batch_item doesn't apply for weights
                                         self.conv_op.weight_wave_lower_addr, 
-                                        self.conv_op.weight_wave_upper_addr - self.conv_op.weight_wave_lower_addr + self.conv_op.item_sz,
+                                        self.conv_op.weight_wave_upper_addr - self.conv_op.weight_wave_lower_addr + self.conv_op.weights_file_params.item_sz,
                                         EngineEnum.PEARRAY,
                                         start_at_mid_part = False,
                                         end_after_mid_part = True,
                                         repl_multiple_of_C = repl_multiple_of_C)
                 if (self.args.debug > 2): print("DBG %s: MatMul weight_wave_lower_addr %d weight_wave_upper_addr %d"%(self.conv_op.data['layer_name'], self.conv_op.weight_wave_lower_addr, self.conv_op.weight_wave_upper_addr))                
                 for i in dram_weights_waveops: tpb.waveop_stream.add_linked(i, [], -1)
-
-            # restore the hacked statebuffer item_sz
-            if not self.conv_op.is_conv_transpose and self.conv_op.get_out_data_type() == 'int32':
-                tpb.statebuffer.file_mapper.item_sz = original_statebuffer_item_sz
 
             dram_ifmaps_waveops = []
             list_of_accessors = writers
@@ -1486,7 +1471,7 @@ class FusedOp(list):
                                                     residue_file_params,
                                                     batch_item + z,
                                                     ofmap_tile.lower_addr[z], 
-                                                    ofmap_tile.upper_addr[z] - ofmap_tile.lower_addr[z] + self[i].item_sz,
+                                                    ofmap_tile.upper_addr[z] - ofmap_tile.lower_addr[z] + ofmap_tile.file_params.item_sz,
                                                     EngineEnum.POOL,
                                                     )
                         #if self.args.no_inter_layer_load:
@@ -1801,11 +1786,15 @@ class FusedOp(list):
             if act_type == 'Lrelu':
                 alpha = act_op.data['mul_scalar']
         first_op = biasadd_op if biasadd_op is not None else act_or_biasadd_op
-        in_dtype = first_op.prev[0].get_out_data_type()
+        # Note (HC): cannot use ifmap_tile to determine in_dtype because
+        # in quantized cases of fused conv->act we will operate on
+        # the ofmap_tile that corresponds to the last op in this fused op list,
+        # where this ofmap_tile is of float32 but what we need is int32
+        in_dtype = first_op.ifmaps_file_params.data_type
         assert in_dtype in {'float16', 'bfloat16', 'float32', 'int32'}
         if src_is_psum and in_dtype in {'float16', 'bfloat16'}:
             in_dtype = 'float32'
-        out_dtype = act_or_biasadd_op.get_out_data_type()
+        out_dtype = act_or_biasadd_op.ofmaps_file_params.data_type
         assert in_dtype in {'float16', 'bfloat16', 'float32', 'int32'}
         if dst_is_psum and out_dtype in {'float16', 'bfloat16'}:
             out_dtype = 'float32'
@@ -2460,16 +2449,16 @@ class FusedOp(list):
             elif (first_op.data['layer_type'] == "BiasAdd"): 
                 bias_chan_start         = first_op.bias_file_c_fold_offset * PEArray.NUM_ROWS + ofmap_tile.m_id * PEArray.NUM_COLS
                 if first_op.parent.combined_bias_file_params.file_dims.has_c:
-                    bias_addr           = (bias_chan_start // PEArray.NUM_ROWS) * first_op.item_sz
+                    bias_addr           = (bias_chan_start // PEArray.NUM_ROWS) * first_op.parent.combined_bias_file_params.item_sz
                 else:                    
-                    bias_addr           = bias_chan_start * self[i].item_sz
+                    bias_addr           = bias_chan_start * first_op.parent.combined_bias_file_params.item_sz
                 (writers, readers, dram_bias_waveops, reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
                                                 tpb.waveop_stream.waveop_count + len(dram_ifmaps_waveops),
                                                 tpb.waveop_stream,
                                                 first_op.parent.combined_bias_file_params,
                                                 0,  # batch_item is not needed for bias
                                                 bias_addr,
-                                                first_op.item_sz,
+                                                first_op.parent.combined_bias_file_params.item_sz,
                                                 reader_engine)
                 #print(first_op.data['layer_name'], writers)
                 dram_ifmaps_waveops += dram_bias_waveops
@@ -2914,7 +2903,7 @@ class FusedOp(list):
         #if (first or self.args.full_dependencies):
         total_size_weights =(self.first_op.weight_wave_upper_addr
                             - self.first_op.weight_wave_lower_addr
-                            + self.first_op.item_sz) * num_weights
+                            + self.first_op.weights_file_params.item_sz) * num_weights
         (writers, readers, dram_weights_waveops, reader_morsels) =\
                 tpb.statebuffer.file_mapper.read_file_data_region(
                     tpb.waveop_stream.waveop_count

@@ -10,6 +10,9 @@ from me_fused_op import *
 # Execute a dequantize operator
 def execute_dequantize_op(self, tpb, batch_item):
     first_op = self[0]
+    dequant_scale = first_op.data['dequant_scale']
+    zero_point = first_op.data['zero_point']
+    first_op.ofmaps_file_params.dram_data = tpb.pool.dequantize(first_op.ifmaps_file_params.dram_data, dequant_scale, zero_point)
     n_id = batch_item // first_op.Tn
     for m_id in range(first_op.m):
         for h_id in range(first_op.h):
@@ -32,7 +35,7 @@ def execute_dequantize_tile(self, tpb, ifmap_tile, ofmap_tile, psum_bank_id):
     ifmaps_data = first_op.pack_wave_ifmaps_unfused_pooling(ifmap_tile.file_params.dram_data, ifmap_subtile)
     input_tilex = ifmap_tile.tile_rect.dim2d.x
     input_tiley = ifmap_tile.tile_rect.dim2d.y
-    ifmaps_data_extract = ifmaps_data [0:input_tiley*input_tilex*first_op.Tn, :]
+    ifmaps_data_extract = ifmaps_data[0:input_tiley*input_tilex*first_op.Tn, :]
     layer_type = first_op.data['layer_type']
     assert layer_type == 'Dequantize'
     dequant_scale = self.first_op.data['dequant_scale']
@@ -80,6 +83,9 @@ def emit_waveops_dequantize_tile(self, tpb, ifmap_tile, ofmap_tile, psum_bank_id
 # Execute a quantize operator
 def execute_quantize_op(self, tpb, batch_item):
     first_op = self[0]
+    quant_scale = first_op.data['quant_scale']
+    zero_point = first_op.data['zero_point']
+    first_op.ofmaps_file_params.dram_data = tpb.pool.quantize_uint8(first_op.ifmaps_file_params.dram_data, quant_scale, zero_point)
     n_id = batch_item // first_op.Tn
     for m_id in range(first_op.m):
         for h_id in range(first_op.h):
@@ -99,9 +105,8 @@ def execute_quantize_tile(self, tpb, ifmap_tile, ofmap_tile, psum_bank_id):
     ifmaps_data = first_op.pack_wave_ifmaps_unfused_pooling(ifmap_tile.file_params.dram_data, ifmap_subtile)
     input_tilex = ifmap_tile.tile_rect.dim2d.x
     input_tiley = ifmap_tile.tile_rect.dim2d.y
-    ifmaps_data_extract = ifmaps_data [0:input_tiley*input_tilex*first_op.Tn, :]
-    layer_type = first_op.data['layer_type']
-    assert layer_type == 'QuantizeV2'
+    ifmaps_data_extract = ifmaps_data[0:input_tiley*input_tilex*first_op.Tn, :]
+    assert first_op.data['layer_type'] == 'QuantizeV2'
     quant_scale = self.first_op.data['quant_scale']
     zero_point = self.first_op.data['zero_point']
     tile_data_flatten = tpb.pool.quantize_uint8(ifmaps_data_extract, quant_scale, zero_point)
