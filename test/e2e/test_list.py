@@ -1041,7 +1041,15 @@ testConfigMap = {
     " --executors host 0 2 wave 1 --scheduler qemu_wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race --parallel_streams --partition from_multi MatMul,MatMul_2,MatMul_4,MatMul_3,MatMul_1,Mul,Mul_1 Softmax ",
     "--input_files prev:0=$KAENA_EXT_PATH/apps/tf/wavernn/prev_samp.npy cond:0=$KAENA_EXT_PATH/apps/tf/wavernn/cond.npy init_state:0=$KAENA_EXT_PATH/apps/tf/wavernn/init_state.npy "
   ],
-
+  #Test for Merged embedding with Input gates
+  "2-wavernn_tf_ts0_w1_h02_membed_cb"     : [
+    #"tf_pb", "wavernn/wavernn_tf_ts1_membed_opt_fp16.pb","wavernn",
+    "tf_s3", "s3://kaena-nn-models", "wavernn_tf_ts1_membed_opt_fp16.pb",
+    "--input_node prev cond init_state --depth -1 --focus_to Softmax  --show_op_name_in_kgraph "
+    "--images $KAENA_EXT_PATH/apps/tf/wavernn/prev_samp.npy $KAENA_EXT_PATH/apps/tf/wavernn/cond_membed.npy $KAENA_EXT_PATH/apps/tf/wavernn/init_state.npy "
+    " --executors host 0 2 wave 1 --scheduler qemu_wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race --parallel_streams --partition from_multi Add,MatMul,MatMul_1,Mul,Mul_1 Softmax ",
+    "--input_files prev:0=$KAENA_EXT_PATH/apps/tf/wavernn/prev_samp.npy cond:0=$KAENA_EXT_PATH/apps/tf/wavernn/cond_membed.npy init_state:0=$KAENA_EXT_PATH/apps/tf/wavernn/init_state.npy "
+      ], 
   "2-transformer_reduce_sum_b1": [
     "tf_s3", "s3://kaena-nn-models", "transformer_infer_encoder_v2_fp16_len1.pb",    
     "--input_node transformer_infer_encoder/encoder_inputs --depth 2 "
