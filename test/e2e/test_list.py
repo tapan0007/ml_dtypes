@@ -149,7 +149,7 @@ testConfigMap = {
   "0-act_exp_sweep_wave"           : [ "trivnet_act", "tfloat32-b1-h128-c64-exp-wmin2-wmax2.2-imin-5-imax5",                         "act", MEv2("Generic")],
   "0-act_lrelu_sweep_wave"         : [ "trivnet_act", "tfloat32-b1-h80-c64-lrelu-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", MEv2("Generic")],
   "0-act_fused_lrelu_sweep_wave"   : [ "trivnet_act", "tfloat32-b1-h80-c64-lrelu-wmin2-wmax2.2-imin-10000000-imax10000000",  "act", "--scheduler wave2  --schedule_options ' --nname=generic --fuse_lrelu ' "],
-  "0-act_sqrt_sweep_wave"          : [ "trivnet_act", "tfloat32-b1-h80-c64-sqrt-wmin2-wmax2.2-imin0-imax65504", "act", MEv2("Generic")],  
+  "0-act_sqrt_sweep_wave"          : [ "trivnet_act", "tfloat32-b1-h80-c64-sqrt-wmin2-wmax2.2-imin0-imax65504", "act", MEv2("Generic")],
 
   "0-rtl-act_tanh_minisweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c64-tanh-wmin2-wmax2.2-imin-1-imax1",          "act", MEv2("Generic")],
   "0-rtl-act_sigmoid_minisweep_wave"       : [ "trivnet_act",      "tfloat32-b1-h128-c64-sigmoid-wmin2-wmax2.2-imin-1-imax1",          "act", MEv2("Generic")],
@@ -159,7 +159,7 @@ testConfigMap = {
   "0-act_exp_minisweep_wave"           : [ "trivnet_act", "tfloat32-b1-h128-c64-exp-wmin2-wmax2.2-imin-1-imax1", "act", MEv2("Generic")],
   "0-act_lrelu_minisweep_wave"         : [ "trivnet_act", "tfloat32-b1-h128-c64-lrelu-wmin2-wmax2.2-imin-1-imax1", "act", MEv2("Generic")],
   "0-act_fused_lrelu_minisweep_wave"   : [ "trivnet_act", "tfloat32-b1-h128-c64-lrelu-wmin2-wmax2.2-imin-1-imax1", "act", "--scheduler wave2  --schedule_options ' --nname=generic --fuse_lrelu '"],
-  "0-act_sqrt_minisweep_wave"          : [ "trivnet_act", "tfloat32-b1-h128-c64-sqrt-wmin2-wmax2.2-imin0-imax1", "act", MEv2("Generic")],  
+  "0-act_sqrt_minisweep_wave"          : [ "trivnet_act", "tfloat32-b1-h128-c64-sqrt-wmin2-wmax2.2-imin0-imax1", "act", MEv2("Generic")],
 
   "0-1clipbyvalue_wave" : [ "trivnet_clipbyvalue",
     "tfloat16-b1-h4-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv",
@@ -319,8 +319,8 @@ testConfigMap = {
   "0-subtract_psum_sb_wave"    : [ "trivnet_add",    "tfloat16-b1-h2-c1-SUB-wmin2-wmax2.2-imin3-imax6", "add", MEv2("Generic")],
   "0-sqrt_wave"            : [ "trivnet_act", "tfloat16-b1-h2-c64-sqrt-wmin2-wmax2.2-imin0.1-imax2", "act", MEv2("Generic")],
   "0-reciprocal_wave"       : [ "trivnet_reciprocal", "tfloat16-b1-h2-c64-reciprocal-wmin2-wmax2.2-imin-10-imax10", "reciprocal", MEv2("Generic")],
-  "0-reciprocal_fp32_wave"  : [ "trivnet_reciprocal", "tfloat32-b1-h80-c64-reciprocal-wmin2-wmax2.2-imin-10000000-imax10000000", "reciprocal", MEv2("Generic")],   
-  "0-rsqrt_fp32_wave"      : [ "trivnet_reciprocal", "tfloat32-b1-h2-c64-rsqrt-wmin2-wmax2.2-imin0.1-imax10000000", "rsqrt_fp32", MEv2("Generic")],  
+  "0-reciprocal_fp32_wave"  : [ "trivnet_reciprocal", "tfloat32-b1-h80-c64-reciprocal-wmin2-wmax2.2-imin-10000000-imax10000000", "reciprocal", MEv2("Generic")],
+  "0-rsqrt_fp32_wave"      : [ "trivnet_reciprocal", "tfloat32-b1-h2-c64-rsqrt-wmin2-wmax2.2-imin0.1-imax10000000", "rsqrt_fp32", MEv2("Generic")],
   "0-sqrt_wave"            : [ "trivnet_act", "tfloat16-b1-h2-c64-sqrt-wmin2-wmax2.2-imin0.1-imax2", "act", MEv2("Generic")],
 
   "0-3resadd_fp16_wave"  : [ "trivnet_conv_ba_add",
@@ -1051,15 +1051,23 @@ testConfigMap = {
     "--input_files prev:0=$KAENA_EXT_PATH/apps/tf/wavernn/prev_samp.npy cond:0=$KAENA_EXT_PATH/apps/tf/wavernn/cond_membed.npy init_state:0=$KAENA_EXT_PATH/apps/tf/wavernn/init_state.npy "
       ], 
   "2-transformer_reduce_sum_b1": [
-    "tf_s3", "s3://kaena-nn-models", "transformer_infer_encoder_v2_fp16_len1.pb",    
+    "tf_s3", "s3://kaena-nn-models", "transformer_infer_encoder_v2_fp16_len1.pb",
     "--input_node transformer_infer_encoder/encoder_inputs --depth 2 "
     "--focus_to 'transformer_infer_encoder/encoder_stack/layer_0/self_attention/layer_normalization/sum' "
     "--partition from_multi '"
         "transformer_infer_encoder/encoder_stack/layer_0/self_attention/layer_normalization/sum"
         "' "
-    "--executors host 0 wave 1 {} --images {} --wavegraph_checks structure data-race".format(MEv2("generic"), transformerEncoderLen1In), 
+    "--executors host 0 wave 1 {} --images {} --wavegraph_checks structure data-race".format(MEv2("generic"), transformerEncoderLen1In),
     "--input_files {}".format(transformerEncoderLen1In)
    ],
+
+  "5-transformer_layer_norm" : [ "trivnet_layer_norm",  
+    "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2",  "layer_norm" , 
+	"--partition none "
+	"--focus_to 'layer_norm/pre_output' "
+	"--executors wave all --images linspace1 linspace1 {} --wavegraph_checks structure data-race".format(MEv2("generic")),
+	"--check_against_ref all_available --input_files input:0=trivnet_input:0.npy input_const:0=trivnet_input_const:0.npy "
+  ],
 
 }
 
@@ -1219,5 +1227,3 @@ qemuTestWaiver = [
     ['7-rn50_nne_fp16_wave-no_repl-all-layers', 'WAIVE-ManyDescr-SIM742'],
     ['0-300conv_tanh_wave-all-layers', 'WAIVE-TooManyOfmaps-SIM746'],
 ]
-
-

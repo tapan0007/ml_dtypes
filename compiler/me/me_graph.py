@@ -733,6 +733,9 @@ class KGraph:
                 if len(node.prev) > 0:
                     non_const_prev_count = 0
                     for i in node.prev:
+                        # FIXME: is_const is only for scalar constant.
+                        # If an input node is a constant tensor,
+                        # we should treat it like a non-constant tensor.
                         if not i.is_const:
                             non_const_prev_count += 1
                     node.is_join = (non_const_prev_count > 1)
@@ -1087,7 +1090,6 @@ class KGraph:
                 if next_nodes[0].data['layer_type'] == 'Sub' and len(next_nodes[0].prev) == 2:
                     if next_nodes[0].prev[1] == fused_ops[-1]:
                         return fused_ops
-
                 if next_nodes[0].count_missing_input_results() <= 1:
                     regex = FusedOp.next_is_fusable[last_node_type]
                     if re.search(regex, next_nodes[0].data['layer_type']):
@@ -1386,7 +1388,6 @@ class PrepareKGraph:
             if pred_name in self.replace_map:
                 pred_list[i] = self.replace_map[pred_name]
 
-
     def run(self, kgraph_json):
 
         with (open('compiler.before.json', 'w')) as f:
@@ -1489,3 +1490,4 @@ class PrepareKGraph:
         self._replace_layer(layer, reciprocal_layer, [sqrt_layer, reciprocal_layer])
         #new_layers_map[reciprocal_layer['layer_name']] = new_layer
         #new_layers_list += [sqrt_layer, reciprocal_layer]
+
