@@ -216,10 +216,11 @@ class TPBSched:
         prev_join_batch_item_partition_usage_sz = -1
         prev_join_op_list = None
         last_pairup_batch_count = 1
+        fused_ops_map = set({})
         while (not kgraph.walk_ended()
                 and (args.stop_after_layer_num == 0 or fused_op_count <= args.stop_after_layer_num)):
            
-            op_list = kgraph.get_fused_ops(fused_op_count)
+            op_list = kgraph.get_fused_ops(fused_op_count, fused_ops_map)
             if (args.stop_after_layer_num > 0 and fused_op_count == args.stop_after_layer_num):
                 op_list[-1].next = []
 

@@ -1097,7 +1097,7 @@ class KGraph:
         return fused_ops
 
     # starting from current node position, collect as many operations as possible
-    def get_fused_ops(self, fused_op_id):
+    def get_fused_ops(self, fused_op_id, fused_ops_map):
         fused_ops = FusedOp(self.data_type, fused_op_id, self.args)
         if (self.current_node == None):
             print("ERROR: found zero operations to fuse")
@@ -1144,12 +1144,31 @@ class KGraph:
             if (next_nodes != []):
                 self.last_split_next_nodes.append(next_nodes)
         else:
+            # No next nodes. We reached to a terminal node and go back
+            # to an unvisted node. This is the same as popping an item from
+            # the worklist of a scheduler. We may want to refactor the get_list_of_fused_ops
+            # function to something like while(node = walk_list.pop()) { ...} with visited_map.
             if self.last_split_next_nodes != [] and self.last_split_next_nodes[-1] != []:
-                self.current_node = self.last_split_next_nodes[-1].pop()
+                # For an example below, assume that mul_0 is included in last_split_next_nodes
+                # and conv2d, mul_0, mul_1, and add are fused. If mul_0 is included in
+                # last_split_next_nodes, we should not revisit it again since it is already
+                # fused (visited).
+                #
+                # conv2d  some_pred        some_pred is a predecessor with multiple successors.
+                #      \  /
+                #       mul_0
+                #        |   
+                #       mul_1
+                #        |
+                #       add
+                unvisited_node = self.last_split_next_nodes[-1].pop()
+                if not (unvisited_node in fused_ops_map) and not (unvisited_node in fused_ops):
+                    self.current_node = unvisited_node
                 if self.last_split_next_nodes[-1] == []:
                     self.last_split_next_nodes.pop()
             else:
                 self.current_node = None
+
         # if the last node is Conv or MatMul, add an identity pool op
         if (last_node_type == "Conv"
                 or last_node_type == "ConvTranspose"
@@ -1157,6 +1176,10 @@ class KGraph:
                 or last_node_type == "StridedSlice"
                 or last_node_type == "Concat"):
             fused_ops.add(self.gen_id_pool_op(fused_ops[-1]))
+
+        # A chain of operations is fused. Update fmap_file_params 
+        # for the first and last operation of one FuseOp.
+
         # set the first op source is not PSUM, and last op dest is not PSUM
         fused_ops.first_op = fused_ops[0]
         fused_ops.first_op.src_is_psum = False
@@ -1212,6 +1235,11 @@ class KGraph:
             print("unstack_from_file " , ofp.unstack_from_file, " at address ", ofp.unstack_start_addr)
         if (self.args.debug > 0):
             fused_ops.show()
+
+        # Mark operations as visted
+        for i in fused_ops:
+            fused_ops_map.add(i)
+
         return fused_ops
 
     def gen_identity_op(self, last_op):
