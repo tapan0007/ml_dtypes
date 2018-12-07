@@ -325,8 +325,8 @@ class QoR:
       qorType = 'default'
       if forceQemu:
         qorType = 'qemu'
-        if 'ZEBU_SERVER' in os.environ:
-          qorType = 'zebu'
+        if 'KAENA_ZEBU_SERVER' in os.environ:
+          qorType = 'emu'
       if os.path.isdir(csvDir):
         for subdir, dirs, files in os.walk(csvDir):
           for f in files:
