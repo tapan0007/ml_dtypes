@@ -1127,21 +1127,29 @@ class FusedOp(list):
         batch_item = ofmap_tile.tile.n_id * self.pool_op.Tn
         window_x = ifmap_tile.window.x
         window_y = ifmap_tile.window.y
+        # TODO: currently assumes that the pool op is always the first op
+        # but it might be better to pass the op in
+        in_dtype = self[0].ifmaps_file_params.data_type
+        assert in_dtype in {'float16', 'bfloat16', 'float32', 'uint8', 'int32', 'uint16', 'int64'}
+        if src_is_psum:
+            if in_dtype in {'float16', 'bfloat16'}:
+                in_dtype = 'float32'
+            elif in_dtype == 'uint8':
+                in_dtype = 'int32'
+            elif in_dtype == 'uint16':
+                in_dtype = 'int64'
+        out_dtype = self[0].ofmaps_file_params.data_type
+        assert out_dtype in {'float16', 'bfloat16', 'float32', 'uint8', 'int32', 'uint16'}
         if (src_is_psum):
             src_ifmap_width = ifmap_tile.subtile_rect.dim2d.x
             if self.conv_op != None and self.conv_op.repl_multiple_of_C > 1:
                 src_ifmap_width = self.conv_op.W // self.conv_op.stride.x
             src_ifmap_height = ifmap_tile.subtile_rect.dim2d.y
             src_sb_address = 0
-            if (self.pool_op.item_sz == 2):
-                in_dtype = "float32"
-            else:    
-                in_dtype = "float32"
         else:
             src_ifmap_width = self.pool_op.W
             src_ifmap_height = self.pool_op.H
             src_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(self.pool_op.ifmaps_file_params, batch_item + partial_batch_item, ifmap_tile.lower_addr[partial_batch_item])
-            in_dtype = self.out_data_type
         src_psum_bank_offset = src_ifmap_width * src_ifmap_height * partial_batch_item
         waveop_name = self.pool_op.data['layer_name'] + "/Pool_" + ofmap_tile.id_string
         #pool_frequency = self.pool_op.pool_window.x * self.pool_op.pool_window.y
@@ -1158,7 +1166,7 @@ class FusedOp(list):
               'tile_id'                 : ofmap_tile.id_array,
               'pool_func'               : self.pool_op.data['layer_type'],
               'in_dtype'                : in_dtype,
-              'out_dtype'               : self.out_data_type,
+              'out_dtype'               : out_dtype,
               'src_is_psum'             : src_is_psum,
               'src_x_step'              : 1,
               'src_x_num'               : window_x,
@@ -1796,7 +1804,7 @@ class FusedOp(list):
         if src_is_psum and in_dtype in {'float16', 'bfloat16'}:
             in_dtype = 'float32'
         out_dtype = act_or_biasadd_op.ofmaps_file_params.data_type
-        assert in_dtype in {'float16', 'bfloat16', 'float32', 'int32'}
+        assert out_dtype in {'float16', 'bfloat16', 'float32'}
         if dst_is_psum and out_dtype in {'float16', 'bfloat16'}:
             out_dtype = 'float32'
         if biasadd_op is not None and 'scale' in biasadd_op.data: # pass scale to act op

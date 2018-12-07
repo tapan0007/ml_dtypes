@@ -80,7 +80,7 @@ def getPadType(confStr):
   usePerm = False
   actType = None
   joinType = None
-  for s in ["MaxPool", "AvgPool"]:
+  for s in ["MAXPOOL", "AVGPOOL"]:
     s1 = "-" + s
     if s1 in confStr:
       confStr = confStr.replace(s1, "")

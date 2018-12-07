@@ -164,7 +164,7 @@ def attach_predecessors(waveop, predec_list_by_name):
 
 """ Unstack parameters: keep track of ifmap and ofmap shape dimensions
 """
-class UnstackParams:
+class UnstackParams: # TODO: is this class only used in layeropt and so is not really used? (HC)
     def __init__(self, knode, unstack_idx):
         self.item_sz = knode.item_sz
         assert(knode.data['layer_type'] == "Unstack")
@@ -1948,7 +1948,7 @@ class FileMapper():
               'waveop_name'      : waveop_name,
               'layer_name'       : file_params.layer_name,
               'sb_address'       : sb_addr,
-              'data_type'        : self.data_type,
+              'data_type'        : file_params.data_type,
               'ref_file'         : simout_file,
               'ref_file_sz'      : file_params.file_sz,
               'ref_file_format'  : file_params.file_dims.format_str,
