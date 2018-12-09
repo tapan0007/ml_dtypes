@@ -1081,6 +1081,13 @@ class KGraph:
         # if there's only one next node, check if it is fusable and add
         if (len(next_nodes) == 1):
             if last_node_type in FusedOp.next_is_fusable:
+                # Do NOT fuse sub if fusing is done via its second operand
+                # since ME cannot handle it.
+                # See Kaena-1097
+                if next_nodes[0].data['layer_type'] == 'Sub' and len(next_nodes[0].prev) == 2:
+                    if next_nodes[0].prev[1] == fused_ops[-1]:
+                        return fused_ops
+
                 if next_nodes[0].count_missing_input_results() <= 1:
                     regex = FusedOp.next_is_fusable[last_node_type]
                     if re.search(regex, next_nodes[0].data['layer_type']):

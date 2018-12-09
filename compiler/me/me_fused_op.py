@@ -460,6 +460,11 @@ class FusedOp(list):
                 # set the residue selection index to the other input
                 if len(self) > 0:
                     self.join_op.residue_index = 1 if op.prev[0] == self[-1] else 0
+                elif len(self) == 0 and op.data['layer_type'] == 'Sub':
+                    # If Sub is not in the middle of fused ops, its residue_index must be one.
+                    # since ME accepts only sub(ifmap, residue_index).
+                    # See Kaena-1097
+                    self.join_op.residue_index = 1                    
                 else:
                     #FIXME : This is only for Concat whose residue inputs are
                     # all from SB. This may not be the case for different multi-
