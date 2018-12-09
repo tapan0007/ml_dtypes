@@ -12,6 +12,7 @@
 
 #include "utils/inc/consts.hpp"
 #include "utils/inc/types.hpp"
+#include "utils/inc/misc.hpp"
 
 #include "compisa/inc/compisadmatrigger.hpp"
 #include "wavecode/inc/wavecodewaveop.hpp"
@@ -32,6 +33,8 @@ public:
     //----------------------------------------------------------------
     WaveCodeSbAtom(WaveCodeRef waveCode);
 
+private:
+    static compisa::DmaTriggerInstr s_dmaTrig;
 protected:
     void processOutgoingEdgesAlreadyEmb(wave::SbAtomWaveOp* waveop, events::EventId);
     void addDmaBarrier(const wave::SbAtomWaveOp* sbAtomWaveop, EngineId engId);

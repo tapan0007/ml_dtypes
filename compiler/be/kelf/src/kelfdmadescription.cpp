@@ -367,20 +367,21 @@ DmaDescription::writeDmaDescriptors(
         }
 
         json jBlockToTpb;
-        jBlockToTpb[Keys::gQueueName()]    = dmaBlockToTpb.gDmaQueue()->gName();
+        jBlockToTpb[Keys::gQueueName()]     = dmaBlockToTpb.gDmaQueue()->gName();
         jBlockToTpb[Keys::gBlockId()]       = dmaBlockToTpb.gBlockId();
-        jBlockToTpb[Keys::gHashComment()] = dmaBlockToTpb.gComment();
+        jBlockToTpb[Keys::gHashComment()]   = dmaBlockToTpb.gComment();
         jBlockToTpb[Keys::gHashBlockSize()] = dmaBlockToTpb.size();
+        jBlockToTpb[Keys::gHashNumDescs()]  = dmaBlockToTpb.gNumDescs();
         dmaBlockToTpb.setDmaEventField(jBlockToTpb);
 
         std::vector<json> jDmaDescs;
         for (const auto& desc : dmaBlockToTpb.gDescs()) {
             desc.assertAccessCheck();
             json jDmaDesc;
-            jDmaDesc[Keys::gFromId()]         = desc.gSrcFileId().m_VarName;
-            jDmaDesc[Keys::gFromOffset()]     = desc.gSrcFileAddress();
-            jDmaDesc[Keys::gToId()]           = gSymbolicStateBuffer();
-            jDmaDesc[Keys::gToOffset()]       = desc.gDstSbAddress();
+            jDmaDesc[Keys::gFromId()]       = desc.gSrcFileId().m_VarName;
+            jDmaDesc[Keys::gFromOffset()]   = desc.gSrcFileAddress();
+            jDmaDesc[Keys::gToId()]         = gSymbolicStateBuffer();
+            jDmaDesc[Keys::gToOffset()]     = desc.gDstSbAddress();
             jDmaDesc[Keys::gSize()]         = desc.gNumBytes();
 
             jDmaDescs.push_back(jDmaDesc);
@@ -399,10 +400,11 @@ DmaDescription::writeDmaDescriptors(
         }
 
         json jBlockFromTpb;
-        jBlockFromTpb[Keys::gQueueName()]      = dmaBlockFromTpb.gDmaQueue()->gName();
+        jBlockFromTpb[Keys::gQueueName()]       = dmaBlockFromTpb.gDmaQueue()->gName();
         jBlockFromTpb[Keys::gBlockId()]         = dmaBlockFromTpb.gBlockId();
-        jBlockFromTpb[Keys::gHashComment()]   = dmaBlockFromTpb.gComment();
-        jBlockFromTpb[Keys::gHashBlockSize()]  = dmaBlockFromTpb.size();
+        jBlockFromTpb[Keys::gHashComment()]     = dmaBlockFromTpb.gComment();
+        jBlockFromTpb[Keys::gHashBlockSize()]   = dmaBlockFromTpb.size();
+        jBlockFromTpb[Keys::gHashNumDescs()]    = dmaBlockFromTpb.gNumDescs();
         dmaBlockFromTpb.setDmaEventField(jBlockFromTpb);
 
         std::vector<json> jDmaDescs;
@@ -413,7 +415,7 @@ DmaDescription::writeDmaDescriptors(
             jDmaDesc[Keys::gFromOffset()]   = desc.gSrcSbAddress();
             jDmaDesc[Keys::gToId()]         = desc.gDstFileId().m_VarName;
             jDmaDesc[Keys::gToOffset()]     = desc.gDstFileAddress();
-            jDmaDesc[Keys::gSize()]           = desc.gNumBytes();
+            jDmaDesc[Keys::gSize()]         = desc.gNumBytes();
 
             jDmaDescs.push_back(jDmaDesc);
         }
@@ -654,6 +656,7 @@ DmaDescription::writeInOutDescriptors()
         jDmaBlock[Keys::gBlockId()]     = dmaInBlock.gBlockId();
         jDmaBlock[Keys::gHashComment()] = dmaInBlock.gComment();
         jDmaBlock[Keys::gHashBlockSize()] = dmaInBlock.size();
+        jDmaBlock[Keys::gHashNumDescs()] = dmaInBlock.gNumDescs();
         dmaInBlock.setDmaEventField(jDmaBlock);
 
         const kcc_int32 numInputs = m_InFileNameToId.size();
@@ -698,15 +701,35 @@ DmaDescription::DmaBlockInput::size() const
 
 /***********************************************************************
 ***********************************************************************/
+kcc_uint32
+DmaDescription::DmaBlockInput::gNumDescs() const
+{
+    return m_Descs.size();
+}
+
+
+
+/***********************************************************************
+***********************************************************************/
 kcc_uint64
 DmaDescription::DmaBlockFromTpb::size() const
 {
-    kcc_uint64 numBytes = 0;
+    kcc_uint64 numInBytes = 0;
     for (const auto& desc : m_Descs) {
-        numBytes += desc.gNumBytes();
+        numInBytes += desc.gNumBytes();
     }
-    return numBytes;
+    return numInBytes;
 }
+
+/***********************************************************************
+***********************************************************************/
+kcc_uint32
+DmaDescription::DmaBlockFromTpb::gNumDescs() const
+{
+    return m_Descs.size();
+}
+
+
 
 /***********************************************************************
 ***********************************************************************/
@@ -718,6 +741,14 @@ DmaDescription::DmaBlockToTpb::size() const
         numBytes += desc.gNumBytes();
     }
     return numBytes;
+}
+
+/***********************************************************************
+***********************************************************************/
+kcc_uint32
+DmaDescription::DmaBlockToTpb::gNumDescs() const
+{
+    return m_Descs.size();
 }
 
 void
@@ -825,7 +856,12 @@ const char* DmaDescription::Keys::gHashComment()
 
 const char* DmaDescription::Keys::gHashBlockSize()
 {
-    return "#block_size";
+    return "#block_num_bytes";
+}
+
+const char* DmaDescription::Keys::gHashNumDescs()
+{
+    return "#block_num_descs";
 }
 const char* DmaDescription::Keys::gHashTransferType()
 {

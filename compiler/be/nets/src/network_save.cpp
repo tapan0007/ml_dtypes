@@ -376,6 +376,10 @@ Network::Save::saveTensorScalar(
     serWaveOp.m_Op1 = gAluOpTypeStr(WAVE_OP->gOp(1));
     serWaveOp.m_ImmVal0 = WAVE_OP->gImmVal(0);
     serWaveOp.m_ImmVal1 = WAVE_OP->gImmVal(1);
+    if (serWaveOp.m_WaveOpType == "ScaleAdd") {
+        serWaveOp.m_Scale = tensorScalarWaveOp->gImmVal(0);
+        serWaveOp.m_Add = tensorScalarWaveOp->gImmVal(1);
+    }
 }
 #undef WAVE_OP
 

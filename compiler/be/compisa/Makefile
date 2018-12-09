@@ -4,7 +4,7 @@ MODULE:=compisa
 MODS := $(MODULE) utils wave
 
 SRCS := \
-	compisacommon
+	compisadmatrigger compisacommon
 
 
 ########################################################

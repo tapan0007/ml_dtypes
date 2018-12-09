@@ -8,7 +8,7 @@
 namespace kcc {
 
 template <typename T, int N>
-size_t ArraySizeof(T (&)[N])
+constexpr size_t ArraySizeof(T (&)[N])
 {
     return N;
 }

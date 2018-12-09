@@ -76,7 +76,7 @@ WaveEdge::clearEvent()
 bool
 WaveEdge::qCanSyncWithSemaphore() const
 {
-    return m_FromOp->qSbAtomWaveOp() && !m_ToOp->qSbAtomWaveOp();
+    return m_FromOp->qSbAtomWaveOp();
 }
 
 /****************************************************************

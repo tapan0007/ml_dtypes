@@ -172,6 +172,7 @@ public:
 
     static const char* gHashComment();
     static const char* gHashBlockSize();
+    static const char* gHashNumDescs();
     static const char* gHashTransferType();
     static const char* gDebugInfo();
     static const char* gWavegraph();
@@ -335,6 +336,7 @@ public:
     }
 
     kcc_uint64 size() const;
+    kcc_uint32 gNumDescs() const;
 
 private:
     const EngineId          m_EngineId;
@@ -364,6 +366,7 @@ public:
     }
 
     kcc_uint64 size() const;
+    kcc_uint32 gNumDescs() const;
 
 private:
     bool m_QWeights;
@@ -393,6 +396,7 @@ public:
     }
 
     kcc_uint64 size() const;
+    kcc_uint32 gNumDescs() const;
 
 private:
     bool    m_QOut;

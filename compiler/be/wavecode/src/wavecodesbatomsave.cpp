@@ -210,8 +210,7 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
     addDmaBarrier(sbAtomSaveWaveop, chosenEngId);
     //************************************************************************
     compisa::DmaTriggerInstr dmaTriggerInstr;
-    strncpy(dmaTriggerInstr.dma_queue_name, dmaBlock.gDmaQueue()->gName().c_str(),
-            sizeof(dmaTriggerInstr.dma_queue_name)/sizeof(dmaTriggerInstr.dma_queue_name[0]) - 1);
+    dmaTriggerInstr.SetDmaQueueName(dmaBlock.gDmaQueue()->gName().c_str());
 
     AssignWithSizeCheck(dmaTriggerInstr.use_raw_count, 0); // get from JSON
     AssignWithSizeCheck(dmaTriggerInstr.block_id, dmaBlock.gBlockId());

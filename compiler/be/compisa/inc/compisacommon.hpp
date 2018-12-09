@@ -18,15 +18,17 @@ namespace kcc {
 namespace compisa {
 
 
+//****************************************************************
 using TongaTpbOpcode     = ::TONGA_ISA_TPB_OPCODE;
 using TongaErrorCode     = ::TONGA_ISA_ERROR_CODE;
 using TongaTpbInstHeader = ::TONGA_ISA_TPB_INST_HEADER;
 using TongaTpbEvents     = ::TONGA_ISA_TPB_INST_EVENTS;
 
 
+//****************************************************************
 template<typename INSTR, TongaTpbOpcode opcode, TongaErrorCode (*Checker)(const INSTR*)>
 class InstrTempl : public INSTR {
-private:
+protected:
     using BaseClass = INSTR;
     using Class = InstrTempl;
 public:
@@ -41,15 +43,25 @@ public:
         header.debug_hint       = 0;
     }
 
-    void CheckValidity() const
-    {
-        const TongaErrorCode errCode = Checker(this);
-        Assert(errCode == ::TONGA_ISA_ERR_CODE_SUCCESS,
-               "Invalid instruction of type ", typeid(Class).name(), "    Error code: ", errCode);
-    }
+    void CheckValidity() const;
 };
 
+//****************************************************************
+template<typename INSTR, TongaTpbOpcode opcode, TongaErrorCode (*Checker)(const INSTR*)>
+void
+InstrTempl<INSTR, opcode, Checker>::CheckValidity() const
+{
+    static_assert(sizeof(Class) == sizeof(BaseClass),
+        "Instruction base class size not equal to instruction class size");
+    const TongaErrorCode errCode = Checker(this);
+    Assert(errCode == ::TONGA_ISA_ERR_CODE_SUCCESS,
+           "Invalid instruction of type ", typeid(Class).name(), "    Error code: ", errCode);
+}
 
+
+
+
+//****************************************************************
 template<typename INSTR, TongaErrorCode (*Checker)(const INSTR*)>
 class InstrTempl2 : public INSTR {
 private:
@@ -67,16 +79,25 @@ public:
         header.debug_hint       = 0;
     }
 
-    void CheckValidity() const
-    {
-        const TongaErrorCode errCode = Checker(this);
-        Assert(errCode == ::TONGA_ISA_ERR_CODE_SUCCESS, "Invalid instruction. Error code: ", errCode);
-    }
+    void CheckValidity() const;
 };
 
+//****************************************************************
+template<typename INSTR, TongaErrorCode (*Checker)(const INSTR*)>
+void
+InstrTempl2<INSTR, Checker>::CheckValidity() const
+{
+    static_assert(sizeof(Class) == sizeof(BaseClass),
+        "Instruction base class size not equal to instruction class size");
+    const TongaErrorCode errCode = Checker(this);
+    Assert(errCode == ::TONGA_ISA_ERR_CODE_SUCCESS,
+           "Invalid instruction of type ", typeid(Class).name(), "    Error code: ", errCode);
+}
 
 
 
+
+//****************************************************************
 void InitSync(TongaTpbEvents& sync);
 
 void InitHeader(TongaTpbInstHeader& header, TongaErrorCode opcode, uint8_t sz);
