@@ -1,4 +1,5 @@
 import os
+import re
 import glob
 import tarfile
 import time
@@ -12,6 +13,7 @@ from keras.utils.data_utils import get_file
 from keras.preprocessing import image
 from keras.applications.inception_v3 import preprocess_input, decode_predictions
 from keras import backend
+from val_resnet50_keras_inference import download_set
 
 def load_graph(model_file):
     graph = tf.Graph()
@@ -47,33 +49,14 @@ if __name__ == "__main__":
 
     # set Keras global configurations
     backend.set_learning_phase(0)
-    backend.set_floatx(float_type)
     if (args.fp16):
         float_type = 'float16'
-        type = tf.float16
     else:
         float_type = 'float32'
-        type = tf.float32
+    backend.set_floatx(float_type)
 
     # download 1k validation set
-    if (args.dataset == "1k"):
-        val_tarfile = 'val_1000.tar'
-        path = os.environ['HOME']+'/.keras/datasets/'+val_tarfile
-        if (not os.path.exists(path)):
-            get_file(val_tarfile, origin='http://data.mxnet.io/mxnet/data/'+val_tarfile)
-            tar = tarfile.open(path)
-            tar.extractall()
-            tar.close()
-    elif (args.dataset == "5k"):
-        recfile = 'val-5k-256.rec'
-        path = os.environ['HOME']+'/.keras/datasets/'+recfile
-        if (not os.path.exists(path)):
-            get_file(recfile, origin="http://data.mxnet.io/mxnet/data/"+recfile)
-    elif (args.dataset == "50k"):
-        recfile = 'val_256_q90.rec'
-        path = os.environ['HOME']+'/.keras/datasets/'+recfile
-        if (not os.path.exists(path)):
-            get_file(recfile, origin="http://data.mxnet.io/mxnet/data/"+recfile)
+    path = download_set(args.dataset)
 
     # load image using Keras
     top5 = 0
@@ -83,8 +66,8 @@ if __name__ == "__main__":
     aggtime = 0
 
     if (args.dataset == "1k"):
-        labels = np.loadtxt("val_1000/label", dtype=int, usecols=0)
-        for file in glob.glob("val_1000/*.jpg"):
+        labels = np.loadtxt(path + "/label", dtype=int, usecols=0)
+        for file in glob.glob(path + "/*.jpg"):
             # get the file name without extension
             img_id_txt = os.path.splitext(os.path.basename(file))[0]
             if (img_id_txt.isdigit()):
