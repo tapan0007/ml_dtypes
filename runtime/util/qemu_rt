@@ -716,6 +716,13 @@ class KrtcClient:
 
     return newifmapPathList
 
+  def kdbRunCommand(self, binDir, kdbCommand, outputFile):
+    kdbBinary = "%s/bin/kdb/kdb" % (binDir)
+    with open(outputFile, "a+") as fp:
+      krtcArgs = [kdbBinary, "attach", kdbCommand, "q"]
+      p = subprocess.Popen(krtcArgs, stdout=fp, stderr=fp)
+      p.communicate()
+
   def krtcInference(self, model_id, ifmapList, ofmapPath, binDir, workingDir, capture):
     krtOk = False
     binDir = self.krtd.tempBinDir
@@ -725,6 +732,8 @@ class KrtcClient:
     inferLogFile = "%s/log-infer.txt" % (workingDir)
     modelId = "%s" % model_id
     grpcAddress = "localhost:%d" % self.krtd.qemu.grpcPort
+
+    self.kdbRunCommand(binDir, "registers show", "log-registers-before-infer.txt")
 
     ifmaps = self.krtc_ifmaps(ifmapPathList, ifmapFileList)
     with open(inferLogFile, "a+") as fp:
@@ -737,6 +746,9 @@ class KrtcClient:
         krtOk = True
       else:
         self.inferFail = True
+
+    self.kdbRunCommand(binDir, "registers show", "log-registers-after-infer.txt")
+
     self.krtd.qemu.rsyncFromVm(self.krtd.kelfVmDir + "/log-krtd.txt", ".")
 
     # copies the log files
