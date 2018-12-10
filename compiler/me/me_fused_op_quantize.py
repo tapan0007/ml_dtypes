@@ -58,21 +58,16 @@ def emit_waveops_dequantize_tile(self, tpb, ifmap_tile, ofmap_tile, psum_bank_id
                 fmap_subtile = ifmap_tile_subtile,
                 reader_engine = reader_engine,
                 )
-
-    dequant_scale = first_op.data['dequant_scale']
-    zero_point = first_op.data['zero_point']
     last_waveop = self.gen_dequantize_waveop_inline(
                 tpb              = tpb,
                 op               = first_op,
                 ifmap_tile       = ifmap_tile,
                 ofmap_tile       = ofmap_tile,
                 src_is_psum      = first_op.src_is_psum,
-                psum_bank_src    = -1,
+                psum_bank_src    = psum_bank_id if first_op.src_is_psum else -1,
                 dst_is_psum      = first_op.dst_is_psum,
                 psum_bank_dst    = psum_bank_id if first_op.dst_is_psum else -1,
-                dram_waveops     = dram_ifmaps_waveops,
-                dequant_scale    = dequant_scale,
-                zero_point       = zero_point)
+                dram_waveops     = dram_ifmaps_waveops)
     attach_predecessors(last_waveop, prev_waveops)
     self.mark_producers_for_subtile_region(
             tpb           = tpb,
@@ -126,21 +121,16 @@ def emit_waveops_quantize_tile(self, tpb, ifmap_tile, ofmap_tile, psum_bank_id):
                 fmap_subtile = ifmap_tile_subtile,
                 reader_engine = reader_engine,
                 )
-
-    quant_scale = first_op.data['quant_scale']
-    zero_point = first_op.data['zero_point']
     last_waveop = gen_quantize_waveop_inline(self,
                 tpb              = tpb,
                 op               = first_op,
                 ifmap_tile       = ifmap_tile,
                 ofmap_tile       = ofmap_tile,
                 src_is_psum      = first_op.src_is_psum,
-                psum_bank_src    = -1,
+                psum_bank_src    = psum_bank_id if first_op.src_is_psum else -1,
                 dst_is_psum      = first_op.dst_is_psum,
                 psum_bank_dst    = psum_bank_id if first_op.dst_is_psum else -1,
-                dram_waveops     = dram_ifmaps_waveops,
-                quant_scale      = quant_scale,
-                zero_point       = zero_point)
+                dram_waveops     = dram_ifmaps_waveops)
     attach_predecessors(last_waveop, prev_waveops)
     self.mark_producers_for_subtile_region(
             tpb           = tpb,
@@ -148,11 +138,11 @@ def emit_waveops_quantize_tile(self, tpb, ifmap_tile, ofmap_tile, psum_bank_id):
             waveop        = last_waveop)
 
 # generate dequantize instruction and add it to instruction stream
-def gen_dequantize_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_waveops, dequant_scale, zero_point):
+def gen_dequantize_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_waveops):
     batch_item = ofmap_tile.n_id * op.Tn
     layer_name = op.data["layer_name"]
     out_dtype = op.get_out_data_type()
-    if (src_is_psum):
+    if src_is_psum:
         in_dtype = "int32"
         src_sb_address = 0
     else:
@@ -169,9 +159,16 @@ def gen_dequantize_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_p
     else:
         dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, batch_item, ofmap_tile.lower_addr[0])
     waveop_name = layer_name + "/" + op.data['layer_type'] + "_" + ofmap_tile.id_string
+    dequant_scale = op.data['dequant_scale']
+    zero_point = op.data['zero_point']
+    scalar_val = [-zero_point, dequant_scale]
+    scalar_op = [
+        self.translate_isa_op_name("add"),
+        self.translate_isa_op_name("multiply"),
+    ]
     instr = {
           'previous_waveops'        : [],
-          'waveop_type'             : op.data['layer_type'],
+          'waveop_type'             : 'TensorScalar',
           'waveop_name'             : waveop_name,
           'layer_name'              : layer_name,
           'tile_id_format'          : ofmap_tile.format,
@@ -194,10 +191,11 @@ def gen_dequantize_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_p
           'dst_z_step'              : dst_z_step,
           'dst_z_num'               : dst_z_num,
           'num_partitions'          : num_partitions,
+          'op0'                     : scalar_op[0],
+          'op1'                     : scalar_op[1],
+          'imm_val0'                : scalar_val[0],
+          'imm_val1'                : scalar_val[1],
         }
-    instr['waveop_type'] = "ScaleAdd"
-    instr['scale'] = dequant_scale
-    instr['add'] = -zero_point * dequant_scale
     if src_is_psum:
         assert(psum_bank_src >= 0)
         instr['src_psum_bank_id'] = psum_bank_src
@@ -216,7 +214,7 @@ def gen_dequantize_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_p
     return instr
 
 # generate quantize (float32 --> uint8) instruction and add it to instruction stream
-def gen_quantize_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_waveops, quant_scale, zero_point):
+def gen_quantize_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_waveops):
     batch_item = ofmap_tile.n_id * op.Tn
     layer_name = op.data["layer_name"]
     in_dtype = 'float32'
@@ -236,14 +234,20 @@ def gen_quantize_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_psu
     else:
         dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, batch_item, ofmap_tile.lower_addr[0])
     waveop_name = layer_name + "/" + op.data['layer_type'] + "_" + ofmap_tile.id_string
+    quant_scale = op.data['quant_scale']
+    zero_point = op.data['zero_point']
+    scalar_val = [quant_scale, zero_point]
+    scalar_op = [
+        self.translate_isa_op_name("multiply"),
+        self.translate_isa_op_name("add"),
+    ]
     instr = {
           'previous_waveops'        : [],
-          'waveop_type'             : op.data['layer_type'],
+          'waveop_type'             : 'TensorScalar',
           'waveop_name'             : waveop_name,
           'layer_name'              : layer_name,
           'tile_id_format'          : ofmap_tile.format,
           'tile_id'                 : ofmap_tile.id_array,
-          'is_scalar_op'            : True,
           'in_dtype'                : in_dtype,
           'out_dtype'               : out_dtype,
           'src_is_psum'             : src_is_psum,
@@ -261,10 +265,11 @@ def gen_quantize_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_psu
           'dst_z_step'              : dst_z_step,
           'dst_z_num'               : dst_z_num,
           'num_partitions'          : num_partitions,
+          'op0'                     : scalar_op[0],
+          'op1'                     : scalar_op[1],
+          'imm_val0'                : scalar_val[0],
+          'imm_val1'                : scalar_val[1],
         }
-    instr['waveop_type'] = "ScaleAdd"
-    instr['scale'] = quant_scale
-    instr['add'] = zero_point
     if src_is_psum:
         assert(psum_bank_src >= 0)
         instr['src_psum_bank_id'] = psum_bank_src

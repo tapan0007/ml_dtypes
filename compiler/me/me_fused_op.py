@@ -1633,9 +1633,7 @@ class FusedOp(list):
                             psum_bank_src    = psum_bank_id,
                             dst_is_psum      = dst_is_psum,
                             psum_bank_dst    = psum_bank_id if dst_is_psum else -1,
-                            dram_waveops     = [],
-                            dequant_scale    = dequant_scale,
-                            zero_point       = zero_point)
+                            dram_waveops     = [])
                 attach_predecessors(waveop, prev_waveops)
             elif ('QuantizeV2' == layer_type):
                 quant_scale = self[i].data['quant_scale']
@@ -1653,9 +1651,7 @@ class FusedOp(list):
                             psum_bank_src    = psum_bank_id,
                             dst_is_psum      = dst_is_psum,
                             psum_bank_dst    = psum_bank_id if dst_is_psum else -1,
-                            dram_waveops     = [],
-                            quant_scale      = quant_scale,
-                            zero_point       = zero_point)
+                            dram_waveops     = [])
                 attach_predecessors(waveop, prev_waveops)
             else:
                 raise RuntimeError("ERROR: %s is currently not yet implemented"%layer_type)
