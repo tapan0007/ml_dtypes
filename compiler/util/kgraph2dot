@@ -29,28 +29,36 @@ class KgraphJson(object):
     self.engineTypes = ["PE", "ACT", "POOL", "SP"]
 
   t2c = {
-    "Conv"     : "red",
-    "MaxPool"  : "orange",
-    "AvgPool"  : "orange",
-    "BiasAdd"  : "blue",
-    "ResAdd"   : "cyan",
-    "Const"    : "green",
+    "Conv"              : "red",
+    "MaxPool"           : "orange",
+    "AvgPool"           : "orange",
+    "ScaleAdd"          : "orange",
+    "TensorTensor"      : "orange",
+    "TensorScalar"      : "orange",
+    "TensorScalarPtr"   : "orange",
+    "BiasAdd"           : "blue",
+    "ResAdd"            : "cyan",
+    "Const"             : "green",
     # Waveops
-    "MatMul"   : "red",
-    "SBAtomFile" : "green",
-    "SBAtomSave" : "brown",
-    "Pool"     : "orange",    
+    "MatMul"            : "red",
+    "SBAtomFile"        : "green",
+    "SBAtomSave"        : "brown",
+    "Pool"              : "orange",    
     }
   def type2color(self, layerType):
     return KgraphJson.t2c.get(layerType, "black")
 
   w2e = {
-    "Activation" : "ACT",
-    "MatMul"     : "PE",
-    "Pool"       : "POOL",
-    "ResAdd"     : "ACT",
-    "SBAtomFile" : "SP",
-    "SBAtomSave" : "SP",
+    "Activation"        : "ACT",
+    "MatMul"            : "PE",
+    "Pool"              : "POOL",
+    "ScaleAdd"          : "POOL",
+    "TensorTensor"      : "POOL",
+    "TensorScalar"      : "POOL",
+    "TensorScalarPtr"   : "POOL",
+    "ResAdd"            : "ACT",
+    "SBAtomFile"        : "SP",
+    "SBAtomSave"        : "SP",
     }
   def waveopt2engine(self, waveopType):
     return KgraphJson.w2e.get(waveopType, "SP")
