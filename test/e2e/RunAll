@@ -81,7 +81,7 @@ parser.add_argument('--sealife', help='Use sealife compiler instead of kcc', act
 parser.add_argument('--waive', help='Additional test to waive', nargs='+', default=[])
 parser.add_argument('--cached_kelf', help='Instead of compiling copy test dir from here/test_name and run inference. It can be unix path, ssh URL or s3 URL. Also triggers additional comparison with tensors computed by the cached run, and qor TopEffs comparison.', default=None)
 parser.add_argument('--be_options', help='BE arguments', nargs='+', default=[])
-parser.add_argument('--test_domains', help='Set of additional test definitions to load, default is uint8', nargs='+', default=['uint8'])
+parser.add_argument('--test_domains', help='Set of additional test definitions to load, default is uint8 rn50_res_units', nargs='+', default=['uint8', 'rn50_res_units'])
 
 args = parser.parse_args()
 verbose = args.verbose
