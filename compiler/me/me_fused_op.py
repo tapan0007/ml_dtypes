@@ -327,7 +327,7 @@ class FusedOp(list):
     """
     act_ops_regex = "Relu|Softplus|Sigmoid|Tanh|^Exp$|Identity|Lrelu|Prelu|Sqrt"
     bias_ops_regex = "BiasAdd"
-    pool_ops_regex = ".*Pool|Sub|Add|Multiply|ResAdd|Maximum|Minimum|QuantizeV2|Dequantize"
+    pool_ops_regex = ".*Pool|Sub|Add|Multiply|ResAdd|Maximum|Minimum|Dequantize"
     identity_ops_regex = "Reshape|Squeeze|ExpandDims"
     next_is_fusable_regex = bias_ops_regex + "|" + act_ops_regex + "|" + pool_ops_regex # + "|" + identity_ops_regex
     next_is_fusable = {

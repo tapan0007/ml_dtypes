@@ -18,7 +18,7 @@ class BatchSBDataMap:
         #assert(self.item_sz == 2)
 
         # below are sizing for ResNet50 batching scheme
-        bias_sz = 512
+        bias_sz = 2048 if data_type == 'uint8' else 512 # uint8 requires bias to be in float32
         self.ofmap_sz_55x55x64   = align_addr_8B(55 * 55 * self.item_sz)                 # = 6050 -> 6056 aligned
         self.first_ifmaps_region_sz = self.ofmap_sz_55x55x64
         self.ofmap_sz_55x55x256  = align_addr_16B(55 * 55 * 256 * self.item_sz // 128)   # = 12100 -> 12112 aligned (use 16B alignment to match 55x55x64)

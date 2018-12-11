@@ -8,14 +8,13 @@
 #   Name can be composed of anything - 0 can be used as base/existence test
 #   Columns: (nnStruct, nnConfig, nnLabel, nnArgs, rtArgs)
 
-RT_LOOSE_OPTION = "--diff_options '--tolerance 1 1'"
+RT_LOOSE_OPTION = "--diff_options '--tolerance 1 1e-1'"
 
-def options_uint8_v1(module, harness, net_name):
+def options_uint8_v1(module, harness, net_name, rt_option=RT_LOOSE_OPTION):
     tffe_options = ("--executors wave 0 host 1 --scheduler wave2 "
-        "--waive_wavegraph_checks "
         "--schedule_options ' --nname=generic --no_verify ' " # me options
         "--partition from_multi '%s/output' " % (net_name))
-    return module, harness, net_name, tffe_options, RT_LOOSE_OPTION
+    return module, harness, net_name, tffe_options, rt_option
 
 
 testConfigMap = {
@@ -83,9 +82,9 @@ testConfigMap = {
         "trivnet_conv_ba_relu_pool_uint8",
         "tuint8-b1-h224-r7-s2-c3-m64-imin0-imax1-wmin-0.03-wmax0.03-amin-0.1-amax0.1-same-maxpool-k3-d2-hasba1-hasrelu1-haspool1-quantizeback1-rqmin0-rqmax1",
         "rn50_block0_uint8",
-        "--executors wave 1 host 0 --scheduler wave2 --waive_wavegraph_checks "
+        "--executors wave 1 host 0 2 --scheduler wave2 "
         "--schedule_options ' --nname=generic --no_verify ' " # me options
-        "--partition from_multi 'rn50_block0_uint8/quantized_conv2d' ",
+        "--partition from_multi 'rn50_block0_uint8/quantized_conv2d' 'rn50_block0_uint8/output' ",
         RT_LOOSE_OPTION,
         ],
     "2-rn50_block1_uint8_b1_wave": options_uint8_v1(
@@ -127,6 +126,15 @@ testConfigMap = {
         "trivnet_rn50_block_uint8",
         "tuint8-b1-h7-s1-cin2048-chid512-cout2048-imin0-imax1-wmin-0.01-wmax0.01-amin-0.1-amax0.1-rqmin0-rqmax1-hasrelu1-hasavgpool1",
         "rn50_block16_uint8"),
+    "7-rn50_full_uint8_b1_wave": [
+        "trivnet_rn50_full_uint8",
+        "tuint8-b1-imin0-imax1-wmin-0.03-wmax0.03-amin-0.1-amax0.1-rqmin0-rqmax1",
+        "rn50_full_uint8",
+        "--executors wave 1 host 0 2 --scheduler wave2 "
+        "--schedule_options ' --nname=generic --no_verify ' " # me options
+        "--partition from_multi 'rn50_full_uint8/block_0/quantized_conv2d' 'rn50_full_uint8/output' ",
+        "--diff_options '--tolerance 1 2e-1'",
+        ],
 }
 
 

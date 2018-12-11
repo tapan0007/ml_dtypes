@@ -139,25 +139,45 @@ def emit_waveops_quantize_tile(self, tpb, ifmap_tile, ofmap_tile, psum_bank_id):
 
 # generate dequantize instruction and add it to instruction stream
 def gen_dequantize_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_waveops):
-    batch_item = ofmap_tile.n_id * op.Tn
+    batch_item = ofmap_tile.n_id * ofmap_tile.Tn
     layer_name = op.data["layer_name"]
     out_dtype = op.get_out_data_type()
+    ifmap_subtile = ifmap_tile.make_pewave()
+    src_x_num = ifmap_subtile.subtile_rect.dim2d.x
+    src_y_num = ifmap_subtile.subtile_rect.dim2d.y
+    src_z_num = ifmap_subtile.tile.Tn
+    waveop = {}
     if src_is_psum:
         in_dtype = "int32"
         src_sb_address = 0
+        src_y_step = ifmap_subtile.subtile_rect.dim2d.x
+        src_z_step = src_y_step * src_y_num if src_z_num > 1 else 1
+        waveop["src_psum_bank_id"]      = psum_bank_src
+        waveop["src_psum_bank_offset"]  = ifmap_subtile.subtile_psum_offset
     else:
         in_dtype = op.prev[0].get_out_data_type()
         src_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ifmaps_file_params, batch_item, ifmap_tile.lower_addr[0])
-    dst_x_num = op.ofmap_full_tilex_sz
-    dst_y_step = op.E
-    dst_y_num = op.ofmap_full_tiley_sz
-    dst_z_step = op.ofmaps_file_params.batch_item_partition_usage_elems_padded if op.Tn > 1 else 1
-    dst_z_num = op.Tn  # Need CNHW data format
+        src_y_step = ifmap_subtile.tile.file_params.file_dims.W
+        src_z_step = ifmap_subtile.tile.file_params.batch_item_partition_usage_elems_padded if src_z_num > 1 else 1
+        waveop["src_start_at_mid_part"] = ifmap_tile.start_at_mid_part
+        waveop["src_sb_address"]        = src_sb_address
+    ofmap_subtile = ofmap_tile.make_pewave()
+    dst_x_num = ofmap_subtile.subtile_rect.dim2d.x
+    dst_y_num = ofmap_subtile.subtile_rect.dim2d.y
+    dst_z_num = ofmap_subtile.tile.Tn
     num_partitions = ofmap_tile.channel_count
     if dst_is_psum:
         dst_sb_address = 0
+        dst_y_step = ofmap_subtile.subtile_rect.dim2d.x
+        dst_z_step = dst_y_step * dst_y_num if dst_z_num > 1 else 1
+        waveop["dst_psum_bank_id"]      = psum_bank_dst
+        waveop["dst_psum_bank_offset"]  = ofmap_subtile.subtile_psum_offset
     else:
         dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, batch_item, ofmap_tile.lower_addr[0])
+        dst_y_step = ofmap_subtile.tile.file_params.file_dims.W
+        dst_z_step = ofmap_subtile.tile.file_params.batch_item_partition_usage_elems_padded if dst_z_num > 1 else 1
+        waveop["dst_start_at_mid_part"] = ofmap_tile.start_at_mid_part
+        waveop["dst_sb_address"]        = dst_sb_address
     waveop_name = layer_name + "/" + op.data['layer_type'] + "_" + ofmap_tile.id_string
     dequant_scale = op.data['dequant_scale']
     zero_point = op.data['zero_point']
@@ -167,72 +187,79 @@ def gen_dequantize_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_p
         self.translate_isa_op_name("multiply"),
     ]
     instr = {
-          'previous_waveops'        : [],
-          'waveop_type'             : 'TensorScalar',
-          'waveop_name'             : waveop_name,
-          'layer_name'              : layer_name,
-          'tile_id_format'          : ofmap_tile.format,
-          'tile_id'                 : ofmap_tile.id_array,
-          'is_scalar_op'            : True,
-          'in_dtype'                : in_dtype,
-          'out_dtype'               : out_dtype,
-          'src_is_psum'             : src_is_psum,
-          'src_x_step'              : 1,
-          'src_x_num'               : dst_x_num,
-          'src_y_step'              : dst_y_step,
-          'src_y_num'               : dst_y_num,
-          'src_z_step'              : dst_z_step,
-          'src_z_num'               : dst_z_num,
-          'dst_is_psum'             : dst_is_psum,
-          'dst_x_step'              : 1,
-          'dst_x_num'               : dst_x_num,
-          'dst_y_step'              : dst_y_step,
-          'dst_y_num'               : dst_y_num,
-          'dst_z_step'              : dst_z_step,
-          'dst_z_num'               : dst_z_num,
-          'num_partitions'          : num_partitions,
-          'op0'                     : scalar_op[0],
-          'op1'                     : scalar_op[1],
-          'imm_val0'                : scalar_val[0],
-          'imm_val1'                : scalar_val[1],
-        }
-    if src_is_psum:
-        assert(psum_bank_src >= 0)
-        instr['src_psum_bank_id'] = psum_bank_src
-        instr['src_psum_bank_offset'] = 0
-    else:
-        instr['src_sb_address'] = src_sb_address
-        instr['src_start_at_mid_part'] = ofmap_tile.m_id%2 == 1
-    if dst_is_psum:
-        assert(psum_bank_dst >= 0)
-        instr['dst_psum_bank_id'] = psum_bank_dst
-        instr['dst_psum_bank_offset'] = 0
-    else:
-        instr['dst_sb_address'] = dst_sb_address
-        instr['dst_start_at_mid_part'] = ofmap_tile.m_id%2 == 1
+        'previous_waveops'        : [],
+        'waveop_type'             : 'TensorScalar',
+        'waveop_name'             : waveop_name,
+        'layer_name'              : layer_name,
+        'tile_id_format'          : ofmap_tile.format,
+        'tile_id'                 : ofmap_tile.id_array,
+        'is_scalar_op'            : True,
+        'in_dtype'                : in_dtype,
+        'out_dtype'               : out_dtype,
+        'src_is_psum'             : src_is_psum,
+        'src_x_step'              : 1,
+        'src_x_num'               : src_x_num,
+        'src_y_step'              : src_y_step,
+        'src_y_num'               : src_y_num,
+        'src_z_step'              : src_z_step,
+        'src_z_num'               : src_z_num,
+        'dst_is_psum'             : dst_is_psum,
+        'dst_x_step'              : 1,
+        'dst_x_num'               : dst_x_num,
+        'dst_y_step'              : dst_y_step,
+        'dst_y_num'               : dst_y_num,
+        'dst_z_step'              : dst_z_step,
+        'dst_z_num'               : dst_z_num,
+        'num_partitions'          : num_partitions,
+        'op0'                     : scalar_op[0],
+        'op1'                     : scalar_op[1],
+        'imm_val0'                : scalar_val[0],
+        'imm_val1'                : scalar_val[1],
+        **waveop,
+    }
     tpb.waveop_stream.add_linked(instr, dram_waveops, psum_bank_src if src_is_psum else -1)
     return instr
 
 # generate quantize (float32 --> uint8) instruction and add it to instruction stream
 def gen_quantize_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_waveops):
-    batch_item = ofmap_tile.n_id * op.Tn
+    batch_item = ofmap_tile.n_id * ofmap_tile.Tn
     layer_name = op.data["layer_name"]
     in_dtype = 'float32'
     out_dtype = op.get_out_data_type()
+    ifmap_subtile = ifmap_tile.make_pewave()
+    src_x_num = ifmap_subtile.subtile_rect.dim2d.x
+    src_y_num = ifmap_subtile.subtile_rect.dim2d.y
+    src_z_num = ifmap_subtile.tile.Tn
+    waveop = {}
     if src_is_psum:
         src_sb_address = 0
+        src_y_step = ifmap_subtile.subtile_rect.dim2d.x
+        src_z_step = src_y_step * src_y_num if src_z_num > 1 else 1
+        waveop["src_psum_bank_id"]      = psum_bank_src
+        waveop["src_psum_bank_offset"]  = ifmap_subtile.subtile_psum_offset
     else:
         src_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ifmaps_file_params, batch_item, ifmap_tile.lower_addr[0])
-    dst_x_num = op.ofmap_full_tilex_sz
-    dst_y_step = op.E
-    dst_y_num = op.ofmap_full_tiley_sz
-    dst_z_step = op.ofmaps_file_params.batch_item_partition_usage_elems_padded if op.Tn > 1 else 1
-    dst_z_num = op.Tn  # Need CNHW data format
+        src_y_step = ifmap_subtile.tile.file_params.file_dims.W
+        src_z_step = ifmap_subtile.tile.file_params.batch_item_partition_usage_elems_padded if src_z_num > 1 else 1
+        waveop["src_start_at_mid_part"] = ifmap_tile.start_at_mid_part
+        waveop["src_sb_address"]        = src_sb_address
+    ofmap_subtile = ofmap_tile.make_pewave()
+    dst_x_num = ofmap_subtile.subtile_rect.dim2d.x
+    dst_y_num = ofmap_subtile.subtile_rect.dim2d.y
+    dst_z_num = ofmap_subtile.tile.Tn
     num_partitions = ofmap_tile.channel_count
     if dst_is_psum:
         dst_sb_address = 0
+        dst_y_step = ofmap_subtile.subtile_rect.dim2d.x
+        dst_z_step = dst_y_step * dst_y_num if dst_z_num > 1 else 1
+        waveop["dst_psum_bank_id"]      = psum_bank_dst
+        waveop["dst_psum_bank_offset"]  = ofmap_subtile.subtile_psum_offset
     else:
         dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, batch_item, ofmap_tile.lower_addr[0])
+        dst_y_step = ofmap_subtile.tile.file_params.file_dims.W
+        dst_z_step = ofmap_subtile.tile.file_params.batch_item_partition_usage_elems_padded if dst_z_num > 1 else 1
+        waveop["dst_start_at_mid_part"] = ofmap_tile.start_at_mid_part
+        waveop["dst_sb_address"]        = dst_sb_address
     waveop_name = layer_name + "/" + op.data['layer_type'] + "_" + ofmap_tile.id_string
     quant_scale = op.data['quant_scale']
     zero_point = op.data['zero_point']
@@ -242,47 +269,34 @@ def gen_quantize_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_psu
         self.translate_isa_op_name("add"),
     ]
     instr = {
-          'previous_waveops'        : [],
-          'waveop_type'             : 'TensorScalar',
-          'waveop_name'             : waveop_name,
-          'layer_name'              : layer_name,
-          'tile_id_format'          : ofmap_tile.format,
-          'tile_id'                 : ofmap_tile.id_array,
-          'in_dtype'                : in_dtype,
-          'out_dtype'               : out_dtype,
-          'src_is_psum'             : src_is_psum,
-          'src_x_step'              : 1,
-          'src_x_num'               : dst_x_num,
-          'src_y_step'              : dst_y_step,
-          'src_y_num'               : dst_y_num,
-          'src_z_step'              : dst_z_step,
-          'src_z_num'               : dst_z_num,
-          'dst_is_psum'             : dst_is_psum,
-          'dst_x_step'              : 1,
-          'dst_x_num'               : dst_x_num,
-          'dst_y_step'              : dst_y_step,
-          'dst_y_num'               : dst_y_num,
-          'dst_z_step'              : dst_z_step,
-          'dst_z_num'               : dst_z_num,
-          'num_partitions'          : num_partitions,
-          'op0'                     : scalar_op[0],
-          'op1'                     : scalar_op[1],
-          'imm_val0'                : scalar_val[0],
-          'imm_val1'                : scalar_val[1],
-        }
-    if src_is_psum:
-        assert(psum_bank_src >= 0)
-        instr['src_psum_bank_id'] = psum_bank_src
-        instr['src_psum_bank_offset'] = 0
-    else:
-        instr['src_sb_address'] = src_sb_address
-        instr['src_start_at_mid_part'] = ofmap_tile.m_id%2 == 1
-    if dst_is_psum:
-        assert(psum_bank_dst >= 0)
-        instr['dst_psum_bank_id'] = psum_bank_dst
-        instr['dst_psum_bank_offset'] = 0
-    else:
-        instr['dst_sb_address'] = dst_sb_address
-        instr['dst_start_at_mid_part'] = ofmap_tile.m_id%2 == 1
+        'previous_waveops'        : [],
+        'waveop_type'             : 'TensorScalar',
+        'waveop_name'             : waveop_name,
+        'layer_name'              : layer_name,
+        'tile_id_format'          : ofmap_tile.format,
+        'tile_id'                 : ofmap_tile.id_array,
+        'in_dtype'                : in_dtype,
+        'out_dtype'               : out_dtype,
+        'src_is_psum'             : src_is_psum,
+        'src_x_step'              : 1,
+        'src_x_num'               : src_x_num,
+        'src_y_step'              : src_y_step,
+        'src_y_num'               : src_y_num,
+        'src_z_step'              : src_z_step,
+        'src_z_num'               : src_z_num,
+        'dst_is_psum'             : dst_is_psum,
+        'dst_x_step'              : 1,
+        'dst_x_num'               : dst_x_num,
+        'dst_y_step'              : dst_y_step,
+        'dst_y_num'               : dst_y_num,
+        'dst_z_step'              : dst_z_step,
+        'dst_z_num'               : dst_z_num,
+        'num_partitions'          : num_partitions,
+        'op0'                     : scalar_op[0],
+        'op1'                     : scalar_op[1],
+        'imm_val0'                : scalar_val[0],
+        'imm_val1'                : scalar_val[1],
+        **waveop,
+    }
     tpb.waveop_stream.add_linked(instr, dram_waveops, psum_bank_src if src_is_psum else -1)
     return instr
