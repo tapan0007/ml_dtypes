@@ -101,7 +101,7 @@ parser.add_argument('--wavegraph_transform',
                           'The default is no optimization'), 
                     nargs='+', default=["cleaner","euler","cleaner"])
 parser.add_argument('--level_order_seed', help='Seed for randomization of Kgraph node order in compiler.json for stress testing of downstream flow, default is none which means alphabetic sort', type=int, default=None)
-parser.add_argument('--be_options', help='Additional BE options', nargs='+', default=[])
+parser.add_argument('--be_options', help='Additional BE options without "--" prefix', nargs='+', default=[])
 parser.add_argument('--jf_data_layout', help=argparse.SUPPRESS, default=None)  # For sealife compatibility
 
 args = parser.parse_args()
@@ -275,10 +275,16 @@ if args.images != None:
           if args.scheduler.startswith("qemu"):
             beopts = "--real-dma"
 
+            valid_be_opts = frozenset([
+                "sync-with-events",
+                "sync-with-semaphores",
+                "sbuf-replay", "no-sbuf-replay",
+                "sbuf-copy", "no-sbuf-copy",
+                "parallel-streams",
+                "sequential-stream",
+            ])
             for opt in args.be_options:
-                if opt == "sync-with-events":
-                    beopts += " --" + opt + " "
-                elif opt == "sync-with-semaphores":
+                if opt in valid_be_opts:
                     beopts += " --" + opt + " "
                 else:
                     print("Bad BE option:", opt)

@@ -2,7 +2,7 @@
 MODULE:=nets
 MODS := $(MODULE) utils arch layers serialize
 
-SRCS := network network_load network_save
+SRCS := network network_load network_save loadsplitter
 
 ########################################################
 include ../Makefile.common

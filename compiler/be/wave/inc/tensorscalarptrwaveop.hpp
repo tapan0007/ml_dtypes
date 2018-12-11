@@ -44,7 +44,7 @@ public:
         return true;
     }
 
-    virtual WaveOpType gType() const override {
+    WaveOpType gType() const override {
         return WaveOpType::TensorScalar;
     }
 
@@ -101,7 +101,7 @@ public:
 private:
     TensorAluOpType m_AluOp[2];   // operation in Pool ALU
     TpbAddress      m_ImmPtr[2];
-    
+
     const DataType& m_InDtype;
 
     /* 3 dimensions for src/dst to support batching.  If this instruction runs

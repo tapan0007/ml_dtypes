@@ -33,38 +33,11 @@ public:
     WaveCodeSbAtomLoad(WaveCodeRef waveCode);
 
     //----------------------------------------------------------------
-    void generate(wave::WaveOp* waveOp) override;
 
 
-private:
-    void generateForSim(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
-    void generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
-    void generateForSimNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
-
-
-    void generateDmaDescAndTriggerRuntimeKelf(wave::SbAtomLoadWaveOp*sbAtomLoadWaveop,
-            EngineId chosenEngId,
-            const std::vector<events::EventId>& succEventIds);
-
-    void generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop,
-                    EngineId chosenEngId, const std::vector<events::EventId>& succEventIds);
-
-    kcc_int32 generateForKelf(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
-
-    void generateDmaTrigger(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp,
-                EngineId chosenEngId, const std::vector<events::EventId>& succEventIds);
-
-    void generateInputDma(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
-    void generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
-    void generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
-
-    static void setInstructionEvents(compisa::SimMemCpyInstr& dramToStateBufInstr, bool first, bool last,
-                    events::EventId waitEventId, events::EventWaitMode waitEventMode,
-                    events::EventId setEventId, events::EventSetMode setEventMode);
-
+protected:
 
     void calcInputSize(const wave::SbAtomLoadWaveOp* sbAtomLoadWaveop);
-private:
 };
 
 }}

@@ -539,6 +539,7 @@ void WaveCode::writeInstruction<compisa::DmaTriggerInstr>(const compisa::DmaTrig
 }
 
 
+#if 0
 template<>
 void WaveCode::writeInstruction<compisa::SimDmaCopyInstr>(const compisa::SimDmaCopyInstr& instruction, EngineId engId) const
 {
@@ -565,6 +566,7 @@ void WaveCode::writeInstruction<compisa::SimDmaCopyInstr>(const compisa::SimDmaC
     fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
     engInfo->m_Pc += instSize;
 }
+#endif
 
 }}
 

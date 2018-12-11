@@ -223,7 +223,7 @@ SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(TileId);
     KCC_ARCHIVE(TileIdFormat);
 }
- 
+
 //===========================================================================
 void
 SerWaveOp::loadTensorTensor(cereal::JSONInputArchive& archive)

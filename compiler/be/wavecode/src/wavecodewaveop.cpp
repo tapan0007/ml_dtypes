@@ -1,5 +1,7 @@
 #include <set>
 #include <array>
+#include <sstream>
+
 
 
 #include "utils/inc/asserter.hpp"
@@ -96,17 +98,20 @@ void
 WaveCodeWaveOp::GenerateSemaphoreInstr(const wave::WaveEdge* prevWaveEdge)
 {
     const auto prevWaveop = prevWaveEdge->gFromOp();
-    auto prevSbAtomWaveop = dynamic_cast<const wave::SbAtomWaveOp*>(prevWaveop);
-    Assert(prevSbAtomWaveop, "WaveOp ", prevWaveop->gName(), " should be Load/Save");
+    auto prevDatamoveWaveop = dynamic_cast<const wave::DataMoveWaveOp*>(prevWaveop);
+    Assert(prevDatamoveWaveop, "WaveOp ", prevWaveop->gName(), " should be Load/Save/TpbCopy");
     const auto succWaveop = prevWaveEdge->gToOp();
 
     // semaphore wait must >= because 2 DMA transfers that are on the same queue
     // could both finish before the engine(s) that is(are) waiting on the first
     // condition arrives to the semaphore.wait, misses the condition, and gets stuck.
     compisa::SemaphoreInstr semInstr;
+    AssignWithSizeCheck(semInstr.semaphore_id, prevDatamoveWaveop->gDmaQueue()->gSemaphoreId());
+    AssignWithSizeCheck(semInstr.wait_cond, TONGA_ISA_TPB_SEMAPHORE_WAIT_COND_GREATER_EQUAL);
+    AssignWithSizeCheck(semInstr.wait_value, prevDatamoveWaveop->gTriggerOrd());
 
     std::ostringstream oss;
-    oss << prevSbAtomWaveop->gOrder() << "->" << succWaveop->gOrder() << ": " << succWaveop->gName();
+    oss << prevDatamoveWaveop->gOrder() << "->" << succWaveop->gOrder() << ": " << succWaveop->gName();
     m_WaveCode.SaveName(semInstr, oss.str().c_str());
 
 
@@ -114,15 +119,15 @@ WaveCodeWaveOp::GenerateSemaphoreInstr(const wave::WaveEdge* prevWaveEdge)
     std::array<kcc_int32, dmaQues.size()> trigOrds;
 
 
-    dmaQues[0]  = prevSbAtomWaveop->gDmaQueue();
+    dmaQues[0]  = prevDatamoveWaveop->gDmaQueue();
     dmaQues[1]  = nullptr;
-    trigOrds[0] = prevSbAtomWaveop->gTriggerOrd();
+    trigOrds[0] = prevDatamoveWaveop->gTriggerOrd();
     trigOrds[1] = -1;
 
     //----------------------------------------------------------------
     // For weights with 2 queues: wait on the 2nd queue
     //----------------------------------------------------------------
-    auto prevSbLoad = dynamic_cast<const wave::SbAtomLoadWaveOp*>(prevSbAtomWaveop);
+    auto prevSbLoad = dynamic_cast<const wave::SbAtomLoadWaveOp*>(prevDatamoveWaveop);
     if (prevSbLoad) {
         const dma::DmaQueue* que1 = prevSbLoad->gDmaQueue1();
         dmaQues[1] = que1;
@@ -252,6 +257,53 @@ WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop)
     }
     return numSyncs;
 } // WaveCodeWaveOp::processOutgoingEdges
+
+
+
+
+
+//======================================================================
+std::string
+WaveCodeWaveOp::FileRange::String() const
+{
+    std::ostringstream oss;
+    oss << "(" << m_File << "," << m_OffsetRange.gBegin()
+        << "," << m_OffsetRange.gSize() << "," << m_OffsetRange.gEnd() << ")";
+    return oss.str();
+}
+
+//************************************************************************
+void
+WaveCodeWaveOp::addDmaBarrier(const wave::SbAtomWaveOp* sbatomWaveop, EngineId engId) const
+{
+    const kcc_int32 cycleWait = calculateDmaCycleWait(sbatomWaveop);
+    if (cycleWait <= 0) {
+        return;
+    }
+    compisa::NopInstr nopInstr;
+    AssignWithSizeCheck(nopInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
+    AssignWithSizeCheck(nopInstr.inst_events.wait_event_idx, 0);
+    AssignWithSizeCheck(nopInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
+    AssignWithSizeCheck(nopInstr.inst_events.set_event_idx, 0);
+    AssignWithSizeCheck(nopInstr.cycle_cnt, cycleWait);
+
+    std::ostringstream oss;
+    oss << sbatomWaveop->gOrder() << "-" << sbatomWaveop->gName() << ":Delay before DMA ";
+    m_WaveCode.SaveName(nopInstr, oss.str().c_str());
+    m_WaveCode.writeInstruction(nopInstr, engId);
+} // WaveCodeSbAtom::addDmaBarrier
+
+//************************************************************************
+kcc_int32
+WaveCodeWaveOp::calculateDmaCycleWait(const wave::SbAtomWaveOp* sbatomWaveop) const
+{
+    if (false) {
+        const arch::PeArray& peArray(arch::Arch::gArch().gPeArray());
+        return std::max(peArray.gNumberRows(), peArray.gNumberColumns());
+    } else {
+        return sbatomWaveop->gNumPartitions();
+    }
+}
 
 }}
 

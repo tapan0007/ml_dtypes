@@ -199,7 +199,7 @@ constexpr static const char* PEPerfOptMode        = "pe_perf_opt_mode";
 //constexpr static const char* AddScalar            = "add_scalar";
 constexpr static const char* IsScalarOp           = "is_scalar_op";
 constexpr static const char* ScalarVal            = "scalar_val";
- 
+
 constexpr static const char* Op                   = "op";
 constexpr static const char* Op0                  = "op0";
 constexpr static const char* Op1                  = "op1";
@@ -208,8 +208,14 @@ constexpr static const char* ImmVal1              = "imm_val1";
 constexpr static const char* ImmPtr0              = "imm_ptr0";
 constexpr static const char* ImmPtr1              = "imm_ptr1";
 constexpr static const char* IsDynamicWeights     = "is_dynamic_weights";
-}
 
+
+constexpr static const char* PairLoadWaveOp    = "pair_load";
+constexpr static const char* PrevCopyWaveOp    = "prev_copy";
+constexpr static const char* PairCopyWaveOp    = "pair_copy";
+constexpr static const char* SizeInBytes       = "size_in_bytes";
+//constexpr static const char* WaveOpKey_EngineId          = EngineId::None;
+} // namespace WaveOpKey
 
 //===================================================
 class SerWaveOp {
@@ -239,6 +245,8 @@ public:
                               events::EventId eventId,
                               events::EventWaitMode waitMode);
     void addPreviousSemaphoreSync(const char* prevSemaphore, kcc_int32 trigOrd);
+    void addPreviousSemaphoreSync(const char* prevSemaphore, kcc_int32 trigOrd,
+                                  const char* prevSemaphore1, kcc_int32 trigOrd1);
 
 
     static ActivationFunc str2ActivationFunc(const std::string& s);
@@ -280,6 +288,7 @@ private:
 
     void saveSbAtom(cereal::JSONOutputArchive& archive) const;
     void savePool(cereal::JSONOutputArchive& archive) const;
+    void saveTpbCopy(cereal::JSONOutputArchive& archive) const;
     void saveReciprocal(cereal::JSONOutputArchive& archive) const;
     void saveRegLoad(cereal::JSONOutputArchive& archive) const;
     void saveRegStore(cereal::JSONOutputArchive& archive) const;
@@ -320,6 +329,7 @@ private:
     bool verifyTensor() const;
     bool verifyTensorTensor() const;
     bool verifyTensorScalar() const;
+    bool verifyTpbCopy() const;
 
 public:
     // common to all
@@ -347,6 +357,7 @@ public:
 
     // SBAtomLoad
     bool                        m_ContainWeights    = false;
+    std::string                 m_PairCopyWaveOp    = "";
 
     // SBAtomSave
     bool                        m_FinalLayerOfmap;
@@ -392,6 +403,12 @@ public:
     std::string                 m_OutDtype          = "";
     kcc_int32                   m_PoolFrequency     = -1;
     std::string                 m_PoolFunc          = "";
+
+    std::string                 m_PairLoadWaveOp    = "";
+    std::string                 m_PrevCopyWaveOp    = "";
+    kcc_int64                   m_SrcAddress        = -1;
+    kcc_int64                   m_DstAddress        = -1;
+    kcc_int64                   m_SizeInBytes       = -1;
 
     // previouswaveops": [ 1conv/i1/MatMuln0m0h0w0c0r0s0" ]
     bool                        m_SrcIsPsum         = true;
@@ -510,29 +527,42 @@ private:
         {}
         EventSync(const EventSync&) = default;
         EventSync() = delete;
+        ~EventSync() = default;
     public:
-        const events::EventSetMode  m_SetMode;
-        const events::EventId       m_EventId;
-        const events::EventWaitMode m_WaitMode;
+        const events::EventSetMode  m_SetMode  = events::EventSetMode::DontSet;
+        const events::EventId       m_EventId  = 0;
+        const events::EventWaitMode m_WaitMode = events::EventWaitMode::DontWait;
     };
 
     class SemSync {
     public:
         SemSync(const char* que, kcc_int32 trigOrd)
-            : m_QueueName(que)
+            : m_QueueName(que ? que : "")
             , m_TrigOrd(trigOrd)
+            , m_QueueName1("")
+            , m_TrigOrd1(-1)
+        {}
+        SemSync(const char* que, kcc_int32 trigOrd, const char* que1, kcc_int32 trigOrd1)
+            : m_QueueName(que ? que : "")
+            , m_TrigOrd(trigOrd)
+            , m_QueueName1(que1 ? que1 : "")
+            , m_TrigOrd1(trigOrd1)
         {}
         SemSync(const SemSync&) = default;
         SemSync() = delete;
+        ~SemSync() = default;
 
     public:
-        const std::string   m_QueueName;
-        const kcc_int32     m_TrigOrd;
+        const std::string   m_QueueName  = "";
+        const kcc_int32     m_TrigOrd    = -1;
+        const std::string   m_QueueName1 = "";
+        const kcc_int32     m_TrigOrd1   = -1;
     };
 
 public:
     Sync(events::EventSetMode setMode, events::EventId eventId, events::EventWaitMode waitMode);
     Sync(const char* que, kcc_int32 trigOrd);
+    Sync(const char* que, kcc_int32 trigOrd, const char* que1, kcc_int32 trigOrd1);
     Sync(const Sync& rhs);
     ~Sync();
 

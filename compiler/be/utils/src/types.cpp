@@ -138,7 +138,7 @@ const std::string& ActivationFunc2Str(ActivationFunc actFunc)
     }
 }
 
- 
+
 #undef ELSEIF
 #define ELSEIF(X)  } else if (0 == strcmp(tensorOp, TensorAluTypeStr::X)) { return TensorAluOpType::X;
 

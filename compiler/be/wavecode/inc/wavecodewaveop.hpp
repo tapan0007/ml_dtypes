@@ -45,9 +45,13 @@ namespace wavecode {
 class WaveCode;
 
 
+//--------------------------------------------------------------------
 class WaveCodeWaveOp {
 protected:
+    class OffsetRange;
+    class FileRange;
     using WaveCodeRef = WaveCode&;
+    enum {REPL_DEBUG = 1};
 public:
     //----------------------------------------------------------------
     WaveCodeWaveOp(WaveCodeRef wavecode);
@@ -141,12 +145,118 @@ protected:
 
     void GenerateSemaphoreInstr(const wave::WaveEdge* prevWaveEdge);
 
+protected:
+    void addDmaBarrier(const wave::SbAtomWaveOp* sbatomWaveop, EngineId engId) const;
+
 private:
+    kcc_int32 calculateDmaCycleWait(const wave::SbAtomWaveOp* sbatomWaveop) const;
 
 protected:
     WaveCodeRef     m_WaveCode;
     wave::WaveOp*   m_WaveOp;
 }; // class WaveCodeWaveOp
+
+
+//--------------------------------------------------------------------
+class WaveCodeWaveOp::OffsetRange {
+public:
+    OffsetRange(TongaAddress offset, kcc_int64 size)
+        : m_Offset(offset)
+        , m_Size(size)
+    {}
+
+    OffsetRange()
+        : m_Offset(~0L)
+        , m_Size(-1)
+    {}
+
+    OffsetRange(const OffsetRange&) = default;
+
+    OffsetRange& operator= (const OffsetRange&) = default;
+
+    bool operator< (const OffsetRange& rhs) const {
+        if (m_Offset < rhs.m_Offset) {
+            return true;
+        } else if (m_Offset > rhs.m_Offset) {
+            return false;
+        } else if (m_Size < rhs.m_Size) {
+            return true;
+        } else if (m_Size > rhs.m_Size) {
+            return false;
+        }
+        return false;
+    }
+
+    void XrOffsetSize(TongaAddress offset, kcc_int64 size) {
+        m_Offset = offset;
+        m_Size = size;
+    }
+
+    TongaAddress gBegin() const {
+        return m_Offset;
+    }
+    TongaAddress gEnd() const {
+        return m_Offset + m_Size;
+    }
+    kcc_int64 gSize() const {
+        return m_Size;
+    }
+
+private:
+    TongaAddress    m_Offset;
+    kcc_int64       m_Size;
+};
+
+//--------------------------------------------------------------------
+class WaveCodeWaveOp::FileRange {
+public:
+    FileRange(const std::string& fileName, TongaAddress offset, kcc_int64 size)
+        : m_File(fileName)
+        , m_OffsetRange(offset, size)
+    {}
+    FileRange(const std::string& fileName, const OffsetRange& offsetRange)
+        : m_File(fileName)
+        , m_OffsetRange(offsetRange)
+    {}
+
+
+    FileRange(const FileRange&) = default;
+
+    FileRange& operator= (const FileRange&) = default;
+
+    bool operator< (const FileRange& rhs) const {
+        if (m_OffsetRange < rhs.m_OffsetRange) {
+            return true;
+        } else if (rhs.m_OffsetRange < m_OffsetRange) {
+            return false;
+        } else if (m_File < rhs.m_File) {
+            return true;
+        } else if (m_File > rhs.m_File) {
+            return false;
+        }
+        return false;
+    }
+
+    const std::string& gFile() const {
+        return m_File;
+    }
+    const OffsetRange& gOffsetRange() const {
+        return m_OffsetRange;
+    }
+    TongaAddress gBegin() const {
+        return gOffsetRange().gBegin();
+    }
+    TongaAddress gEnd() const {
+        return gOffsetRange().gEnd();
+    }
+    kcc_int64 gSize() const {
+        return gOffsetRange().gSize();
+    }
+    std::string String() const;
+private:
+    std::string m_File;
+    OffsetRange m_OffsetRange;
+};
 
 
 
@@ -245,6 +355,7 @@ bool WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop, INST& instr)
     } // for (auto succWaveEdge : waveop->gSuccWaveEdges())
     return instructionWritten;
 } // processOutgoingEdges(wave::WaveOp* waveop, INST& instr)
+
 
 }}
 

@@ -102,7 +102,7 @@ WaveOp::Params::verify() const
 
 
 //********************************
-WaveOp* 
+WaveOp*
 WaveOp::PrevWaveOps::iterator::operator* () const
 {
     WaveEdge* prevEdge = m_PrevEdges[m_Idx];
@@ -124,7 +124,7 @@ WaveOp::gPrevWaveops() const -> PrevWaveOps
 
 
 //********************************
-WaveOp* 
+WaveOp*
 WaveOp::SuccWaveOps::iterator::operator* () const
 {
     WaveEdge* succEdge = m_SuccEdges[m_Idx];

@@ -28,6 +28,7 @@
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/sbatomloadwaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
+#include "wave/inc/tpbcopywaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/reciprocalwaveop.hpp"
 #include "wave/inc/regloadwaveop.hpp"
@@ -41,8 +42,11 @@
 #include "wave/inc/waveedge.hpp"
 
 //#include "wavecode/inc/wavecodewaveop.hpp"
-#include "wavecode/inc/wavecodesbatomload.hpp"
-#include "wavecode/inc/wavecodesbatomsave.hpp"
+#include "wavecode/inc/wavecodesbatomload_sim.hpp"
+#include "wavecode/inc/wavecodesbatomload_kelf.hpp"
+#include "wavecode/inc/wavecodesbatomsave_sim.hpp"
+#include "wavecode/inc/wavecodesbatomsave_kelf.hpp"
+#include "wavecode/inc/wavecodetpbcopy.hpp"
 #include "wavecode/inc/wavecodematmul.hpp"
 #include "wavecode/inc/wavecodepool.hpp"
 #include "wavecode/inc/wavecodereciprocal.hpp"
@@ -66,18 +70,24 @@ WaveCode::WaveCode(nets::Network& network, const arch::Arch& arch, bool useSem)
     , m_DmaDescription(network, useSem)
 {
     m_CodeMatMul            = std::make_unique<WaveCodeMatMul>(*this);
-    m_CodeSbAtomLoad        = std::make_unique<WaveCodeSbAtomLoad>(*this);
-    m_CodeSbAtomSave        = std::make_unique<WaveCodeSbAtomSave>(*this);
+    m_CodeSbAtomLoadSim     = std::make_unique<WaveCodeSbAtomLoadSim>(*this);
+    m_CodeSbAtomLoadKelf    = std::make_unique<WaveCodeSbAtomLoadKelf>(*this);
+    m_CodeSbAtomSaveSim     = std::make_unique<WaveCodeSbAtomSaveSim>(*this);
+    m_CodeSbAtomSaveKelf    = std::make_unique<WaveCodeSbAtomSaveKelf>(*this);
+    m_CodeTpbCopy           = std::make_unique<WaveCodeTpbCopy>(*this);
     m_CodePool              = std::make_unique<WaveCodePool>(*this);
     m_CodeReciprocal        = std::make_unique<WaveCodeReciprocal>(*this);
     m_CodeRegLoad           = std::make_unique<WaveCodeRegLoad>(*this);
-    m_CodeRegStore           = std::make_unique<WaveCodeRegStore>(*this);
+    m_CodeRegStore          = std::make_unique<WaveCodeRegStore>(*this);
     m_CodeActivation        = std::make_unique<WaveCodeActivation>(*this);
     m_CodeClipByValue       = std::make_unique<WaveCodeClipByValue>(*this);
     m_CodeBarrier           = std::make_unique<WaveCodeBarrier>(*this);
     m_CodeNop               = std::make_unique<WaveCodeNop>(*this);
     m_CodeTensorTensor      = std::make_unique<WaveCodeTensorTensor>(*this);
     m_CodeTensorScalar      = std::make_unique<WaveCodeTensorScalar>(*this);
+
+    m_CodeTpbCopy->rWaveCodeSbAtomLoadKelf(m_CodeSbAtomLoadKelf.get());
+    m_CodeSbAtomLoadKelf->rWaveCodeTpbCopy(m_CodeTpbCopy.get());
 
     m_CurrentDramAddress    = P_0_DRAM_0_BASE;
 }
@@ -97,27 +107,15 @@ WaveCode::determinePrecSbEdges()
     } };
 
     for (auto waveop : m_Network.gWaveOps()) {
-        if (!waveop->qSbAtomWaveOp()) {
+        if (waveop->gEngineId() != EngineId::None) {
             continue;
         }
-
-        const auto sbWop = dynamic_cast<wave::SbAtomWaveOp*>(waveop);
-        Assert(sbWop, "SbAtom must be Save or Load");
-        if (waveop->gPrevWaveEdges().size() == 0) {
-            // initial loads
-            if (const auto loadWop = dynamic_cast<wave::SbAtomLoadWaveOp*>(sbWop)) {
-                loadWop->rEngineId(EngineId::Pooling);
-            } else {
-                Assert(false, "Waveop without input edges (", sbWop->gName(), ") is not Load");
-                sbWop->rEngineId(EngineId::Pooling);
-            }
-
-            continue;
-        }
+        Assert(waveop->qSbAtomWaveOp() || waveop->qTpbCopyWaveOp(),
+                "Waveop without engine must be SbAtom or TpbCopy: ", waveop->gName());
 
         wave::WaveEdge* chosenPrevEdge = nullptr;
         for (auto engId : engineIds) {
-            for (auto prevWaveEdge : sbWop->gPrevWaveEdges()) {
+            for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
                 if (prevWaveEdge->gFromOp()->gEngineId() == engId) {
                     chosenPrevEdge = prevWaveEdge;
                     break;
@@ -128,11 +126,32 @@ WaveCode::determinePrecSbEdges()
             }
         }
 
+        EngineId engId = EngineId::None;
         if (chosenPrevEdge) {
             chosenPrevEdge->rChosenForSuccSbAtom(true);
-            sbWop->rEngineId(chosenPrevEdge->gFromOp()->gEngineId());
+            engId = chosenPrevEdge->gFromOp()->gEngineId();
         } else {
-            sbWop->rEngineId(EngineId::Pooling);
+            engId = EngineId::Pooling;
+        }
+
+        if (const auto sbWop = dynamic_cast<wave::SbAtomWaveOp*>(waveop)) {
+            if (sbWop->gPrevWaveEdges().size() == 0) {
+                // initial loads
+                if (const auto loadWop = dynamic_cast<wave::SbAtomLoadWaveOp*>(sbWop)) {
+                    loadWop->rEngineId(EngineId::Pooling);
+                } else {
+                    Assert(false, "Waveop without input edges (", sbWop->gName(), ") is not Load");
+                    sbWop->rEngineId(EngineId::Pooling);
+                }
+
+                continue;
+            } else {
+                sbWop->rEngineId(engId);
+            }
+        } else if (const auto copyWop = dynamic_cast<wave::TpbCopyWaveOp*>(waveop)) {
+            copyWop->rEngineId(engId);
+        } else {
+            Assert(false, "Waveop without engine must be SbAtom or TpbCopy: ", waveop->gName());
         }
     }
 }
@@ -189,9 +208,19 @@ WaveCode::getCodeGen(const wave::WaveOp* waveOp)
     if (dynamic_cast<const wave::MatMulWaveOp*>(waveOp)) {
         return *m_CodeMatMul;
     } else if (dynamic_cast<const wave::SbAtomLoadWaveOp*>(waveOp)) {
-        return *m_CodeSbAtomLoad;
+        if (qGenerateKelf()) {
+            return *m_CodeSbAtomLoadKelf;
+        } else {
+            return *m_CodeSbAtomLoadSim;
+        }
     } else if (dynamic_cast<const wave::SbAtomSaveWaveOp*>(waveOp)) {
-        return *m_CodeSbAtomSave;
+        if (qGenerateKelf()) {
+            return *m_CodeSbAtomSaveKelf;
+        } else {
+            return *m_CodeSbAtomSaveSim;
+        }
+    } else if (dynamic_cast<const wave::TpbCopyWaveOp*>(waveOp)) {
+        return *m_CodeTpbCopy;
     } else if (dynamic_cast<const wave::PoolWaveOp*>(waveOp)) {
         return *m_CodePool;
     } else if (dynamic_cast<const wave::ReciprocalWaveOp*>(waveOp)) {

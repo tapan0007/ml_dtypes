@@ -15,6 +15,7 @@ WaveOp::WaveOpType WaveOp::ExtractWaveOpTypeEngine(
   else if (!wot.compare("Reciprocal")) t = Pool;
   else if (!wot.compare("RegLoad")) t = Pool;
   else if (!wot.compare("RegStore")) t = Pool;
+  else if (!wot.compare("TpbCopy")) t = Pool;
   else if (!wot.compare("ResAdd")) t = ResAdd;
   else if (!wot.compare("Multiply")) t = ResAdd;
   else if (!wot.compare("Sub")) t = ResAdd;
@@ -91,11 +92,16 @@ MemInfo_PSUM_Params MMOp::extract_psum_params(json& op)
 MemInfo_Params PoolActOp::extract_sb_in_params(json& op)
 {
   MemInfo_Params mp_in;
-  if (op["waveop_type"] == "RegStore") {
+  const std::string wave_op_type = op["waveop_type"].get<std::string>();
+  if (wave_op_type == "RegStore") {
     // RegStore moves data from internal Reg to SBUF, so no input from SBUF
     mp_in.enable = false;
     mp_in.SetZeroSize();
     mp_in.dtype = op["out_dtype"];
+    return mp_in;
+  } else if (wave_op_type == "TpbCopy") {
+    const uint32_t len = op["size_in_bytes"];
+    mp_in.SetDmaEquiv(len);
     return mp_in;
   }
   bool src_is_psum;
@@ -130,11 +136,16 @@ MemInfo_Params PoolActOp::extract_sb_in_params(json& op)
 MemInfo_Params PoolActOp::extract_sb_out_params(json& op)
 {
   MemInfo_Params mp_out;
-  if (op["waveop_type"] == "RegLoad") {
+  const std::string wave_op_type = op["waveop_type"].get<std::string>();
+  if (wave_op_type == "RegLoad") {
     // RegLoad  moves data from SBUF to internal Reg, so no output to SBUF
     mp_out.enable = false;
     mp_out.SetZeroSize();
     mp_out.dtype = op["in_dtype"];
+    return mp_out;
+  } else if (wave_op_type == "TpbCopy") {
+    const uint32_t len = op["size_in_bytes"];
+    mp_out.SetDmaEquiv(len);
     return mp_out;
   }
   bool dst_is_psum;
@@ -169,7 +180,8 @@ MemInfo_Params PoolActOp::extract_sb_out_params(json& op)
 MemInfo_PSUM_Params PoolActOp::extract_psum_in_params(json& op)
 {
   MemInfo_PSUM_Params mp_in;
-  if (op["waveop_type"] == "RegLoad") {
+  const std::string wave_op_type = op["waveop_type"].get<std::string>();
+  if (wave_op_type == "RegLoad") {
     // RegLoad/Store  move data from SBUF/internal Reg to internal Reg/SBUF, so no interaction with PSUM
     mp_in.enable = false;
     mp_in.SetZeroSize();
@@ -180,7 +192,14 @@ MemInfo_PSUM_Params PoolActOp::extract_psum_in_params(json& op)
     mp_in.SetZeroSize();
     mp_in.dtype = op["out_dtype"];
     return mp_in;
+  } else if (wave_op_type == "TpbCopy") {
+    // TpbCopy does not access PSUM, make empty pattern (all Ns == 0)
+    mp_in.enable = false;
+    mp_in.SetZeroSize();
+    mp_in.dtype = "uint8";
+    return mp_in;
   }
+
   bool src_is_psum;
   if (op["src_is_psum"] == nullptr) src_is_psum = false;
   else src_is_psum = op["src_is_psum"];
@@ -220,16 +239,23 @@ MemInfo_PSUM_Params PoolActOp::extract_psum_in_params(json& op)
 MemInfo_PSUM_Params PoolActOp::extract_psum_out_params(json& op)
 {
   MemInfo_PSUM_Params mp_out;
-  if (op["waveop_type"] == "RegLoad") {
+  const std::string wave_op_type = op["waveop_type"].get<std::string>();
+  if (wave_op_type == "RegLoad") {
     // RegLoad/Store  move data from SBUF/internal Reg to internal Reg/SBUF, so no interaction with PSUM
     mp_out.enable = false;
     mp_out.SetZeroSize();
     mp_out.dtype = op["in_dtype"];
     return mp_out;
-  } else if (op["waveop_type"] == "RegStore") {
+  } else if (wave_op_type == "RegStore") {
     mp_out.enable = false;
     mp_out.SetZeroSize();
     mp_out.dtype = op["out_dtype"];
+    return mp_out;
+  } else if (wave_op_type == "TpbCopy") {
+    // TpbCopy does not access PSUM, make empty pattern (all Ns == 0)
+    mp_out.enable = false;
+    mp_out.SetZeroSize();
+    mp_out.dtype = "uint8";
     return mp_out;
   }
   bool dst_is_psum;
@@ -273,8 +299,12 @@ tonga_addr PoolActOp::extract_bias_sb_addr(json& op)
 tonga_addr PoolActOp::extract_src_sb_addr(json& op)
 {
   tonga_addr a = 0;
-  if (op["waveop_type"] == "RegStore") {
+  const std::string wave_op_type = op["waveop_type"].get<std::string>();
+  if (wave_op_type == "RegStore") {
     // RegStore moves data from internal Reg to SBUF, so no input from SBUF
+    return a;
+  } else if (wave_op_type == "TpbCopy") {
+    a = op["src_sb_address"].get<tonga_addr>();
     return a;
   }
   if (op["src_sb_address"] != nullptr)
@@ -285,8 +315,12 @@ tonga_addr PoolActOp::extract_src_sb_addr(json& op)
 tonga_addr PoolActOp::extract_dst_sb_addr(json& op)
 {
   tonga_addr a = 0;
-  if (op["waveop_type"] == "RegLoad") {
+  const std::string wave_op_type = op["waveop_type"].get<std::string>();
+  if (wave_op_type == "RegLoad") {
     // RegLoad  moves data from SBUF to internal Reg, so no output to SBUF
+    return a;
+  } else if (wave_op_type == "TpbCopy") {
+    a = op["dst_sb_address"].get<tonga_addr>();
     return a;
   }
   if (op["dst_sb_address"] != nullptr)
@@ -511,6 +545,7 @@ WaveOp* WaveGraphChecker::ConstructWaveOp(json& op)
       !wave_op_type.compare("Reciprocal") ||
       !wave_op_type.compare("RegLoad") ||
       !wave_op_type.compare("RegStore") ||
+      !wave_op_type.compare("TpbCopy") ||
       !wave_op_type.compare("ClipByValue") ||
       !wave_op_type.compare("ScaleAdd")) wo = new PoolActOp(op);
   else if (!wave_op_type.compare("SBAtomLoad") ||
@@ -1010,6 +1045,7 @@ void WaveGraphChecker::MakeImplicitEdgesExplicit()
         || !wop_type.compare("Reciprocal")
         || !wop_type.compare("RegLoad")
         || !wop_type.compare("RegStore")
+        || !wop_type.compare("TpbCopy")
         || !wop_type.compare("TensorTensor")
         || !wop_type.compare("TensorScalar")
         || !wop_type.compare("TensorScalarPtr")
@@ -1068,3 +1104,4 @@ bool WaveGraphChecker::RunEventConflictChecker()
   //MakeImplicitEdgesExplicit();
   return mEventChecker->Run();
 }
+

@@ -17,19 +17,16 @@
 #include "utils/inc/consts.hpp"
 #include "utils/inc/datatype.hpp"
 #include "utils/inc/fmapdesc.hpp"
-#include "wave/inc/waveop.hpp"
+#include "wave/inc/datamovewaveop.hpp"
 
 namespace kcc {
 
-namespace dma {
-class DmaQueue;
-}
 
 namespace wave {
 
-class SbAtomWaveOp : public WaveOp {
+class SbAtomWaveOp : public DataMoveWaveOp {
 private:
-    using BaseClass = WaveOp;
+    using BaseClass = DataMoveWaveOp;
 public:
     class Params;
 public:
@@ -85,35 +82,10 @@ public:
         return m_RefFileShape;
     }
 
-    EngineId gEngineId() const override {
-        return m_EngineId;
-    }
-    void rEngineId(EngineId engId) {
-        m_EngineId = engId;
-    }
-
-    const dma::DmaQueue* gDmaQueue() const {
-        return m_DmaQueue;
-    }
-    void rDmaQueue(const dma::DmaQueue* dmaQueue) {
-        m_DmaQueue = dmaQueue;
-    }
-    kcc_int32 gTriggerOrd() const {
-        return m_TriggerOrd;
-    }
-    void rTriggerOrd(kcc_int32 ord) {
-        m_TriggerOrd = ord;
-    }
-
-
 protected:
     bool verify() const override;
 
 private:
-    EngineId        m_EngineId          = EngineId::None;
-    const dma::DmaQueue* m_DmaQueue     = nullptr;
-    kcc_int32       m_TriggerOrd        = -1;
-
     kcc_int64       m_SbAddress         = -1;
     bool            m_StartAtMidPart    = false;
     kcc_int32       m_BatchFoldIdx      = -1;
@@ -130,7 +102,7 @@ private:
 
 
 
-class SbAtomWaveOp::Params : public WaveOp::Params {
+class SbAtomWaveOp::Params : public BaseClass::Params {
 public:
     bool verify() const;
 public:

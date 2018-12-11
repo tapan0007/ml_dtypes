@@ -40,8 +40,11 @@ namespace wave {
 namespace wavecode {
 class WaveCodeWaveOp;
 class WaveCodeMatMul;
-class WaveCodeSbAtomLoad;
-class WaveCodeSbAtomSave;
+class WaveCodeSbAtomLoadKelf;
+class WaveCodeSbAtomLoadSim;
+class WaveCodeSbAtomSaveKelf;
+class WaveCodeSbAtomSaveSim;
+class WaveCodeTpbCopy;
 class WaveCodePool;
 class WaveCodeReciprocal;
 class WaveCodeActivation;
@@ -189,8 +192,11 @@ private:
     InstrStreams*                           m_InstrStreams;
 
     std::unique_ptr<WaveCodeMatMul>         m_CodeMatMul;
-    std::unique_ptr<WaveCodeSbAtomLoad>     m_CodeSbAtomLoad;
-    std::unique_ptr<WaveCodeSbAtomSave>     m_CodeSbAtomSave;
+    std::unique_ptr<WaveCodeSbAtomLoadSim>  m_CodeSbAtomLoadSim;
+    std::unique_ptr<WaveCodeSbAtomLoadKelf> m_CodeSbAtomLoadKelf;
+    std::unique_ptr<WaveCodeSbAtomSaveSim>  m_CodeSbAtomSaveSim;
+    std::unique_ptr<WaveCodeSbAtomSaveKelf> m_CodeSbAtomSaveKelf;
+    std::unique_ptr<WaveCodeTpbCopy>        m_CodeTpbCopy;
     std::unique_ptr<WaveCodePool>           m_CodePool;
     std::unique_ptr<WaveCodeReciprocal>     m_CodeReciprocal;
     std::unique_ptr<WaveCodeActivation>     m_CodeActivation;
@@ -242,7 +248,7 @@ AssignWithSizeCheckTempl(TypeTo& to, const TypeFrom from, const char* fileName, 
     const UnderlyingTypeTo   to1(from1);
     const UnderlyingTypeFrom from2(to1);
 
-    Assert( ((to1 > 0) == (from1 > 0))  && ((from1 > 0) == (from2 > 0)) 
+    Assert( ((to1 > 0) == (from1 > 0))  && ((from1 > 0) == (from2 > 0))
             && (from1 == from2) && (static_cast<long long>(from1) == static_cast<long long>(to1)),
             "File='", fileName, "', line=", lineNum,
             ", TypeTo=", typeid(to).name(), ", TypeFrom=", typeid(from).name(), ", ValueFrom=", from );

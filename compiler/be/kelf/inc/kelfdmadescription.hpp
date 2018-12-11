@@ -30,6 +30,7 @@ public:
     class DmaBlockToTpb;
     class DmaBlockFromTpb;
     class DmaBlockInput;
+    class DmaBlockTpbToTpb;
 
 private:
     enum class FileType {
@@ -41,9 +42,11 @@ private:
     };
     class DmaBlock;
     class DmaBlockNonIo;
+
     class DmaDesc;
     class DmaDescToTpb;
     class DmaDescFromTpb;
+    class DmaDescTpbToTpb;
 
     struct FileIdType {
     public:
@@ -81,13 +84,20 @@ public:
     DmaBlockToTpb*      gDmaBlockToTpb(kcc_int32 idx) {
         return &m_DmaBlocksToTpb[idx];
     }
+
     kcc_int32 startNewDmaBlockFromTpb(const dma::DmaQueue* que, EngineId engId, bool qOut, const char* comment);
     DmaBlockFromTpb* gDmaBlockFromTpb(kcc_int32 idx) {
         return &m_DmaBlocksFromTpb[idx];
     }
+
     kcc_int32 startNewDmaBlockInput(const dma::DmaQueue* que, EngineId engId, const char* comment);
     DmaBlockInput* gDmaBlockInput(kcc_int32 idx) {
         return &m_DmaBlocksInput[idx];
+    }
+
+    kcc_int32 startNewDmaBlockTpbToTpb(const dma::DmaQueue* que, EngineId engId, const char* comment);
+    DmaBlockTpbToTpb* gDmaBlockTpbToTpb(kcc_int32 idx) {
+        return &m_DmaBlocksTpbToTpb[idx];
     }
 
     void writeDmaDescriptors(const char* binFileName, EngineId engId);
@@ -146,6 +156,7 @@ private:
     std::vector<DmaBlockToTpb>          m_DmaBlocksToTpb;
     std::vector<DmaBlockFromTpb>        m_DmaBlocksFromTpb;
     std::vector<DmaBlockInput>          m_DmaBlocksInput;
+    std::vector<DmaBlockTpbToTpb>       m_DmaBlocksTpbToTpb;
 
     const char* const                   m_PeJsonFileName    = "pe.json";
     const char* const                   m_ActJsonFileName   = "act.json";
@@ -242,6 +253,32 @@ private:
     TpbAddress    m_DstSbAddress;
     TongaAddress  m_SrcFileAddress;
     FileIdType    m_SrcFileId;
+};
+
+
+/***********************************************************************
+***********************************************************************/
+class DmaDescription::DmaDescTpbToTpb : public DmaDesc {
+public:
+    DmaDescTpbToTpb(kcc_uint64 nBytes, TpbAddress srcSbAddress, TpbAddress    dstSbAddress)
+        : DmaDesc(nBytes)
+        , m_SrcSbAddress(srcSbAddress)
+        , m_DstSbAddress(dstSbAddress)
+    {
+    }
+
+    DmaDescTpbToTpb() = delete;
+
+    TpbAddress gSrcSbAddress() const {
+        return m_SrcSbAddress;
+    }
+    TpbAddress gDstSbAddress() const {
+        return m_DstSbAddress;
+    }
+    void assertAccessCheck() const override;
+private:
+    TpbAddress    m_SrcSbAddress;
+    TpbAddress    m_DstSbAddress;
 };
 
 
@@ -382,6 +419,28 @@ private:
     bool m_QWeights;
     std::vector<DmaDescToTpb> m_Descs;
 }; // class DmaDescription::DmaBlockToTpb
+
+
+/***********************************************************************
+***********************************************************************/
+class DmaDescription::DmaBlockTpbToTpb : public DmaDescription::DmaBlockNonIo {
+public:
+    DmaBlockTpbToTpb(DmaDescription* dmaDescription, const dma::DmaQueue* que, EngineId engId, const char* comment);
+    DmaBlockTpbToTpb() = delete;
+
+    void addDmaDesc(kcc_int32 numBytes, TpbAddress srcSbAddress, TpbAddress dstSbAddress);
+    kcc_int32 gId() const;
+
+    const auto& gDescs() const {
+        return m_Descs;
+    }
+
+    kcc_uint64 size() const;
+    kcc_uint32 gNumDescs() const;
+
+private:
+    std::vector<DmaDescTpbToTpb> m_Descs;
+}; // class DmaDescription::DmaBlockTpbToTpb
 
 
 

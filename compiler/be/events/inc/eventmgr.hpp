@@ -1,6 +1,7 @@
 #pragma once
 
 #include <set>
+#include <map>
 
 #ifndef KCC_EVENTS_EVENTMGR_H
 #define KCC_EVENTS_EVENTMGR_H
@@ -15,6 +16,7 @@ class ActivationWaveOp;
 class SbAtomLoadWaveOp;
 class SbAtomSaveWaveOp;
 class SbAtomWaveOp;
+class DataMoveWaveOp;
 class BarrierWaveOp;
 }
 
@@ -158,7 +160,7 @@ private:
                           std::vector<wave::WaveOp*>& newWaveops);
 
     void determineQueuesAndSemaphoreValues();
-    const dma::DmaQueue* findQueue(const wave::SbAtomWaveOp* sbatomWop, bool firstQueue);
+    const dma::DmaQueue* findQueue(const wave::DataMoveWaveOp* sbatomWop, bool firstQueue);
 
     EventId gEventIdBetweenEngines(EngineId fromId, EngineId toId) const;
 

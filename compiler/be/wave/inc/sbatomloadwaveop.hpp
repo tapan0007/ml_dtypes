@@ -27,6 +27,8 @@ class DmaQueue;
 }
 
 namespace wave {
+class TpbCopyWaveOp;
+
 
 class SbAtomLoadWaveOp : public SbAtomWaveOp {
 private:
@@ -95,11 +97,22 @@ public:
         m_TriggerOrd1 = ord;
     }
 
-private:
-    bool            m_ContainWeights    = false;
-    const dma::DmaQueue* m_DmaQueue1    = nullptr;
-    kcc_int32       m_TriggerOrd1       = -1;
+    const TpbCopyWaveOp*  gPairCopyWaveOp() const {
+        return m_PairCopyWaveOp;
+    }
+    TpbCopyWaveOp*  gPairCopyWaveOp() {
+        return m_PairCopyWaveOp;
+    }
+    void rPairCopyWaveOp(TpbCopyWaveOp*  pairCopy) {
+        m_PairCopyWaveOp = pairCopy;
+    }
 
+private:
+    const dma::DmaQueue* m_DmaQueue1                = nullptr;
+    kcc_int32       m_TriggerOrd1                   = -1;
+    bool            m_ContainWeights                = false;
+
+    TpbCopyWaveOp*  m_PairCopyWaveOp                = nullptr;
     kcc_int32       m_IfmapReplicationNumRows       = -1;
     kcc_int32       m_IfmapReplicationResolution    = -1;
     kcc_int32       m_IfmapReplicationStepBytes     = -1;

@@ -3,10 +3,6 @@
 #ifndef KCC_UTILS_DATATYPE_H
 #define KCC_UTILS_DATATYPE_H
 
-#include <cereal/archives/json.hpp>
-#include <cereal/types/vector.hpp>
-#include <cereal/types/map.hpp>
-
 #include "aws_tonga_isa_tpb_common.h"
 
 

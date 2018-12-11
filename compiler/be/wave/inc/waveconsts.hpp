@@ -9,6 +9,7 @@ namespace wave {
 namespace WaveOpTypeStr {
 constexpr const char* const SBAtomLoad    = "SBAtomLoad";
 constexpr const char* const SBAtomSave    = "SBAtomSave";
+constexpr const char* const TpbCopy       = "TpbCopy";
 constexpr const char* const MatMul        = "MatMul";
 constexpr const char* const Pool          = "Pool";
 constexpr const char* const Reciprocal    = "Reciprocal";
@@ -32,7 +33,7 @@ constexpr const char* const Minimum       = "Minimum";
 
 constexpr const char* const MaxPool       = "MaxPool";
 constexpr const char* const AvgPool       = "AvgPool";
-}
+} // namespace WaveOpTypeStr
 
 }}
 

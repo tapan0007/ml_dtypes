@@ -102,7 +102,7 @@ public:
 private:
     TensorAluOpType m_AluOp[2];   // operation in Pool ALU
     kcc_float32     m_ImmVal[2];
-    
+
     const DataType& m_InDtype;
 
     /* 3 dimensions for src/dst to support batching.  If this instruction runs

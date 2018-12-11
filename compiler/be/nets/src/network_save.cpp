@@ -24,6 +24,7 @@
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/sbatomloadwaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
+#include "wave/inc/tpbcopywaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/reciprocalwaveop.hpp"
 #include "wave/inc/regloadwaveop.hpp"
@@ -60,19 +61,30 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         serWaveOp.m_LayerName = waveOp->gLayerName();
 
         for (auto prevWaveEdge : waveOp->gPrevWaveEdges()) {
-            const bool needSync = prevWaveEdge->qNeedToImplementSync();
             auto prevWaveOp = prevWaveEdge->gFromOp();
             serWaveOp.addPreviousWaveOp(prevWaveOp->gName());
-            if (m_UseSem && prevWaveOp->qSbAtomWaveOp()) {
-                    const char* buf = "NoQue";
+            if (m_UseSem && prevWaveOp->qDataMoveWaveOp()) {
+                    const char* buf = "";
                     kcc_int32 trigOrd = -1;
-                    if (needSync) {
-                        auto sbAtomWop = dynamic_cast<wave::SbAtomWaveOp*>(prevWaveOp);
-                        auto dmaQue = sbAtomWop->gDmaQueue();
+                    const char* buf1 = "";
+                    kcc_int32 trigOrd1 = -1;
+
+                    if (prevWaveEdge->qNeedToImplementSync()) {
+                        auto datamoveWaveop = dynamic_cast<wave::DataMoveWaveOp*>(prevWaveOp);
+                        auto dmaQue = datamoveWaveop->gDmaQueue();
                         buf = dmaQue->gName().c_str();
-                        trigOrd = sbAtomWop->gTriggerOrd();
+                        trigOrd = datamoveWaveop->gTriggerOrd();
+
+                        if (const auto sbatomLoad = dynamic_cast<const wave::SbAtomLoadWaveOp*>(datamoveWaveop)) {
+                            const auto dmaQue1 = sbatomLoad->gDmaQueue1();
+                            if (dmaQue1) {
+                                buf1 = dmaQue1->gName().c_str();
+                                trigOrd1 = sbatomLoad->gTriggerOrd();
+                            }
+                        }
                     }
-                    serWaveOp.addPreviousSemaphoreSync(buf, trigOrd);
+
+                    serWaveOp.addPreviousSemaphoreSync(buf, trigOrd, buf1, trigOrd1);
             } else {
                 serWaveOp.addPreviousEventSync(prevWaveEdge->gSetEventMode(),
                                                prevWaveEdge->gEventId(),
@@ -83,6 +95,10 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
 
         if (auto sbatomWaveOp = dynamic_cast<const wave::SbAtomWaveOp*>(waveOp)) {
             m_Save->saveSbAtom(sbatomWaveOp, serWaveOp);
+            continue;
+        }
+        if (auto tpbcopyWaveop = dynamic_cast<const wave::TpbCopyWaveOp*>(waveOp)) {
+            m_Save->saveTpbCopy(tpbcopyWaveop, serWaveOp);
             continue;
         }
 
@@ -98,15 +114,15 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         if (const auto reciprocalWaveOp = dynamic_cast<wave::ReciprocalWaveOp*>(waveOp)) {
             m_Save->saveReciprocal(reciprocalWaveOp, serWaveOp);
             continue;
-        }        
+        }
         if (const auto regloadWaveOp = dynamic_cast<wave::RegLoadWaveOp*>(waveOp)) {
             m_Save->saveRegLoad(regloadWaveOp, serWaveOp);
             continue;
-        }        
+        }
         if (const auto regstoreWaveOp = dynamic_cast<wave::RegStoreWaveOp*>(waveOp)) {
             m_Save->saveRegStore(regstoreWaveOp, serWaveOp);
             continue;
-        }        
+        }
         if (const auto activationWaveOp = dynamic_cast<const wave::ActivationWaveOp*>(waveOp)) {
             m_Save->saveActivation(activationWaveOp, serWaveOp);
             continue;
@@ -313,6 +329,11 @@ Network::Save::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
         KCC_SERIALIZE(IfmapReplicationNumRows);
         KCC_SERIALIZE(IfmapReplicationResolution);
         KCC_SERIALIZE(IfmapReplicationStepBytes);
+        if (sbatomLoadWaveOp->gPairCopyWaveOp()) {
+            serWaveOp.m_PairCopyWaveOp = sbatomLoadWaveOp->gPairCopyWaveOp()->gName();
+        } else {
+            serWaveOp.m_PairCopyWaveOp = "NO_PAIR_COPY";
+        }
 
         KCC_SERIALIZE(SrcStepElem);
 
@@ -327,6 +348,28 @@ Network::Save::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
 #undef WAVE_OP
     }
 } // Network::Save::saveSbAtom
+
+
+void
+Network::Save::saveTpbCopy(const wave::TpbCopyWaveOp* tpbcopyWaveop,
+                    serialize::SerWaveOp& serWaveOp) const
+{
+#undef WAVE_OP
+#define WAVE_OP tpbcopyWaveop
+    serWaveOp.m_WaveOpType = wave::TpbCopyWaveOp::gTypeStrStatic();
+    serWaveOp.m_Engine = engineId2Str(WAVE_OP->gEngineId());
+    serWaveOp.m_PairLoadWaveOp = WAVE_OP->gPairLoadWaveOp()->gName();
+    if (WAVE_OP->gPrevCopyWaveOp()) {
+        serWaveOp.m_PrevCopyWaveOp = WAVE_OP->gPrevCopyWaveOp()->gName();
+    } else {
+        serWaveOp.m_PrevCopyWaveOp = "NO_PREV_COPY";
+    }
+    KCC_SERIALIZE(SrcSbAddress);
+    KCC_SERIALIZE(DstSbAddress);
+    KCC_SERIALIZE(SizeInBytes);
+
+#undef WAVE_OP
+} // Network::Save::saveTpbCopy
 
 
 void
@@ -396,12 +439,12 @@ Network::Save::saveTensorTensor(
     serWaveOp.m_InADtype    = WAVE_OP->gInADtype().gName();
     serWaveOp.m_InBDtype    = WAVE_OP->gInBDtype().gName();
     serWaveOp.m_OutDtype    = WAVE_OP->gOutDtype().gName();
- 
+
     KCC_SERIALIZE(NumPartitions);
- 
+
     saveSrcAB(WAVE_OP, serWaveOp, Dims::XYZ);
     saveDst(WAVE_OP, serWaveOp, Dims::XYZ);
- 
+
     serWaveOp.m_Op      = gAluOpTypeStr(WAVE_OP->gOp());
 }
 #undef WAVE_OP

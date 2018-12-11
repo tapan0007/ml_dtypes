@@ -31,19 +31,8 @@ public:
     //----------------------------------------------------------------
     WaveCodeSbAtomSave(WaveCodeRef waveCode);
 
-    //----------------------------------------------------------------
-    void generate(wave::WaveOp* waveOp) override;
 
-
-
-private:
-    void generateForSim(wave::SbAtomSaveWaveOp* waveOp);
-    void generateForKelf(wave::SbAtomSaveWaveOp* waveOp);
-    //void generateDmaTrigger(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop,
-    //                EngineId chosenEngId, const std::vector<events::EventId>& succEventIds);
-    void generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop,
-                    EngineId chosenEngId, const std::vector<events::EventId>& succEventIds);
-
+protected:
     void calcOutputSize(const wave::SbAtomSaveWaveOp* sbAtomSaveWaveop);
 };
 

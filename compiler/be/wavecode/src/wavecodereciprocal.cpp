@@ -47,7 +47,7 @@ WaveCodeReciprocal::generate(wave::WaveOp* waveOp)
 
     initMemAccess(reciprocalInstr.src_mem_pattern);
     if (reciprocalWaveop->qSrcIsPsum()) {
-        AssignWithSizeCheck(reciprocalInstr.src_mem_pattern.start_addr, 
+        AssignWithSizeCheck(reciprocalInstr.src_mem_pattern.start_addr,
             psumBuf.gEntryTpbAddress(
                 reciprocalWaveop->gSrcPsumBankId(),
                 reciprocalWaveop->gSrcPsumBankOffset(),

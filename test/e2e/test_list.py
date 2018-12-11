@@ -531,9 +531,22 @@ testConfigMap = {
   "3-rn50-19_wave" : [ "trivnet_conv1",  "tfloat16-b1-h14-r1-s2-c1024-m512-wmin-1-wmax1.1-imin-3-imax3.2",  "1conv", MEv2("Generic")],
   "3-rn50-20_wave" : [ "trivnet_conv1",  "tfloat16-b1-h14-r1-s2-c1024-m2048-wmin-1-wmax1.1-imin-3-imax3.2", "1conv", MEv2("Generic")],
 
+  ## db
   "3-rn50-16_wave_repl" : [ "trivnet_conv1", "tfloat16-b1-h224-r7-s2-c3-m64-wmin-1-wmax1.1-imin-1-imax3", "1conv", MEv2("Generic-Repl")],
 
-  ## db
+  "3-rn50-16_wave_repl-h112m64" : [ "trivnet_conv1", "tfloat16-b1-h112-r7-s2-c3-m32-wmin-1-wmax1.1-imin-1-imax3", "1conv", MEv2("Generic-Repl")],
+  "3-rn50-16_wave_repl-h224m32" : [ "trivnet_conv1", "tfloat16-b1-h112-r7-s2-c3-m32-wmin-1-wmax1.1-imin-1-imax3", "1conv", MEv2("Generic-Repl")],
+  "3-rn50-16_wave_repl-h112m32" : [ "trivnet_conv1", "tfloat16-b1-h112-r7-s2-c3-m32-wmin-1-wmax1.1-imin-1-imax3", "1conv", MEv2("Generic-Repl")],
+  "3-rn50-16_wave_repl-h56m32" : [ "trivnet_conv1", "tfloat16-b1-h56-r7-s2-c3-m32-wmin-1-wmax1.1-imin-1-imax3", "1conv", MEv2("Generic-Repl")],
+  "3-rn50-16_wave_repl-h28m32" : [ "trivnet_conv1", "tfloat16-b1-h28-r7-s2-c3-m32-wmin-1-wmax1.1-imin-1-imax3", "1conv", MEv2("Generic-Repl")],
+  "3-rn50-16_wave_repl-h14m32" : [ "trivnet_conv1", "tfloat16-b1-h14-r7-s2-c3-m32-wmin-1-wmax1.1-imin-1-imax3", "1conv", MEv2("Generic-Repl")],
+
+
+  #"3-rn50-16_wave_repl-all-layers" : [ "trivnet_conv1", "tfloat16-b1-h224-r7-s2-c3-m64-wmin-1-wmax1.1-imin-1-imax3", "1conv",
+  #  MEv2("Generic-Repl-SaveAll"),
+  #  " --check_against_ref all_available "
+  #],
+
   "3-rn50-16_wave_repl-fast_dram" : [ "trivnet_conv1", "tfloat16-b1-h224-r7-s2-c3-m64-wmin-1-wmax1.1-imin-3-imax3.2", "1conv", MEv2("RN50-Repl"),
     "--env SIM_ADD_FLAGS=' --dram_frequency 0 --dram_latency 1 '" ],
 
@@ -758,6 +771,15 @@ testConfigMap = {
     # more accurate ResNet50 graph
     "7-rn50_nne_fp16_opt3"        : [ "tf_s3", "s3://kaena-nn-models", "resnet50_fp16_keras_opt3.pb", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  %s --images %s " %(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(1)), "--diff_options '--tolerance 1.1 1e-5' --input_files %s" % getBatchedJpgs(1) ],
     "8-rn50_nne_fp16_b16_opt3"    : [ "tf_s3", "s3://kaena-nn-models", "resnet50_fp16_keras_opt3.pb", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 %s --batch 16 --images %s "%(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(16)), "--diff_options '--tolerance 1.1 1e-5' --input_files %s" % (getBatchedJpgs(16))],
+
+  "5-rn50_nne_to_act4_wave-repl-t9_focus_to"     : [
+      "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
+    ("--focus_to conv1/BiasAdd --input_node input_1  --depth 2 --show_op_name_in_kgraph  --debug 1 "
+    + " --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py "
+    + " --preprocessor-args '--data-type fp16' %s "
+    + " --images %s "
+    )%(MEv2("RN50-Repl"), rnDogJpg),
+    "--input_files %s" % rnDogJpg],
 
 ##################################################################
 

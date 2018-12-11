@@ -15,6 +15,7 @@ public:
         Input,
         Weights,
         Output,
+        SbufToSbuf,
         None
     };
 public:

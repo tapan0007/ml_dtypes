@@ -65,6 +65,15 @@ DmaDescription::DmaBlockToTpb::DmaBlockToTpb(DmaDescription* dmaDescription,
 
 /***********************************************************************
 ***********************************************************************/
+DmaDescription::DmaBlockTpbToTpb::DmaBlockTpbToTpb(DmaDescription* dmaDescription,
+            const dma::DmaQueue* que, EngineId engId, const char* comment)
+    : DmaBlockNonIo(dmaDescription, que, engId, comment)
+{
+    m_BlockId = m_DmaDescription->gBlockIdForQueue(m_Queue);
+}
+
+/***********************************************************************
+***********************************************************************/
 void
 DmaDescription::DmaBlockToTpb::addDmaDesc(TongaAddress srcFileAddress,
         const std::string& refFile,
@@ -128,6 +137,17 @@ DmaDescription::DmaBlockInput::addDmaDesc(TongaAddress inputAddress,
     m_Descs.push_back(desc);
 }
 
+/***********************************************************************
+***********************************************************************/
+void
+DmaDescription::DmaBlockTpbToTpb::addDmaDesc(
+        kcc_int32 numBytes,
+        TpbAddress srcSbAddress,
+        TpbAddress dstSbAddress)
+{
+    DmaDescTpbToTpb desc(numBytes, srcSbAddress,dstSbAddress);
+    m_Descs.push_back(desc);
+}
 
 /***********************************************************************
 ***********************************************************************/
@@ -136,7 +156,7 @@ DmaDescription::DmaDescFromTpb::assertAccessCheck() const
 {
     const arch::StateBuffer stateBuf(arch::Arch::gArch().gStateBuffer());
     const kcc_uint32 size    = gNumBytes();
-    const tpb_addr sbReadAddr  = gSrcSbAddress();
+    const TpbAddress sbReadAddr  = gSrcSbAddress();
     Assert(stateBuf.qTpbReadAccessCheck(sbReadAddr, size),
         "Unaligned DMA state buffer read access. Addr=",
         std::hex, sbReadAddr, std::dec, " size=", std::dec, size);
@@ -148,8 +168,27 @@ void
 DmaDescription::DmaDescToTpb::assertAccessCheck() const
 {
     const arch::StateBuffer stateBuf(arch::Arch::gArch().gStateBuffer());
-    const tpb_addr sbWriteAddr = gDstSbAddress(); 
+    const TpbAddress sbWriteAddr = gDstSbAddress();
     const kcc_uint32 size   = gNumBytes();
+    Assert(stateBuf.qTpbWriteAccessCheck(sbWriteAddr, size),
+        "Unaligned DMA state buffer write access. Addr=",
+        std::hex, sbWriteAddr, std::dec, " size=", size);
+}
+
+/***********************************************************************
+***********************************************************************/
+void
+DmaDescription::DmaDescTpbToTpb::assertAccessCheck() const
+{
+    const arch::StateBuffer stateBuf(arch::Arch::gArch().gStateBuffer());
+    const kcc_uint32 size   = gNumBytes();
+
+    const TpbAddress sbReadAddr = gSrcSbAddress();
+    Assert(stateBuf.qTpbReadAccessCheck(sbReadAddr, size),
+        "Unaligned DMA state buffer read access. Addr=",
+        std::hex, sbReadAddr, std::dec, " size=", size);
+
+    const TpbAddress sbWriteAddr = gDstSbAddress();
     Assert(stateBuf.qTpbWriteAccessCheck(sbWriteAddr, size),
         "Unaligned DMA state buffer write access. Addr=",
         std::hex, sbWriteAddr, std::dec, " size=", size);

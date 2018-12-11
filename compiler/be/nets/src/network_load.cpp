@@ -82,11 +82,11 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             } else if (serWaveOp.m_WaveOpType == wave::PoolWaveOp::gTypeStrStatic()) {
                 waveOp = m_Load->loadPool(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::ReciprocalWaveOp::gTypeStrStatic()) {
-                waveOp = m_Load->loadReciprocal(serWaveOp);                
+                waveOp = m_Load->loadReciprocal(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::RegLoadWaveOp::gTypeStrStatic()) {
-                waveOp = m_Load->loadRegLoad(serWaveOp);                
+                waveOp = m_Load->loadRegLoad(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::RegStoreWaveOp::gTypeStrStatic()) {
-                waveOp = m_Load->loadRegStore(serWaveOp);                
+                waveOp = m_Load->loadRegStore(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::MatMulWaveOp::gTypeStrStatic()) {
                 waveOp = m_Load->loadMatMul(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::ActivationWaveOp::gTypeStrStatic()) {
@@ -499,8 +499,8 @@ Network::Load::loadScaleAdd(const serialize::SerWaveOp& serWaveOp)
 
     if (serWaveOp.m_WaveOpType == wave::TensorScalarWaveOp::gTypeStrScaleAddStatic()) {
         // y = aluOp[1] * (x + aluOp[0])
-        PARAMS.m_AluOp[0] = TensorAluOpType::Mult; 
-        PARAMS.m_AluOp[1] = TensorAluOpType::Add; 
+        PARAMS.m_AluOp[0] = TensorAluOpType::Mult;
+        PARAMS.m_AluOp[1] = TensorAluOpType::Add;
         PARAMS.m_ImmVal[0] = serWaveOp.m_Scale;
         PARAMS.m_ImmVal[1] = serWaveOp.m_Add;
     } else {
@@ -576,7 +576,7 @@ Network::Load::loadTensorScalar(const serialize::SerWaveOp& serWaveOp, TensorAlu
         PARAMS.m_ImmVal[1] = serWaveOp.m_ScalarVal;
         break;
     default:
-        Assert(false, "Supported TensorScalar ops are: Add, Sub, Mult, Minimum, Maximum: ", 
+        Assert(false, "Supported TensorScalar ops are: Add, Sub, Mult, Minimum, Maximum: ",
             static_cast<kcc_int32>(aluOp));
         break;
     }
@@ -586,7 +586,7 @@ Network::Load::loadTensorScalar(const serialize::SerWaveOp& serWaveOp, TensorAlu
     return waveOp;
 #undef PARAMS
 }
- 
+
 //**********************************************************************
 wave::TensorScalarWaveOp*
 Network::Load::loadTensorScalar(const serialize::SerWaveOp& serWaveOp)

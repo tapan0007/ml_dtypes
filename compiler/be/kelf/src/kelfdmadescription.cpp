@@ -94,6 +94,16 @@ DmaDescription::startNewDmaBlockInput(const dma::DmaQueue* que, EngineId engId, 
 }
 
 
+/***********************************************************************
+***********************************************************************/
+kcc_int32
+DmaDescription::startNewDmaBlockTpbToTpb(const dma::DmaQueue* que, EngineId engId, const char* comment)
+{
+    DmaBlockTpbToTpb block(this, que, engId, comment);
+    m_DmaBlocksTpbToTpb.push_back(block);
+    return m_DmaBlocksTpbToTpb.size()-1;
+}
+
 
 /***********************************************************************
 ***********************************************************************/
@@ -424,6 +434,36 @@ DmaDescription::writeDmaDescriptors(
         jDmaBlocks.push_back(jBlockFromTpb);
     }
 
+    for (const auto& dmaBlockTpbToTpb : m_DmaBlocksTpbToTpb) {
+        if (dmaBlockTpbToTpb.gTriggerEngineId() != engId) {
+            continue;
+        }
+
+        json jBlockTpbToTpb;
+        jBlockTpbToTpb[Keys::gQueueName()]     = dmaBlockTpbToTpb.gDmaQueue()->gName();
+        jBlockTpbToTpb[Keys::gBlockId()]       = dmaBlockTpbToTpb.gBlockId();
+        jBlockTpbToTpb[Keys::gHashComment()]   = dmaBlockTpbToTpb.gComment();
+        jBlockTpbToTpb[Keys::gHashBlockSize()] = dmaBlockTpbToTpb.size();
+        jBlockTpbToTpb[Keys::gHashNumDescs()]  = dmaBlockTpbToTpb.gNumDescs();
+        dmaBlockTpbToTpb.setDmaEventField(jBlockTpbToTpb);
+
+        std::vector<json> jDmaDescs;
+        for (const auto& desc : dmaBlockTpbToTpb.gDescs()) {
+            desc.assertAccessCheck();
+            json jDmaDesc;
+            jDmaDesc[Keys::gFromId()]       = gSymbolicStateBuffer();
+            jDmaDesc[Keys::gFromOffset()]   = desc.gSrcSbAddress();
+            jDmaDesc[Keys::gToId()]         = gSymbolicStateBuffer();
+            jDmaDesc[Keys::gToOffset()]     = desc.gDstSbAddress();
+            jDmaDesc[Keys::gSize()]         = desc.gNumBytes();
+
+            jDmaDescs.push_back(jDmaDesc);
+        }
+        jBlockTpbToTpb[Keys::gDescriptor()] = jDmaDescs;
+
+        jDmaBlocks.push_back(jBlockTpbToTpb);
+    }
+
 
     j[Keys::gDmaBlock()] = jDmaBlocks;
 
@@ -555,6 +595,23 @@ DmaDescription::writeDefinitions(const char* peInstrFileName,
                 if (! que->qFirstQueue()) {
                     queDesc[Keys::gAxiPort()] = 1;
                 }
+                jDmaQueue[que->gName()]  = queDesc;
+            }
+        }
+
+        {
+            std::set<const dma::DmaQueue*> dmaQueues;
+            for (const auto& dmaBlockTpbToTpb : m_DmaBlocksTpbToTpb) {
+                dmaQueues.insert(dmaBlockTpbToTpb.gDmaQueue());
+            }
+            for (auto que : dmaQueues) {
+                json queDesc;
+                queDesc[Keys::gQueueType()] = "data";
+                if (qUseSemaphore()) {
+                    queDesc[Keys::gSemId()] = que->gSemaphoreId();
+                }
+                queDesc[Keys::gOwner()] = gEngineName(que->gEngineId());
+                queDesc[Keys::gAxiPort()] = 1;
                 jDmaQueue[que->gName()]  = queDesc;
             }
         }
@@ -748,12 +805,34 @@ DmaDescription::DmaBlockToTpb::size() const
 
 /***********************************************************************
 ***********************************************************************/
+kcc_uint64
+DmaDescription::DmaBlockTpbToTpb::size() const
+{
+    kcc_uint64 numBytes = 0;
+    for (const auto& desc : m_Descs) {
+        numBytes += desc.gNumBytes();
+    }
+    return numBytes;
+}
+
+/***********************************************************************
+***********************************************************************/
 kcc_uint32
 DmaDescription::DmaBlockToTpb::gNumDescs() const
 {
     return m_Descs.size();
 }
 
+/***********************************************************************
+***********************************************************************/
+kcc_uint32
+DmaDescription::DmaBlockTpbToTpb::gNumDescs() const
+{
+    return m_Descs.size();
+}
+
+/***********************************************************************
+***********************************************************************/
 void
 DmaDescription::addActivationFunc(ActivationFunc actFunc)
 {

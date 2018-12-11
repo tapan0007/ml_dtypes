@@ -98,10 +98,15 @@ struct MemInfo_Params {
     sx = sy = sz = sw = 0;
   }
   void SetDmaEquiv(num_t len) {
+    // Equivalent to accessing len bytes in consecutive addresses (by DMA) is:
+    // dtype=uint8
+    // (nx,ny,nz,nw) = (len,  1,1,1)
+    // (sx,sy,sz,sw) = (1,    0,0,0)
     nx = len;
     ny = nz = nw = 0;
     sx = 1;
     sy = sz = sw = 0;
+    dtype = "uint8";
   }
 }; // MemInfo_Params
 struct MemInfo_PSUM_Params : public MemInfo_Params {

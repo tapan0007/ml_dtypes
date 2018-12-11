@@ -75,11 +75,11 @@ public:
     virtual bool qSbAtomSaveWaveOp() const {
         return false;
     }
-    bool qSbAtomWaveOp() const {
-        return qSbAtomLoadWaveOp() || qSbAtomSaveWaveOp();
+    virtual bool qDataMoveWaveOp() const {
+        return false;
     }
-    bool qTpbWaveOp() const {
-        return ! qSbAtomWaveOp();
+    virtual bool qTpbCopyWaveOp() const {
+        return false;
     }
     virtual bool qPoolWaveOp() const {
         return false;
@@ -114,6 +114,17 @@ public:
     virtual bool qNopWaveOp() const {
         return false;
     }
+
+    //----------------------------------------------------------------
+    bool qSbAtomWaveOp() const {
+        return qSbAtomLoadWaveOp() || qSbAtomSaveWaveOp();
+    }
+
+    bool qTpbWaveOp() const {
+        return ! qSbAtomWaveOp();
+    }
+
+    //----------------------------------------------------------------
 
     virtual EngineId gEngineId() const = 0;
 

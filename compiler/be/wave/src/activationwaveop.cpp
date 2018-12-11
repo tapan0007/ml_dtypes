@@ -208,7 +208,7 @@ ActivationWaveOp::gSimActivationFunc() const
         break;
     case ActivationFunc::Sqrt:
         return TONGA_ISA_TPB_ACTIVATION_FUNC::TONGA_ISA_TPB_ACTIVATION_FUNC_SQRT;
-        break;        
+        break;
     default:
         break;
     }

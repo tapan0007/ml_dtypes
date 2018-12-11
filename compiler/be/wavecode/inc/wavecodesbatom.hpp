@@ -33,16 +33,14 @@ public:
     //----------------------------------------------------------------
     WaveCodeSbAtom(WaveCodeRef waveCode);
 
+
 protected:
     void processOutgoingEdgesAlreadyEmb(wave::SbAtomWaveOp* waveop, events::EventId);
-    void addDmaBarrier(const wave::SbAtomWaveOp* sbAtomWaveop, EngineId engId);
 
     kcc_int32 findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWaveop,
                         EngineId& chosenEngId,
                         std::vector<events::EventId>& succEventIds);
 
-private:
-    kcc_int32 calculateDmaCycleWait(const wave::SbAtomWaveOp* sbAtomWaveop) const;
 };
 
 }}

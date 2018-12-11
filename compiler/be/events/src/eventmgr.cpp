@@ -9,9 +9,11 @@
 #include "wave/inc/waveedge.hpp"
 #include "wave/inc/waveop.hpp"
 #include "wave/inc/matmulwaveop.hpp"
+#include "wave/inc/datamovewaveop.hpp"
 #include "wave/inc/sbatomloadwaveop.hpp"
 //#include "wave/inc/sbatomsavewaveop.hpp"
 //#include "wave/inc/barrierwaveop.hpp"
+#include "wave/inc/tpbcopywaveop.hpp"
 #include "wave/inc/nopwaveop.hpp"
 
 #include "nets/inc/network.hpp"
@@ -202,7 +204,7 @@ EventMgr::insertOneBarrier(kcc_int32 waveopIdx, std::vector<wave::WaveOp*>& newW
     //  PE   -> EvPeAct ->-+
     //                     ACT  -> EvActPool ->-+
     //                                          POOL -> EvPoolAngel ->-+
-    //                                                                 ANGEL 
+    //                                                                 ANGEL
     //                                          POOL <- EvAngelPool <--+
     //                     ACT  <- EvPoolAct <--+
     //  PE   <- EvActPe <--+
@@ -273,7 +275,7 @@ EventMgr::insertBarriers()
         verifyWaveop(waveop);
     }
 
-    m_Network.replaceWaveops(newWaveops);
+    m_Network.replaceWaveops(newWaveops, false);
 }
 
 
@@ -365,7 +367,9 @@ void
 EventMgr::processWaveops(bool useSem)
 {
     m_UseSemaphore = useSem;
-    determineQueuesAndSemaphoreValues();
+    if (useSem) {
+        determineQueuesAndSemaphoreValues();
+    }
     insertBarriers();
 
     for (auto waveOp : m_Network.gWaveOps()) {
@@ -384,15 +388,16 @@ void
 EventMgr::determineQueuesAndSemaphoreValues()
 {
     for (auto waveop : m_Network.gWaveOps()) {
-        if (! waveop->qSbAtomWaveOp()) {
+        if (! waveop->qDataMoveWaveOp()) {
             continue;
         }
         {
-            const auto sbatomWop = dynamic_cast<wave::SbAtomWaveOp*>(waveop);
-            Assert(sbatomWop, "Waveop ", waveop->gName(), " expected to be SbAtom");
+            const auto datamoveWop = dynamic_cast<wave::DataMoveWaveOp*>(waveop);
+            Assert(datamoveWop, "Waveop ", waveop->gName(), " expected to be DataMove");
 
-            const dma::DmaQueue* que0(findQueue(sbatomWop, true));
-            sbatomWop->rDmaQueue(que0);
+
+            const dma::DmaQueue* que0(findQueue(datamoveWop, true));
+            datamoveWop->rDmaQueue(que0);
 
             const auto it = m_DmaQueueCount.find(que0);
             kcc_int32 n = -1;
@@ -403,7 +408,7 @@ EventMgr::determineQueuesAndSemaphoreValues()
                 ++(*it).second;
                 n = (*it).second;
             }
-            sbatomWop->rTriggerOrd(n);
+            datamoveWop->rTriggerOrd(n);
         }
 
         //------------------------------------
@@ -434,51 +439,61 @@ EventMgr::determineQueuesAndSemaphoreValues()
 
 /***********************************************************************
 ***********************************************************************/
-const dma::DmaQueue* 
-EventMgr::findQueue(const wave::SbAtomWaveOp* sbatomWop, bool firstQueue)
+const dma::DmaQueue*
+EventMgr::findQueue(const wave::DataMoveWaveOp* datamoveWaveop, bool firstQueue)
 {
     dma::DmaQueue::QueueType typ = dma::DmaQueue::QueueType::None;
-    const EngineId engId = sbatomWop->gEngineId();
-    Assert(engId != EngineId::None, "Bad engine id for SbAtom ", sbatomWop->gName());
+    const EngineId engId = datamoveWaveop->gEngineId();
+    Assert(engId != EngineId::None, "Bad engine id for SbAtom ", datamoveWaveop->gName());
 
     const char* engName = nullptr;
     switch (engId) {
     case EngineId::Pooling:
-        engName = "pool";
+        engName = "Pool";
         break;
     case EngineId::Activation:
-        engName = "act";
+        engName = "Act";
         break;
     case EngineId::PeArray:
-        engName = "pe";
+        engName = "Pe";
         break;
     case EngineId::AngelEng:
-        Assert(!m_Kelf, "Cannot have Angel engine with Kelf");
-        engName = "dma";
+        Assert(false, "Cannot have Angel engine for DMA queue");
+        engName = "Dma";
         break;
     default:
-        Assert(false, "Must be Pool, Act, or PeArray. It is ", static_cast<kcc_int32>(engId));
+        Assert(false, "DMA queue needs Pool, Act, or PeArray engine. It is ",
+               static_cast<kcc_int32>(engId));
         engName = nullptr;
         break;
     }
-    std::string queName("q_");
+    // Examples:
+    // qPoolInW0 - input queue 0 for weights triggered by PoolEng
+    // qActOut - output queue triggered by ActEng
+    // qPoolS2s - SBUF to SBUF queue triggered by PoolEng
+    std::string queName("q");
     queName += engName;
-    if (sbatomWop->qSbAtomLoadWaveOp()) {
-        auto loadWop = dynamic_cast<const wave::SbAtomLoadWaveOp*>(sbatomWop);
+    if (datamoveWaveop->qSbAtomLoadWaveOp()) {
+        auto loadWop = dynamic_cast<const wave::SbAtomLoadWaveOp*>(datamoveWaveop);
         if (loadWop->qContainWeights()) {
             typ = dma::DmaQueue::QueueType::Weights;
             if (firstQueue) {
-                queName += "_in_w0";
+                queName += "InW0";
             } else {
-                queName += "_in_w1";
+                queName += "InW1";
             }
         } else {
             typ = dma::DmaQueue::QueueType::Input;
-            queName += "_in_d";
+            queName += "InD";
         }
-    } else {
-        queName += "_out";
+    } else if (datamoveWaveop->qSbAtomSaveWaveOp()) {
+        queName += "Out";
         typ = dma::DmaQueue::QueueType::Output;
+    } else if (datamoveWaveop->qTpbCopyWaveOp()) {
+        queName += "S2s";
+        typ = dma::DmaQueue::QueueType::SbufToSbuf;
+    } else {
+        Assert(false, "DmaQueue is used only for Load, Save, or TpbCopy");
     }
 
     const auto it = m_Name2Queue.find(queName);

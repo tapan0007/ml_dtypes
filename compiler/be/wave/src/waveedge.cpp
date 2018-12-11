@@ -76,7 +76,7 @@ WaveEdge::clearEvent()
 bool
 WaveEdge::qCanSyncWithSemaphore() const
 {
-    return m_FromOp->qSbAtomWaveOp();
+    return m_FromOp->qDataMoveWaveOp();
 }
 
 /****************************************************************
@@ -85,7 +85,7 @@ bool
 WaveEdge::qNeedToImplementSync() const
 {
     if (! qNeedToSync()) {
-        Assert( !qSyncedWithSemaphore() && 
+        Assert( !qSyncedWithSemaphore() &&
                 gEventId() == events::EventId_Invalid() && !qSyncedWithEvent(),
                "Dependency (", gFromOp()->gName(), ",", gToOp()->gName(), ") need not be waited for");
     } else {
@@ -137,18 +137,18 @@ WaveEdge::qNeedToSync() const
     // the same memory with other weights. Since the first weights are already in DRAM
     // (they were loaded from DRAM), we don't need to save
     //
-    if (prevWaveop->qSbAtomWaveOp()) {
-        if (succWaveop->qSbAtomWaveOp()) {
-            const auto prevSbAtom = dynamic_cast<const wave::SbAtomWaveOp*>(prevWaveop);
-            const auto succSbAtom = dynamic_cast<const wave::SbAtomWaveOp*>(succWaveop);
-            if (prevSbAtom->gDmaQueue() ==  succSbAtom->gDmaQueue()) {
+    if (prevWaveop->qDataMoveWaveOp()) {
+        if (succWaveop->qDataMoveWaveOp()) {
+            const auto prevDatamove = dynamic_cast<const wave::DataMoveWaveOp*>(prevWaveop);
+            const auto succDatamove = dynamic_cast<const wave::DataMoveWaveOp*>(succWaveop);
+            if (prevDatamove->gDmaQueue() ==  succDatamove->gDmaQueue()) {
                 return false;
             }
         }
         return true;
     } else if (prevWaveop->qMatMulWaveOp()) {
         if (!succWaveop->qMatMulWaveOp() ) {
-            // "MatMul waveop -> MatMul waveop" does not need synchronication, 
+            // "MatMul waveop -> MatMul waveop" does not need synchronication,
             // but "MatMul waveop -> SbAtom waveop" does
             return true;
         }

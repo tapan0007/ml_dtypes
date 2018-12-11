@@ -81,7 +81,7 @@ BarrierWaveOp::Params::verify() const
     return true;
 }
 
-std::string 
+std::string
 BarrierWaveOp::gTypeStrStatic()
 {
     return WaveOpTypeStr::Barrier;

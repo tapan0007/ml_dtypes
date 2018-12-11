@@ -191,7 +191,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     bool firstEmbEvt = true;
     // Synchronizations to MatMul predecessors are created on MatMul
     // except for dynamic weights.
-    const bool SyncPrevWavesOnMatMulInstr = !matmulWaveop->qIsDynamicWeights(); 
+    const bool SyncPrevWavesOnMatMulInstr = !matmulWaveop->qIsDynamicWeights();
 
     if (qParallelStreams()) { // incoming events
         std::set<events::EventId> eventIds;

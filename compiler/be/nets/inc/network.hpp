@@ -3,10 +3,11 @@
 #ifndef KCC_NETS_NETWORK_H
 #define KCC_NETS_NETWORK_H
 
+#include <assert.h>
 
 #include <string>
 #include <vector>
-#include <assert.h>
+#include <map>
 
 
 
@@ -30,6 +31,7 @@ namespace wave {
     class SbAtomWaveOp;
     class SbAtomLoadWaveOp;
     class SbAtomSaveWaveOp;
+    class TpbCopyWaveOp;
     class MatMulWaveOp;
     class PoolWaveOp;
     class ReciprocalWaveOp;
@@ -90,6 +92,7 @@ public:
 
     ~Network();
 
+    void SplitReplicatedLoads();
 
     const std::string& gGitVersion() const {
         return m_GitVersion;
@@ -144,11 +147,12 @@ public:
         m_UseWave = useWave;
     }
 
-    void replaceWaveops(std::vector<wave::WaveOp*>& newWaveops);
+
+    void replaceWaveops(std::vector<wave::WaveOp*>& newWaveops, bool save);
     void revertSavedWaveops();
     void ClearEvents();
 
-
+private:
 
 private:
     Network() = delete;

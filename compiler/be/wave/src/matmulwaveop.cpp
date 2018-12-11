@@ -206,7 +206,7 @@ MatMulWaveOp::Params::verify() const
     return true;
 }
 
-std::string 
+std::string
 MatMulWaveOp::gTypeStrStatic()
 {
     return WaveOpTypeStr::MatMul;

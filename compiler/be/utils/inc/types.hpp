@@ -67,12 +67,12 @@ static_assert(sizeof(kcc_float64) == 8, "sizeof(float64) != 8");
 //using TongaAddress          = Integer<kcc_int64, TongaAddressTag>;
 
 #if true
-using SbPartitionAddress    = tpb_addr;
-using TpbAddress            = tpb_addr; //using TpbAddress            = kcc_uint32;
-using TongaAddress          = tonga_addr; //using TongaAddress          = kcc_uint64;
+using TpbAddress            = tpb_addr;
+using SbPartitionAddress    = TpbAddress;
+using TongaAddress          = tonga_addr;
 #else
-using SbPartitionAddress    = Integer<tpb_addr, SbPartitionAddressTag>;
 using TpbAddress = Integer<tpb_addr, TpbAddressTag>;
+using SbPartitionAddress    = Integer<tpb_addr, SbPartitionAddressTag>;
 using TongaAddress = Integer<tonga_addr, TongaAddressTag>;
 #endif
 
@@ -109,6 +109,7 @@ enum class WaveOpType {
     Nop,
     ScaleAdd,
     ClipByValue,
+    TpbCopy,
 };
 
 #undef CONST
@@ -139,7 +140,7 @@ enum class TensorAluOpType {
     Le              = TONGA_ISA_TPB_ALU_OP_IS_LE,
    Number,
 };
- 
+
 //**********************************************************************
 /*
 #undef CONST

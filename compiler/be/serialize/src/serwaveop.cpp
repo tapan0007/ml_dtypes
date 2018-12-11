@@ -950,6 +950,24 @@ SerWaveOp::verifyTensorScalar() const
 }
 
 bool
+SerWaveOp::verifyTpbCopy() const
+{
+    if (m_PairLoadWaveOp == "") {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcSbAddress < 0) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstSbAddress < 0) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SizeInBytes < 0) {
+        RETURN_ASSERT(false);
+    }
+    return true;
+}
+
+bool
 SerWaveOp::verifyResAdd() const
 {
     if (m_InADtype == "") {
@@ -1209,6 +1227,8 @@ SerWaveOp::verify() const
         return verifyTensor();
     } else if (m_WaveOpType == wave::WaveOpTypeStr::Add) {
         return verifyTensor();
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::TpbCopy) {
+        return verifyTpbCopy();
     } else {
         RETURN_ASSERT(false);
     }
@@ -1295,6 +1315,12 @@ SerWaveOp::Sync::Sync(const char* que, kcc_int32 trigOrd)
     new (&m_SemSync) SemSync(que, trigOrd);
 }
 
+SerWaveOp::Sync::Sync(const char* que, kcc_int32 trigOrd, const char* que1, kcc_int32 trigOrd1)
+    : m_WithEvent(false)
+{
+    new (&m_SemSync) SemSync(que, trigOrd, que1, trigOrd1);
+}
+
 SerWaveOp::Sync::Sync(const Sync& rhs)
     : m_WithEvent(rhs.m_WithEvent)
 {
@@ -1329,6 +1355,14 @@ void
 SerWaveOp::addPreviousSemaphoreSync(const char* prevSemaphore, kcc_int32 trigOrd)
 {
     const Sync sync(prevSemaphore, trigOrd);
+    m_PreviousSyncs.push_back(sync);
+}
+
+void
+SerWaveOp::addPreviousSemaphoreSync(const char* prevSemaphore, kcc_int32 trigOrd,
+    const char* prevSemaphore1, kcc_int32 trigOrd1)
+{
+    const Sync sync(prevSemaphore, trigOrd, prevSemaphore1, trigOrd1);
     m_PreviousSyncs.push_back(sync);
 }
 

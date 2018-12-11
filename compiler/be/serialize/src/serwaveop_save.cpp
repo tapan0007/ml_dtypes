@@ -67,6 +67,8 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
         m_WaveOpType == wave::WaveOpTypeStr::SBAtomSave)
     {
        saveSbAtom(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::TpbCopy) {
+        saveTpbCopy(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr::Pool) {
         savePool(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr::Reciprocal) {
@@ -133,6 +135,7 @@ SerWaveOp::saveSbAtom(cereal::JSONOutputArchive& archive) const
         KCC_ARCHIVE(IfmapReplicationStepBytes);
 
         KCC_ARCHIVE(SrcStepElem);
+        KCC_ARCHIVE(PairCopyWaveOp);
     } else {
         KCC_ARCHIVE(NumPartitions);
         KCC_ARCHIVE(FinalLayerOfmap);
@@ -153,6 +156,19 @@ SerWaveOp::savePool(cereal::JSONOutputArchive& archive) const
 
     KCC_ARCHIVE(TileId);
     KCC_ARCHIVE(TileIdFormat);
+}
+
+
+//===========================================================================
+void
+SerWaveOp::saveTpbCopy(cereal::JSONOutputArchive& archive) const
+{
+    KCC_ARCHIVE(Engine);
+    KCC_ARCHIVE(PairLoadWaveOp);
+    KCC_ARCHIVE(PrevCopyWaveOp);
+    KCC_ARCHIVE(SrcSbAddress);
+    KCC_ARCHIVE(DstSbAddress);
+    KCC_ARCHIVE(SizeInBytes);
 }
 
 
@@ -268,7 +284,7 @@ SerWaveOp::saveClipByValue(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(MinValue);
     KCC_ARCHIVE(MaxValue);
 }
- 
+
 //===========================================================================
 void
 SerWaveOp::saveTensorTensor(cereal::JSONOutputArchive& archive) const
@@ -602,6 +618,12 @@ SerWaveOp::Sync::save(cereal::JSONOutputArchive& archive) const
         m["queue"] = m_SemSync.m_QueueName;
         sprintf(buf, "%d", static_cast<kcc_int32>(m_SemSync.m_TrigOrd));
         m["trig_ord"] = buf;
+        if (m_SemSync.m_TrigOrd1 >= 0) {
+            Assert(m_SemSync.m_QueueName1 != "", "Empty queue name can not have non-negative trig ord");
+            m["queue1"] = m_SemSync.m_QueueName1;
+            sprintf(buf, "%d", static_cast<kcc_int32>(m_SemSync.m_TrigOrd1));
+            m["trig_ord1"] = buf;
+        }
     }
     //archive(cereal::make_nvp("sync", m));
     archive(m);

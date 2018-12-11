@@ -12,8 +12,10 @@
 
 #include "wave/inc/sbatomloadwaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
+#include "wave/inc/tpbcopywaveop.hpp"
 #include "wave/inc/waveedge.hpp"
 
+#include "nets/inc/loadsplitter.hpp"
 #include "nets/inc/network.hpp"
 #include "nets/inc/network_load.hpp"
 #include "nets/inc/network_save.hpp"
@@ -62,20 +64,23 @@ Network::revertSavedWaveops()
 {
     std::vector<wave::WaveOp*> empty;
 
+    Assert(m_SaveWaveOps.size() > 0, "Saved waveops empty in revert");
     std::swap(m_SaveWaveOps, m_WaveOps);
     std::swap(m_SaveWaveOps, empty);
 }
 
 //--------------------------------------------------------
 void
-Network::replaceWaveops(std::vector<wave::WaveOp*>& newWaveops)
+Network::replaceWaveops(std::vector<wave::WaveOp*>& newWaveops, bool save)
 {
     const kcc_int32 numWaveops = newWaveops.size();
     for (kcc_int32 k = 0; k < numWaveops; ++k) {
         newWaveops[k]->rOrder(k);
     }
-    Assert(m_SaveWaveOps.size()==0, "Saved waveops not empty");
-    std::swap(m_WaveOps, m_SaveWaveOps);
+    if (save) {
+        Assert(m_SaveWaveOps.size()==0, "Saved waveops not empty");
+        std::swap(m_WaveOps, m_SaveWaveOps);
+    }
     std::swap(newWaveops, m_WaveOps);
 }
 
@@ -164,6 +169,14 @@ Network::rUseSem(bool useSem)
 {
     m_UseSem = useSem;
 }
+
+void
+Network::SplitReplicatedLoads()
+{
+    LoadSplitter splitter(*this);
+    splitter.SplitReplicatedLoads();
+}
+
 
 }}
 
