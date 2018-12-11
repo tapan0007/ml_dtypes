@@ -92,7 +92,7 @@ testConfigMap = {
   "0-rtl-rn50_ba_relu_h32c256m128_fp16_wave": [ "trivnet_conv_ba","tfloat16-b1-h32-r1-s1-c256-m128-SAME-relu-wmin-0.1-wmax0.2-imin-0.1-imax0.2-amin-0.1-amax0.2", "2conv32b", MEv2("Generic") ],
 
 # MaxPool
-  "0-rtl-1conv1maxpool_h1c1m1_wave"        : [ "trivnet_conv_pool","tfloat16-b1-h4-r1-s1-c1-m1-VALID-MaxPool-k2-d2-wmin0.2-wmax2.2-imin-1-imax2", "1conv1pool", MEv2("Generic")],
+  "0-rtl-1conv1maxpool_h1c1m1_wave"        : [ "trivnet_conv_pool","tfloat16-b1-h4-r1-s1-c1-m1-VALID-MaxPool-k2-d2-wmin0.2-wmax2.2-imin-1-imax2", "11pool", MEv2("Generic")],
   "0-rtl-1conv1maxpool_h16c128m64_wave"    : [ "trivnet_conv_pool","tfloat16-b1-h16-r1-s1-c128-m64-VALID-MaxPool-k2-d2-wmin0.1-wmax0.2-imin-1-imax2", "1conv1pool", MEv2("Generic")],
   "0-rtl-1conv1maxpool_h32c256m128_wave"   : [ "trivnet_conv_pool","tfloat16-b1-h32-r1-s1-c256-m128-VALID-MaxPool-k2-d2-wmin0.3-wmax0.4-imin-0.1-imax0.1", "1conv1pool", MEv2("Generic")],
 
@@ -1061,12 +1061,21 @@ testConfigMap = {
     "--input_files {}".format(transformerEncoderLen1In)
    ],
 
-  "5-transformer_layer_norm" : [ "trivnet_layer_norm",  
+  "2-transformer_layer_norm" : [ "trivnet_layer_norm",  
     "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2",  "layer_norm" , 
-	"--partition none "
-	"--focus_to 'layer_norm/pre_output' "
-	"--executors wave all --images linspace1 linspace1 {} --wavegraph_checks structure data-race".format(MEv2("generic")),
-	"--check_against_ref all_available --input_files input:0=trivnet_input:0.npy input_const:0=trivnet_input_const:0.npy "
+    "--partition none "
+    "--focus_to 'layer_norm/pre_output' "
+    "--executors wave all --images linspace1 linspace1 {} --wavegraph_checks structure data-race".format(MEv2("generic")),
+    "--check_against_ref all_available --input_files input:0=trivnet_input:0.npy input_const:0=trivnet_input_const:0.npy "
+  ],
+
+  "2-transformer_ffn": [
+    "trivnet_ffn",
+    "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2",  "ffn" ,
+    "--partition none "
+    "--focus_to 'ffn/output_layer/bias_add' "
+    "--executors wave all --images linspace1  {} --wavegraph_checks structure data-race ".format(MEv2("generic-no_verify")),
+    "--check_against_ref all_available --input_files input:0=trivnet_input:0.npy "
   ],
 
 }
