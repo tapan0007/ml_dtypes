@@ -1125,20 +1125,27 @@ def gen_parwavenet_10_fp16_tanh1_to(node, sgnum):
 for i in [1, 2, 3, 6]:
     testConfigMap["5-parwavenet_10_fp16_tanh_to_add%s_wave"%i] = gen_parwavenet_10_fp16_tanh1_to("add_%s"%i, 1)
 
-# kaena-943: For tanh_to_add6, Slice_4 kept only 1536 elements from 2000 elements of BiasAdd_13 output (similarly for the others)
-for i in [2, 6]:
-    testConfigMap["5-parwavenet_10_fp16_tanh_to_add%s_wave"%i][TFFE_OPTION_IDX] += " --waive_wavegraph_checks "
-    testConfigMap["5-parwavenet_10_fp16_in_to_add%s_wave"%i][TFFE_OPTION_IDX] += " --waive_wavegraph_checks "
 for i in [9, 12, 15, 18, 22]:
     testConfigMap["6-parwavenet_10_fp16_tanh_to_add%s_wave"%i] = gen_parwavenet_10_fp16_tanh1_to("add_%s"%i, 1)
 for i in [24]:
     testConfigMap["7-parwavenet_10_fp16_tanh_to_add%s_wave"%i] = gen_parwavenet_10_fp16_tanh1_to("add_%s"%i, 1)
 
+# kaena-943: 
+# For tanh_to_add6, Slice_4 kept only 1536 elements from 2000 elements of BiasAdd_13 output (similarly for the others)
+# For tanh_to_add12, only 1536 of 2000 elements of BiasAdd_22 output is kept
+# For tanh_to_add18, only 1536 of 2000 elements of BiasAdd_31 output is kept
+for i in [2, 6]:
+    testConfigMap["5-parwavenet_10_fp16_tanh_to_add%s_wave"%i][TFFE_OPTION_IDX] += " --waive_wavegraph_checks "
+    testConfigMap["5-parwavenet_10_fp16_in_to_add%s_wave"%i][TFFE_OPTION_IDX] += " --waive_wavegraph_checks "
+for i in [12, 18]:
+    testConfigMap["6-parwavenet_10_fp16_tanh_to_add%s_wave"%i][TFFE_OPTION_IDX] += " --waive_wavegraph_checks "
+    testConfigMap["6-parwavenet_10_fp16_in_to_add%s_wave"%i][TFFE_OPTION_IDX] += " --waive_wavegraph_checks "
+
 # kaena-902: add15/add18 cases exceed default relative tolerance of 1%
 for i in [15]:
     testConfigMap["6-parwavenet_10_fp16_in_to_add%s_wave"%i][NNE_OPTION_IDX] += "--diff_options '--tolerance 1.2 1e-5'"
 for i in [18]:
-    testConfigMap["6-parwavenet_10_fp16_in_to_add%s_wave"%i][NNE_OPTION_IDX] += "--diff_options '--tolerance 1.7 1e-5'"
+    testConfigMap["6-parwavenet_10_fp16_in_to_add%s_wave"%i][NNE_OPTION_IDX] += "--diff_options '--tolerance 1.8 1e-5'"
 
 def gen_7_rn50_nne_fp16_wave_no_repl_save(layer_name):
     return [
