@@ -656,6 +656,7 @@ class FileParams():
         self.writers_of_shared_fmap = []
         self.readers_of_shared_fmap = []
         self.consumers = []
+        self.repl_chunk2atom_compress_ratio = 1
         self.compute_params(op_params.stride, args)
         self.chunk_alignment_info = []
         self.unstack_from_file  = None
@@ -769,6 +770,7 @@ class FileParams():
         fmap_elem_count = self.file_dims.R * self.file_dims.S * self.file_dims.M * self.file_dims.H * self.file_dims.W
         self.fmap_data_len = fmap_elem_count * self.item_sz
         self.stride = stride
+        assert(stride.x == stride.y)
         self.weights_S_dim = self.file_dims.S
         # per kaena-85, use noodle shapes for tiles
         # need to guard against small EF and build noodle tile to enable higher state buffer efficiency
@@ -815,6 +817,9 @@ class FileParams():
                     elif (self.fmap_full_tiley_sz < multiple):
                         multiple = (multiple//self.fmap_full_tiley_sz) * self.fmap_full_tiley_sz
                     self.chunk_sz = ifmap_width_data_len * min(self.file_dims.H, multiple)
+            if repl_multiple_of_C > 1:
+                # BE performs the DMAs necessary for replication, so need to compress when translating from chunk size to atom size
+                self.repl_chunk2atom_compress_ratio = self.stride.x * self.stride.x
 
         self.batch_item_partition_usage_sz  = self.fmap_data_len * self.fmap_channels_folds
         self.tot_partition_usage_sz         = self.batch_item_partition_usage_sz * self.file_dims.N
@@ -822,13 +827,13 @@ class FileParams():
         self.fmap_last_fold_channels        = self.file_dims.orig_C % PEArray.NUM_ROWS
         if self.fmap_last_fold_channels == 0: 
             self.fmap_last_fold_channels = PEArray.NUM_ROWS
-        if self.file_dims.has_c:
+        if self.file_dims.has_c:    # 5 dimensions case, with c folds (CNcHW)
             self.batch_item_num_chunks          = ceildiv(self.batch_item_partition_usage_sz, self.chunk_sz)
             self.fmap_last_chunk_sz             = self.batch_item_partition_usage_sz % self.chunk_sz
             if self.fmap_last_chunk_sz == 0:
                 self.fmap_last_chunk_sz         = self.chunk_sz
             self.file_addr_skip_per_fmap_fold   = self.fmap_data_len
-            self.partition_step_bytes           = self.fmap_data_len * self.file_dims.c
+            self.file_addr_skip_per_outer_chan  = self.fmap_data_len * self.file_dims.c
         else:
             self.fmap_num_chunks                = ceildiv(self.fmap_data_len, self.chunk_sz) 
             self.batch_item_num_chunks          = ceildiv(self.fmap_data_len, self.chunk_sz) * self.fmap_channels_folds
@@ -836,7 +841,7 @@ class FileParams():
             if self.fmap_last_chunk_sz == 0:
                 self.fmap_last_chunk_sz         = self.chunk_sz
             self.file_addr_skip_per_fmap_fold   = self.fmap_data_len * min(self.file_dims.orig_C, PEArray.NUM_ROWS)
-            self.partition_step_bytes           = self.fmap_data_len
+            self.file_addr_skip_per_outer_chan  = self.fmap_data_len
         self.tot_num_chunks                 = self.batch_item_num_chunks * self.file_dims.N
         # Default unpadded sizes for internal FMAPs (see compute_padded_sizes for weights/input/output FMAPs)
         self.chunk_sz_padded                = self.chunk_sz                
@@ -851,8 +856,8 @@ class FileParams():
         # Only for weights/bias, input IFMAP and final OFMAP.
         # Internal layers will gang-up pairs of chunks (FP16) to satisfy 4B alignment requirement.
         if self.contain_weights or self.final_layer_ofmap or self.share_w_final_layer_ofmap or self.input_layer_ifmap:
-            self.chunk_sz_padded                      = align_addr_8B(self.chunk_sz)                
-            self.fmap_data_len_padded                 = align_addr_8B(self.fmap_data_len)
+            self.chunk_sz_padded                      = align_addr_NB(self.chunk_sz, 8 * self.repl_chunk2atom_compress_ratio)                
+            self.fmap_data_len_padded                 = align_addr_NB(self.fmap_data_len, 8 * self.repl_chunk2atom_compress_ratio)
         self.batch_item_partition_usage_sz_padded     = self.fmap_data_len_padded * self.fmap_channels_folds
         self.batch_item_partition_usage_elems_padded  = self.fmap_data_len_padded * self.fmap_channels_folds // self.item_sz
         self.tot_partition_usage_sz_padded            = self.batch_item_partition_usage_sz_padded * self.file_dims.N
@@ -1145,8 +1150,16 @@ class FileMapper():
             raise RuntimeError("End address %d falls outside partition size %d. Something wrong during file mapping. Please check map_files function."%(end_addr, self.sb_partition_sz))
         # Save mapped information            
         #print("taemk::FileParams to be consumed = %s"%file_params.file_name)
-        #print("INFO: file %s mapped to start_addr %d region_sz %d (orig region_sz %d) num_region_chunks %d wrap_around %d modify_in_place %d"%(file_params.file_name, start_addr, adj_region_sz, region_sz, num_region_chunks, wrap_around, modify_in_place))
-        file_params.mapped_params = MappedParams(file_params.file_dims.N, start_addr, adj_region_sz, num_region_chunks, file_params.batch_item_num_chunks, end_addr, modify_in_place, file_params.consumers)
+        print("INFO: file %s mapped to start_addr %d region_sz %d (orig region_sz %d) num_region_chunks %d wrap_around %d modify_in_place %d"%(file_params.file_name, start_addr, adj_region_sz, region_sz, num_region_chunks, wrap_around, modify_in_place))
+        file_params.mapped_params = MappedParams(
+                                        N                               = file_params.file_dims.N, 
+                                        start_addr                      = start_addr, 
+                                        region_sz                       = adj_region_sz, 
+                                        num_region_chunks               = num_region_chunks * file_params.repl_chunk2atom_compress_ratio, 
+                                        num_file_chunks_per_batch_item  = file_params.batch_item_num_chunks, 
+                                        end_addr                        = end_addr, 
+                                        modify_in_place                 = modify_in_place, 
+                                        readers                         = file_params.consumers)
         # Save file params in a list
         self.file_params_list[file_params.file_id] = file_params
         return end_addr + file_params.item_sz
@@ -1160,10 +1173,12 @@ class FileMapper():
         assert(addr >= batch_item * file_params.file_addr_skip_per_batch_item)
         addr_adj         = addr - batch_item * file_params.file_addr_skip_per_batch_item
         if file_params.file_dims.has_c:
+            # Already in folded/SB view
             assert(file_params.file_dims.format_str == "CNcHW" or file_params.file_dims.format_str == "CcRSM")
             chunk_id         = addr_adj // file_params.chunk_sz
             chunk_id        += batch_item * file_params.batch_item_num_chunks 
         else:
+            # From file view, do some math to fold into folded/SB view
             assert(file_params.file_dims.format_str == "NCHW" or file_params.file_dims.format_str == "CRSM")
             fold_idx         = addr_adj // file_params.file_addr_skip_per_fmap_fold 
             fold_offset      = addr_adj % file_params.file_addr_skip_per_fmap_fold 
@@ -1184,6 +1199,7 @@ class FileMapper():
         assert(chunk_id < file_params.tot_num_chunks)
         chunk_id_adj     = chunk_id - batch_item * file_params.batch_item_num_chunks
         if file_params.file_dims.has_c:
+            # Already in folded/SB view
             assert(file_params.file_dims.format_str == "CNcHW" or file_params.file_dims.format_str == "CcRSM")
             addr_adj         = chunk_id_adj * file_params.chunk_sz
             addr             = addr_adj + batch_item * file_params.file_addr_skip_per_batch_item
@@ -1216,8 +1232,10 @@ class FileMapper():
         assert(addr >= batch_item * file_params.file_addr_skip_per_batch_item)
         addr_adj    = addr - batch_item * file_params.file_addr_skip_per_batch_item
         if file_params.file_dims.has_c:
+            # Already in folded/SB view
             chunk_offset = addr_adj % file_params.chunk_sz
         else:
+            # From file view, do some math to fold into folded/SB view
             fold_idx    = addr_adj // file_params.file_addr_skip_per_fmap_fold 
             fold_offset = addr_adj % file_params.file_addr_skip_per_fmap_fold 
             # only consider fold_offset in partition 0 (take care of cases where channel starts in mid partition) 
@@ -1242,6 +1260,7 @@ class FileMapper():
                 chunk_len = file_params.fmap_last_chunk_sz
             else:
                 chunk_len = file_params.chunk_sz
+        chunk_len = chunk_len // file_params.repl_chunk2atom_compress_ratio
         return chunk_len
 
     def get_atom_id_from_file_addr (self, file_params, batch_item, addr):
@@ -1266,7 +1285,8 @@ class FileMapper():
                 # kaena- : pad chunk size and FMAP data length to align to 8B (hard requirement)
                 sb_addr          = fold_idx * file_params.fmap_data_len_padded + chunk_id_in_fold * file_params.chunk_sz_padded
             else:            
-                sb_addr         = chunk_id_offset * file_params.chunk_sz_padded
+                sb_addr         = chunk_id_offset * file_params.chunk_sz_padded 
+        sb_addr = sb_addr // file_params.repl_chunk2atom_compress_ratio 
         sb_addr += file_params.mapped_params.start_addr            
         return sb_addr
 
@@ -1839,7 +1859,8 @@ class FileMapper():
                         file_params, batch_item,chunk_id+1)
         else: length_chunk_odd = 0
         length += length_chunk_odd
-        last_byte_offset = offset_in_file + (file_params.fmap_data_len * (fmap_count-1)) + length - file_params.item_sz
+        combined_len_decompr = (length + (file_params.fmap_data_len * (fmap_count-1)) ) * file_params.repl_chunk2atom_compress_ratio
+        last_byte_offset = offset_in_file + combined_len_decompr - file_params.item_sz
         assert (length > 0)           
         # IFMAP replication parameters
         stride = 1
@@ -1862,18 +1883,19 @@ class FileMapper():
                 ifmap_replication_num_rows = file_params.file_dims.C * file_params.weights_S_dim
                 ifmap_replication_resolution = file_params.file_dims.C * stride
                 ifmap_replication_step_bytes = (file_params.file_dims.W // stride) * file_params.item_sz
-                length = length // (stride * stride) # TODO: adjust chunk size to match
                 offset_in_file_batch_item = batch_item * file_params.file_addr_skip_per_batch_item
                 # Adjust for the even/odd split
-                offset_in_file = (offset_in_file - offset_in_file_batch_item) // (stride * stride) + offset_in_file_batch_item # TODO: adjust chunk size to match
+                offset_in_file = (offset_in_file - offset_in_file_batch_item) // file_params.repl_chunk2atom_compress_ratio \
+                                    + offset_in_file_batch_item
                 # compute last byte offset to check out of file bound
                 last_byte_offset  = offset_in_file + length - file_params.item_sz
-                last_byte_offset += file_params.fmap_data_len // (stride * stride)   # jump to the odd half
+                last_byte_offset += file_params.fmap_data_len // file_params.repl_chunk2atom_compress_ratio   # jump to the odd half
                 last_byte_offset += ifmap_replication_step_bytes * (ceildiv(fmap_count, ifmap_replication_resolution) - 1)
                 last_byte_offset += file_params.fmap_data_len * ((fmap_count-1)%file_params.file_dims.C)
 
         # Kaena-530: check that the last byte doesn't go outside of file
-        if (file_params.args is not None and file_params.args.debug > 3): print("DBG: last_byte_offset %d file_sz %d"%(last_byte_offset, file_params.file_sz))
+        if self.debug > 3: 
+            print("DBG: last_byte_offset %d file_sz %d"%(last_byte_offset, file_params.file_sz))
         if repl_multiple_of_C > 1:
             assert(last_byte_offset < file_params.file_sz + length*file_params.file_dims.C)
         else:            
@@ -1906,7 +1928,7 @@ class FileMapper():
               'length'           : length,
               'start_at_mid_part' : False,  # TODO: is this always false for loads?
               'num_partitions'    : fmap_count,  # if this is larger than C, replicate fmap_count/C times
-              'partition_step_bytes': file_params.partition_step_bytes,
+              'partition_step_bytes': file_params.file_addr_skip_per_outer_chan,
               'stride'              : stride,
               'ifmap_replication_resolution' : ifmap_replication_resolution, 
               'ifmap_replication_num_rows' : ifmap_replication_num_rows,
@@ -1959,7 +1981,7 @@ class FileMapper():
               'ofmaps_fold_idx'  : 0,   # TODO: is this still needed?
               'batch_fold_idx'   : 0,   # TODO: is this still needed?
               'num_partitions'   : fmap_count,
-              'partition_step_bytes': file_params.partition_step_bytes,
+              'partition_step_bytes': file_params.file_addr_skip_per_outer_chan,
               'last_save_of_file' : last_atom_of_file,
               'final_layer_ofmap' : file_params.final_layer_ofmap,
             }
