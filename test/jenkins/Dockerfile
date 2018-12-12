@@ -47,6 +47,7 @@ RUN pip3 install --no-cache-dir \
         progress \
         lark \
         lark-parser \
+        cmd2 \
         mako
 
 COPY ssh-config /tmp/ssh-config
