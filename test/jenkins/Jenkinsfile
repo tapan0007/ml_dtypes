@@ -45,7 +45,7 @@ pipeline{
 
                 sh 'rm -rf $SRC_DIR && mkdir -p $SRC_DIR'
                 sh 'rm -rf $BLD_DIR && mkdir -p $BLD_DIR'
-                sh 'rm -rf $TEST_DIR && mkdir -p $TEST_DIR/RunAllWithArgs && mkdir -p $TEST_DIR/precheckin && mkdir -p $TEST_DIR/RunPytest && mkdir -p $TEST_DIR/RunToolsPytest'
+                sh 'rm -rf $TEST_DIR && mkdir -p $TEST_DIR/RunAllWithArgs && mkdir -p $TEST_DIR/precheckin && mkdir -p $TEST_DIR/RunPytest && mkdir -p $TEST_DIR/RunToolsPytest && mkdir -p $TEST_DIR/prep_qemu && mkdir -p $TEST_DIR/test_inst_sweep'
                 sh '''
                 [ -f "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" ] && /bin/cp "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" /tmp/ubuntu-18.04-24G_pytest.qcow2
                 '''
@@ -116,6 +116,26 @@ pipeline{
                             archiveArtifacts artifacts:'files_uploaded.txt'
                         }
                     }
+                }
+            }
+        }
+        stage('prep_qemu') {
+            steps {
+                sh '''
+                (cd $TEST_DIR/prep_qemu && $KAENA_PATH/runtime/util/qemu_rt --pool $QEMU_POOL --action start_pool > log_pool.txt 2>&1 &)
+                '''
+                timeout(time: 30, unit: 'MINUTES') {
+                    sh '''
+                    (cd $TEST_DIR/prep_qemu && while [ ! -f poolpid.txt ]; do tail log_pool.txt && sleep 1; done; )
+                    '''
+                }
+            }
+            post {
+                always {
+                    sh 'mkdir /artifact/prep_qemu'
+                    sh 'find $TEST_DIR/prep_qemu -iname "*.txt" -print0 | tar -czvf /artifact/prep_qemu/logs.tgz -T -'
+                    sh 'chmod -R a+wX /artifact/'
+                    archiveArtifacts artifacts:'prep_qemu/logs.tgz'
                 }
             }
         }
@@ -222,6 +242,34 @@ pipeline{
                             sh 'find $TEST_DIR/RunToolsPytest -iname "*.txt" -print0 | tar -czvf /artifact/RunToolsPytest/logs.tgz -T -'
                             sh 'chmod -R a+wX /artifact/'
                             archiveArtifacts artifacts:'RunToolsPytest/logs.tgz'
+                        }
+                    }
+                }
+                stage('inst-sweep test') {
+                    steps {
+                        catchError {
+                            sh '''
+                            cd $TEST_DIR/test_inst_sweep && export KRT_INST_SWEEP_TEST_DIR=$KRT_BLD_DIR/tests/inst-sweep/ && export KRT_INST_SWEEP_OUTPUT_DIR=$TEST_DIR/test_inst_sweep && export KAENA_QEMU_POOL=$QEMU_POOL && pytest $KAENA_RT_PATH/tests/inst-sweep/inst-sweep.py --junitxml=pytestResult.xml -k "Softmax or QuantMatmul8DR or ActLeaky" 2>&1 | tee log-pytest.txt
+                            '''
+                        }
+                    }
+                    post {
+                        always {
+                            catchError {
+                               sh '''
+                               [ -f $TEST_DIR/test_inst_sweep/pytestResult.xml ] && /bin/cp $TEST_DIR/test_inst_sweep/pytestResult.xml $WORKSPACE/.
+                               '''
+                               junit allowEmptyResults: true, testResults: 'pytestResult.xml'
+                               sh 'mkdir /artifact/test_inst_sweep'
+                               sh 'find $TEST_DIR/test_inst_sweep -print0 | tar -czvf /artifact/test_inst_sweep/logs.tgz -T -'
+                               sh 'chmod -R a+wX /artifact/'
+                               archiveArtifacts artifacts:'test_inst_sweep/logs.tgz'
+                            }
+                        }
+                        failure {
+                            catchError {
+                                sh 'find $TEST_DIR/test_inst_sweep -type f -name "*.vdi" -delete'
+                            }
                         }
                     }
                 }
