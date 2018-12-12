@@ -128,7 +128,7 @@ pipeline{
                     steps {
                         catchError {
                             sh '''
-                            [ -z "$RUNNC_ARGS" ] || (cd $TEST_DIR/test_emu_sweep && export KAENA_ZEBU_SERVER=$ZEBU_SERVER && export KRT_INST_SWEEP_TEST_DIR=$KRT_BLD_DIR/tests/inst-sweep/ && export KRT_INST_SWEEP_OUTPUT_DIR=$TEST_DIR/test_emu_sweep && pytest $KAENA_RT_PATH/tests/inst-sweep/inst-sweep.py --junitxml=pytestResult.xml -s > log-pytest.txt 2>&1)
+                            [ -z "$RUNNC_ARGS" ] || (cd $TEST_DIR/test_emu_sweep && export KAENA_ZEBU_SERVER=$ZEBU_SERVER && export KRT_INST_SWEEP_TEST_DIR=$KRT_BLD_DIR/tests/inst-sweep/ && export KRT_INST_SWEEP_OUTPUT_DIR=$TEST_DIR/test_emu_sweep && pytest $KAENA_RT_PATH/tests/inst-sweep/inst-sweep.py --junitxml=pytestResult.xml 2>&1 | tee log-pytest.txt)
                             '''
                         }
                     }
