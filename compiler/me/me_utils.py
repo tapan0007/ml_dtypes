@@ -877,10 +877,8 @@ class MappedParams():
         self.num_region_chunks = num_region_chunks
         self.num_file_chunks_per_batch_item = num_file_chunks_per_batch_item
         self.chunk2waveop_map = {}
-        #self.chunk_is_mapped = []
-        #for i in range(N):
-        #    self.chunk_is_mapped.append([False for i in range(num_file_chunks_per_batch_item)])
         self.chunk_is_mapped = [False for i in range(N*num_file_chunks_per_batch_item)]
+        self.chunk_is_mapped_by_writer = [None for i in range(N*num_file_chunks_per_batch_item)]
         self.end_addr = end_addr
         self.modify_in_place = modify_in_place
         self.dirty = []
@@ -1737,6 +1735,12 @@ class FileMapper():
                 num_of_filter_rows = repl_multiple_of_C // file_params.weights_S_dim
                 replication_squash = i != start_chunk_id
                 print("chunk %d num_of_filter_rows %d squash %d"%(i, num_of_filter_rows, replication_squash))
+            # kaena-1099: add dependencies for IFMAP loads to support SB-to-SB DMAs
+            if repl_multiple_of_C > 1 and i > 0:
+                if file_params.mapped_params.chunk_is_mapped[i-1]:
+                    assert(file_params.mapped_params.chunk_is_mapped_by_writer[i-1] is not None)
+                    print("chunk %d found prev load ID %d"%(i, file_params.mapped_params.chunk_is_mapped_by_writer[i-1].accessor_id))
+                    list_of_writers_per_chunk.append(file_params.mapped_params.chunk_is_mapped_by_writer[i-1].accessor_id)
             load_required = not file_params.mapped_params.chunk_is_mapped[i] \
                             and not file_params.mapped_params.modify_in_place \
                             and not replication_squash
@@ -1791,6 +1795,7 @@ class FileMapper():
             # if data is not in SB, issue DRAM loads
             if not file_params.mapped_params.chunk_is_mapped[i]:
                 file_params.mapped_params.chunk_is_mapped[i] = True
+                file_params.mapped_params.chunk_is_mapped_by_writer[i] = new_morsel_wr
                 # If modifying in place, don't create DRAM waveops for region
                 if not file_params.mapped_params.modify_in_place and not replication_squash:
                     assert(load_required)
