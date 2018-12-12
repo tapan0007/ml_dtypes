@@ -723,7 +723,7 @@ class KrtcClient:
       p = subprocess.Popen(krtcArgs, stdout=fp, stderr=fp)
       p.communicate()
 
-  def krtcInference(self, model_id, ifmapList, ofmapPath, binDir, workingDir, capture):
+  def krtcInference(self, model_id, ifmapList, ofmapPath, binDir, workingDir, capture, kelfDir):
     krtOk = False
     binDir = self.krtd.tempBinDir
     workDir = self.krtd.tempWorkingDir
@@ -739,7 +739,7 @@ class KrtcClient:
     with open(inferLogFile, "a+") as fp:
       krtcArgs = [krtcCmd, "infer", "--model-id", modelId, "--ifmap"] +  ifmaps + ["--ofmap-path", ofmapPath, "--address", grpcAddress]
       if capture:
-        krtcArgs += ["--capture"]
+        krtcArgs += ["--capture", "--kelf-dir", kelfDir]
       p = subprocess.Popen(krtcArgs, stdout=fp, stderr=fp)
       p.communicate()
       if p.returncode == 0:
@@ -766,7 +766,7 @@ class KrtcClient:
       print("INFO: infer success for ifmap:%s" % ifmaps)
     return krtOk
 
-  def doMultipleKrtcInference(self, model_id, ifmapList, binDir, workingDir):
+  def doMultipleKrtcInference(self, model_id, ifmapList, binDir, workingDir, kelfDir):
     krtOk = True
     ofmapDirList = []
     for inferenceNum in range(numInferences):
@@ -775,7 +775,7 @@ class KrtcClient:
       #once krtc to send capture o/p to different dir we might not need this and capture
       #always. Right now the first time we don't capture in multi inference case
       capture = (numInferences == 1) or (inferenceNum >=1)
-      krtOk = self.krtcInference(model_id, ifmapList, ofmapDirList[inferenceNum], binDir, workingDir, capture)
+      krtOk = self.krtcInference(model_id, ifmapList, ofmapDirList[inferenceNum], binDir, workingDir, capture, kelfDir)
       if not krtOk:
         print("ERROR: inference %d failed\n" % inferenceNum)
         break
@@ -808,7 +808,7 @@ class KrtcClient:
     (model_id, krtOk) = self.krtcLoadStartModel(binDir, workingDir, str(self.krtd.inklingTimeout))  #in future this would take the tpb in which to load
     if not krtOk:
       return
-    krtOk = self.doMultipleKrtcInference(model_id, args.ifmaps, binDir, workingDir)
+    krtOk = self.doMultipleKrtcInference(model_id, args.ifmaps, binDir, workingDir, args.kelf)
     if not krtOk:
       return
     self.krtd.getFinalBin()
