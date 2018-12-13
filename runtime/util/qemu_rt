@@ -1198,6 +1198,19 @@ elif len(args.pool) > 0:
       raise RuntimeError('ERROR: failed to start qemus, %d requested while %d started' % (len(qp.ports), len(qp.qemus)))
     print('INFO: your qemu pool has started. You can access it on ports %s. To stop them terminate this process' % qp.ports, flush=True)
     i = 0
+    #Now save the pid of this process so that when we
+    #need to kill the pool we can use that. The file
+    #saved in the dir from which pool start command was
+    #issued. So cleanpool should also be called from
+    #the same place
+    # TODO: this is used by jenkins to wait for the pool to be ready
+    # Once kaena-1114 is fixed we should remove this
+    pid = os.getpid()
+    if os.path.isfile(poolPidFileName):
+      os.remove(poolPidFileName)
+    with open(poolPidFileName, 'w') as fp:
+      fp.write(str(os.getpid()))
+
     while True:
       time.sleep(10)
       print('INFO: holding quemus %d. Sleep 10. Use  export KAENA_QEMU_RT_POOL="%s"; RunAll --force_qemu --test ... to run.   Terminate this process to close the qemus' % (i, " ".join(str(p) for p in qp.ports)), flush=True)
