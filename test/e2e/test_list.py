@@ -363,6 +363,11 @@ testConfigMap = {
   "1-1conv7_64_wave"   : [ "trivnet_conv1",  "tfloat16-b1-h16-r7-s1-c64-m64-wmin-0.1-wmax0.11-imin-0.2-imax0.21", "1conv", MEv2("Generic")],
   "1-1conv9_64_wave"   : [ "trivnet_conv1",  "tfloat16-b1-h16-r9-s1-c64-m64-wmin-0.1-wmax0.11-imin-0.2-imax0.21", "1conv", MEv2("Generic")],
 
+  # reduce_op tests
+  "0-reduce_sum_h1c64" : [ "trivnet_reduce_op",  "tfloat16-b1-h1-r1-s1-c64-m1-wmin-0.01-wmax0.011-imin-0.02-imax0.022", "reduce_sum", MEv2("Generic")],
+  "0-reduce_sum_h1c256" : [ "trivnet_reduce_op",  "tfloat16-b1-h1-r1-s1-c256-m1-wmin-0.01-wmax0.011-imin-0.02-imax0.022", "reduce_sum", MEv2("Generic")],
+  "0-reduce_sum_h4c64" : [ "trivnet_reduce_op",  "tfloat16-b1-h4-r1-s1-c64-m1-wmin-0.01-wmax0.011-imin-0.02-imax0.022", "reduce_sum", MEv2("Generic")],
+
   # Wave graph development tcc reference and tests
   "1-1conv0_wave"      : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c33-m1-wmin-0.01-wmax0.011-imin-0.02-imax0.022", "1conv", MEv2("Generic")],
   "1-1conv0_c128_wave"      : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c128-m1-wmin-0.01-wmax0.011-imin-0.022-imax0.023", "1conv", MEv2("Generic")],
@@ -1025,33 +1030,6 @@ testConfigMap = {
     "--input_files %s --check_against_ref all_available" % rnDogJpg
   ],
 
-  # transformer tests
-
-  "0-transformer-matmul": [
-    "tf_s3", "s3://kaena-nn-models", "transformer_frozen_fp16.pb",
-    "--input_node infer_x infer_y --depth 2 "
-    "--focus_to 'infer_preds' "
-    "--partition from_multi '"
-      "dense/Tensordot/MatMul,dense/Tensordot/concat_2"
-      "' '"
-      "ArgMax"
-      "' "
-    "--dot_timeout 1 "
-    "--executors host 0 2 wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --images {} --wavegraph_checks structure data-race".format(transformerIn), "--input_files {}".format(transformerRtIn)
-  ],
-
-  "0-transformer-mul": [
-    "tf_s3", "s3://kaena-nn-models", "transformer_frozen_fp16.pb",
-    "--input_node infer_x --depth 2 "
-    "--focus_to 'encoder/num_blocks_1/multihead_attention/Sum' "
-    "--partition from_multi '"
-      "encoder/num_blocks_0/multihead_attention_1/ln/add_1"
-      "' '"
-      "encoder/num_blocks_0/multihead_attention_1/ln/mul"
-      "' "
-    "--dot_timeout 1 "
-    "--executors host 0 2 wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --images {} --wavegraph_checks structure data-race".format(transformerInX), "--input_files {}".format(transformerRtInX)
-  ],
 
   #WaveRNN Tests #cb-compiler bug workaround - no support for constants to Sub and Mul operators - WA to remove sub operatoins in sigmoid and change Mul constants to placeholders
   "2-wavernn_tf_ts0_w1_h02_cb"     : [
@@ -1063,6 +1041,7 @@ testConfigMap = {
     " --executors host 0 2 wave 1 --scheduler qemu_wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race --parallel_streams --partition from_multi MatMul,MatMul_2,MatMul_4,MatMul_3,MatMul_1,Mul,Mul_1 Softmax ",
     "--input_files prev:0=$KAENA_EXT_PATH/apps/tf/wavernn/prev_samp.npy cond:0=$KAENA_EXT_PATH/apps/tf/wavernn/cond.npy init_state:0=$KAENA_EXT_PATH/apps/tf/wavernn/init_state.npy "
   ],
+
   #Test for Merged embedding with Input gates
   "2-wavernn_tf_ts0_w1_h02_membed_cb"     : [
     #"tf_pb", "wavernn/wavernn_tf_ts1_membed_opt_fp16.pb","wavernn",
@@ -1072,16 +1051,8 @@ testConfigMap = {
     " --executors host 0 2 wave 1 --scheduler qemu_wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race --parallel_streams --partition from_multi Add,MatMul,MatMul_1,Mul,Mul_1 Softmax ",
     "--input_files prev:0=$KAENA_EXT_PATH/apps/tf/wavernn/prev_samp.npy cond:0=$KAENA_EXT_PATH/apps/tf/wavernn/cond_membed.npy init_state:0=$KAENA_EXT_PATH/apps/tf/wavernn/init_state.npy "
       ], 
-  "2-transformer_reduce_sum_b1": [
-    "tf_s3", "s3://kaena-nn-models", "transformer_infer_encoder_v2_fp16_len1.pb",
-    "--input_node transformer_infer_encoder/encoder_inputs --depth 2 "
-    "--focus_to 'transformer_infer_encoder/encoder_stack/layer_0/self_attention/layer_normalization/sum' "
-    "--partition from_multi '"
-        "transformer_infer_encoder/encoder_stack/layer_0/self_attention/layer_normalization/sum"
-        "' "
-    "--executors host 0 wave 1 {} --images {} --wavegraph_checks structure data-race".format(MEv2("generic"), transformerEncoderLen1In),
-    "--input_files {}".format(transformerEncoderLen1In)
-   ],
+
+  # transformer tests
 
   "2-transformer_layer_norm" : [ "trivnet_layer_norm",  
     "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2",  "layer_norm" , 
@@ -1283,10 +1254,6 @@ testWaiver = [
     # Resnet 152
     ['^9-resnet152', 'WAIVE_RN152'],
 
-    # Transformer
-    # Comment calling kp.reportOpAndSizes() to see ME failure
-    ['0-transformer-matmul', 'WAIVE_KAENA964'],
-    ['0-transformer-mul', 'WAIVE_KAENA961']
   ]
 
 noGpuTestWaiver = [
