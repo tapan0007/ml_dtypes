@@ -111,7 +111,6 @@ SerWaveOp::loadPool(cereal::JSONInputArchive& archive)
 {
     loadSrc(archive, Dims::XYZW);
     loadDst(archive, Dims::XYZ);
-    KCC_ARCHIVE(DstStartAtMidPart);
 
     KCC_ARCHIVE(NumPartitions);
     KCC_ARCHIVE(PoolFrequency);

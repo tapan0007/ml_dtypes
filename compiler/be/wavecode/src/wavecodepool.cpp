@@ -90,10 +90,16 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
 
     /* Pool  */
     initMemAccess(poolInstr.dst_mem_pattern);
-    // For now DST is always StateBuf
-    AssignWithSizeCheck(poolInstr.dst_mem_pattern.start_addr,
-                        stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * poolWaveop->gDstStartAtMidPart(),
+    if (poolWaveop->qDstIsPsum()) {
+        AssignWithSizeCheck(poolInstr.dst_mem_pattern.start_addr,
+                            psumBuf.gEntryTpbAddress(poolWaveop->gDstPsumBankId(),
+                                                     poolWaveop->gDstPsumBankOffset(),
+                                                     poolWaveop->gOutDtype()));
+    } else {
+        AssignWithSizeCheck(poolInstr.dst_mem_pattern.start_addr,
+                            stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * poolWaveop->gDstStartAtMidPart(),
                                                   poolWaveop->gDstSbAddress()));
+    }
 
     AssignWithSizeCheck(poolInstr.dst_mem_pattern.step_elem[PatDim_X], poolWaveop->gDstXStep());
     AssignWithSizeCheck(poolInstr.dst_mem_pattern.num_elem[PatDim_X], poolWaveop->gDstXNum());

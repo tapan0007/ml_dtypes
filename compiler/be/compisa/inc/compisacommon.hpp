@@ -55,7 +55,8 @@ InstrTempl<INSTR, opcode, Checker>::CheckValidity() const
         "Instruction base class size not equal to instruction class size");
     const TongaErrorCode errCode = Checker(this);
     Assert(errCode == ::TONGA_ISA_ERR_CODE_SUCCESS,
-           "Invalid instruction of type ", typeid(Class).name(), "    Error code: ", errCode);
+           "Invalid instruction of type ", typeid(Class).name(),
+           "\nError code: ", errCode, "\nHint: ", this->reserved);
 }
 
 
@@ -91,7 +92,8 @@ InstrTempl2<INSTR, Checker>::CheckValidity() const
         "Instruction base class size not equal to instruction class size");
     const TongaErrorCode errCode = Checker(this);
     Assert(errCode == ::TONGA_ISA_ERR_CODE_SUCCESS,
-           "Invalid instruction of type ", typeid(Class).name(), "    Error code: ", errCode);
+           "Invalid instruction of type ", typeid(Class).name(),
+           "\nError code: ", errCode, "\nHint: ", this->reserved);
 }
 
 
