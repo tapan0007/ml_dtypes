@@ -10,6 +10,7 @@ namespace kcc {
 
 namespace utils {
 class DataType;
+enum class DataTypeId;
 }
 
 namespace arch {
@@ -28,9 +29,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    kcc_int32 gNumberBankEntries() const {
-        return m_NumberBankEntries;
-    }
+    kcc_int32 gNumberBankEntries(utils::DataTypeId psumDtype) const;
 
     //----------------------------------------------------------------
     kcc_int32 gNumberColumns() const {

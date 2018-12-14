@@ -63,6 +63,9 @@ public:
     kcc_int32 gDstZNum () const {
         return m_DstZNum;
     }
+    const DataType& gInDtype () const {
+        return m_InDtype;
+    }
     kcc_int32 gDstZStep () const {
         return m_DstZStep;
     }
@@ -106,6 +109,7 @@ public:
     }
 
 private:
+    const DataType&             m_InDtype;
     kcc_int64                   m_DstSbAddress          = -1;
     kcc_int32                   m_DstXNum               = -1;
     kcc_int32                   m_DstXStep              = -1;
@@ -138,6 +142,7 @@ class ScaleAddWaveOp::Params : public PoolEngWaveOp::Params {
 public:
     bool verify() const;
 public:
+    DataTypeId                  m_InDtypeId            = DataTypeId::None;
     kcc_int64                   m_DstSbAddress          = -1;
     kcc_int32                   m_DstXNum               = -1;
     kcc_int32                   m_DstXStep              = -1;

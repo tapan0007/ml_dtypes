@@ -112,5 +112,23 @@ PsumBuffer::gEntryTpbAddress(kcc_int32 bankId, kcc_int32 bankEntryIdx,
     return addr;
 }
 
+kcc_int32
+PsumBuffer::gNumberBankEntries(utils::DataTypeId psumDtype) const
+{
+    switch (psumDtype) {
+    case utils::DataTypeId::Float32:
+    case utils::DataTypeId::Int32:
+        return 2*m_NumberBankEntries;
+        break;
+    case utils::DataTypeId::Int64:
+        return m_NumberBankEntries;
+        break;
+    default:
+        Assert(false, "Psum dtype must be one of: float32, int64, int32. It is ",
+            static_cast<kcc_int32>(psumDtype));
+    }
+    return -1;
+}
+
 }}
 

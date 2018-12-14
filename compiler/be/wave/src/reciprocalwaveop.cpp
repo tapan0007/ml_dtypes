@@ -94,7 +94,9 @@ ReciprocalWaveOp::verify() const
         if (m_SrcPsumBankId < 0 || m_SrcPsumBankId >= psumBuf.gNumberBanks()) {
             RETURN_ASSERT(false);
         }
-        if (m_SrcPsumBankOffset < 0 || m_SrcPsumBankOffset >= psumBuf.gNumberBankEntries()) {
+        if (m_SrcPsumBankOffset < 0
+                || m_SrcPsumBankOffset >= psumBuf.gNumberBankEntries(gInDtype().gDataTypeId()))
+        {
             RETURN_ASSERT(false);
         }
     } else {

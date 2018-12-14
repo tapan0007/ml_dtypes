@@ -92,7 +92,9 @@ MatMulWaveOp::verify() const
     if (m_PsumBankId < 0 || m_PsumBankId >= psumBuf.gNumberBanks()) {
         return false;
     }
-    if (m_PsumBankOffset < 0 || m_PsumBankOffset >= psumBuf.gNumberBankEntries()) {
+    if (m_PsumBankOffset < 0
+            || m_PsumBankOffset >= psumBuf.gNumberBankEntries(gOutDtype().gDataTypeId()))
+    {
         return false;
     }
     if (m_PsumXNum < 1) {

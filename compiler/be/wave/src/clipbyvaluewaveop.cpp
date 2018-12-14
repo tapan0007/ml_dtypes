@@ -96,7 +96,9 @@ ClipByValueWaveOp::verify() const
         if (m_DstPsumBankId < 0 || m_DstPsumBankId >= psumBuf.gNumberBanks()) {
             RETURN_ASSERT(false);
         }
-        if (m_DstPsumBankOffset < 0 || m_DstPsumBankOffset >= psumBuf.gNumberBankEntries()) {
+        if (m_DstPsumBankOffset < 0 
+                || m_DstPsumBankOffset >= psumBuf.gNumberBankEntries(gOutDtype().gDataTypeId()))
+        {
             RETURN_ASSERT(false);
         }
     } else {
@@ -128,7 +130,9 @@ ClipByValueWaveOp::verify() const
         if (m_SrcPsumBankId < 0 || m_SrcPsumBankId >= psumBuf.gNumberBanks()) {
             RETURN_ASSERT(false);
         }
-        if (m_SrcPsumBankOffset < 0 || m_SrcPsumBankOffset >= psumBuf.gNumberBankEntries()) {
+        if (m_SrcPsumBankOffset < 0
+                || m_SrcPsumBankOffset >= psumBuf.gNumberBankEntries(gInDtype().gDataTypeId()))
+        {
             RETURN_ASSERT(false);
         }
     } else {

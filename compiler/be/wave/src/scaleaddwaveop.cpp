@@ -20,6 +20,7 @@ namespace wave {
 ScaleAddWaveOp::ScaleAddWaveOp(const ScaleAddWaveOp::Params& params,
                                const std::vector<WaveOp*>& prevWaveOps)
     : BaseClass(params, prevWaveOps)
+    , m_InDtype(DataType::dataTypeId2DataType(params.m_InDtypeId))
     , m_DstSbAddress(params.m_DstSbAddress)
     , m_DstXNum(params.m_DstXNum)
     , m_DstXStep(params.m_DstXStep)
@@ -82,7 +83,9 @@ ScaleAddWaveOp::verify() const
         if (m_SrcPsumBankId < 0 || m_SrcPsumBankId >= psumBuf.gNumberBanks()) {
             RETURN_ASSERT(false);
         }
-        if (m_SrcPsumBankOffset < 0 || m_SrcPsumBankOffset >= psumBuf.gNumberBankEntries()) {
+        if (m_SrcPsumBankOffset < 0
+                || m_SrcPsumBankOffset >= psumBuf.gNumberBankEntries(gInDtype().gDataTypeId()))
+        {
             RETURN_ASSERT(false);
         }
     } else {

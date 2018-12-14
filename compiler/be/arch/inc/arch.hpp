@@ -17,6 +17,11 @@
 #include "arch/inc/statebuffer.hpp"
 
 namespace kcc {
+
+namespace utils {
+enum class DataTypeId;
+}
+
 namespace arch {
 
 
@@ -81,7 +86,7 @@ public:
     kcc_int32 gNumberPsumBanks() const;
 
     //----------------------------------------------------------------
-    kcc_int32 gPsumBankEntries() const;
+    kcc_int32 gPsumBankEntries(utils::DataTypeId psumDtype) const;
 
     //----------------------------------------------------------------
     const std::string& gArchVersion() const;

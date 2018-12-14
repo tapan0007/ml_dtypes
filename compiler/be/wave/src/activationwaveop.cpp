@@ -118,7 +118,9 @@ ActivationWaveOp::verify() const
         if (m_DstPsumBankId < 0 || m_DstPsumBankId >= psumBuf.gNumberBanks()) {
             RETURN_ASSERT(false);
         }
-        if (m_DstPsumBankOffset < 0 || m_DstPsumBankOffset >= psumBuf.gNumberBankEntries()) {
+        if (m_DstPsumBankOffset < 0
+                || m_DstPsumBankOffset >= psumBuf.gNumberBankEntries(gOutDtype().gDataTypeId()))
+        {
             RETURN_ASSERT(false);
         }
     } else {
@@ -127,11 +129,9 @@ ActivationWaveOp::verify() const
         }
     }
 
-    // m_InDtype
     if (m_NumPartitions < 1) {
         RETURN_ASSERT(false);
     }
-    // m_OutDtype
     if (m_SrcXNum < 1) {
         RETURN_ASSERT(false);
     }

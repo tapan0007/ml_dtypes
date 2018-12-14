@@ -4,6 +4,7 @@
 
 #include "utils/inc/types.hpp"
 #include "utils/inc/asserter.hpp"
+#include "utils/inc/datatype.hpp"
 
 #include "arch/inc/poolingeng.hpp"
 #include "arch/inc/activationeng.hpp"
@@ -84,9 +85,9 @@ kcc_int32 Arch::gNumberPsumBanks() const
 }
 
 //----------------------------------------------------------------
-kcc_int32 Arch::gPsumBankEntries() const
+kcc_int32 Arch::gPsumBankEntries(utils::DataTypeId psumDtype) const
 {
-    return m_PsumBuffer.gNumberBankEntries();
+    return m_PsumBuffer.gNumberBankEntries(psumDtype);
 }
 
 //----------------------------------------------------------------

@@ -107,7 +107,9 @@ TensorTensorWaveOp::verify() const
         if (m_SrcAPsumBankId < 0 || m_SrcAPsumBankId >= psumBuf.gNumberBanks()) {
             RETURN_ASSERT(false);
         }
-        if (m_SrcAPsumBankOffset < 0) {
+        if (m_SrcAPsumBankOffset < 0
+                || m_SrcAPsumBankOffset >= psumBuf.gNumberBankEntries(gInADtype().gDataTypeId()))
+        {
             RETURN_ASSERT(false);
         }
     } else {
@@ -138,7 +140,9 @@ TensorTensorWaveOp::verify() const
         if (m_SrcBPsumBankId < 0 || m_SrcBPsumBankId >= psumBuf.gNumberBanks()) {
             RETURN_ASSERT(false);
         }
-        if (m_SrcBPsumBankOffset < 0) {
+        if (m_SrcBPsumBankOffset < 0
+                || m_SrcBPsumBankOffset >= psumBuf.gNumberBankEntries(gInBDtype().gDataTypeId()))
+        {
             RETURN_ASSERT(false);
         }
     } else {
