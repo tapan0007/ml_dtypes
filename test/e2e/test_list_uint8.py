@@ -8,6 +8,8 @@
 #   Name can be composed of anything - 0 can be used as base/existence test
 #   Columns: (nnStruct, nnConfig, nnLabel, nnArgs, rtArgs)
 
+from test_list import rnPreFp32, rnDogJpg
+
 RT_LOOSE_OPTION = "--diff_options '--tolerance 1 1e-1'"
 
 def options_uint8_v1(module, harness, net_name, rt_option=RT_LOOSE_OPTION):
@@ -134,6 +136,14 @@ testConfigMap = {
         "--schedule_options ' --nname=generic --no_verify ' " # me options
         "--partition from_multi 'rn50_full_uint8/block_0/quantized_conv2d' 'rn50_full_uint8/output' ",
         "--diff_options '--tolerance 1 2e-1'",
+        ],
+    "7-rn50_uint8_hcv0_b1_wave": [
+        "tf_s3", "s3://kaena-nn-models", "resnet50_uint8_hcv0.pb",
+        "%s --executors wave 1 host 0 2 --scheduler wave2 "
+        "--schedule_options ' --nname=generic --no_verify ' " # me options
+        "--input_node input --images %s "
+        "--partition from_multi 'conv1/quantized_conv2d' 'output' " % (rnPreFp32, rnDogJpg),
+        "--input_files %s --diff_options '--tolerance 1 2e-1'" % rnDogJpg,
         ],
 }
 
