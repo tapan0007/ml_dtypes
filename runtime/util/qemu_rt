@@ -718,8 +718,9 @@ class KrtcClient:
 
   def kdbRunCommand(self, binDir, kdbCommand, outputFile):
     kdbBinary = "%s/bin/kdb/kdb" % (binDir)
+    attachCmd = "attach -a localhost:{}".format(self.krtd.qemu.grpcPort)
     with open(outputFile, "a+") as fp:
-      krtcArgs = [kdbBinary, "attach", kdbCommand, "q"]
+      krtcArgs = [kdbBinary, attachCmd, kdbCommand, "q"]
       p = subprocess.Popen(krtcArgs, stdout=fp, stderr=fp)
       p.communicate()
 
