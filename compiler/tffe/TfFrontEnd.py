@@ -381,6 +381,12 @@ class TfFe:
           unusedArr = np.ndarray(inputShape)
           img = np.linspace(0, 1, num=unusedArr.size, dtype=inputType).reshape(inputShape)
           print("INFO: generated linear input=\n", img)
+        elif imageFile[0:8] == "linspace":
+          # Expect -linespace:start-end. e.g. -linespace:0.1-0.4
+          pair = [ float(s) for s in imageFile[9:].split('-')]
+          unusedArr = np.ndarray(inputShape)
+          img = np.linspace(pair[0], pair[1], num=unusedArr.size, dtype=inputType).reshape(inputShape)
+          print("INFO: generated linear input=\n", img)          
         elif " " in imageFile:
           img = np.fromstring(imageFile, dtype=inputType, sep=" ")
         else:

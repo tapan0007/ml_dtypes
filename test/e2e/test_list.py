@@ -1100,7 +1100,38 @@ testConfigMap = {
     "--check_against_ref all_available --input_files input:0=trivnet_input:0.npy "
   ],
 
+  "2-transformer_multihead_attention": [
+    "trivnet_mhatt",
+    "tfloat16-wmin-1-wmax1-imin-1-imax1-"
+    # Use large input only for emulator. Qemu takes very long time with this.
+    #"batchsize4-inputlen16-outputlen32-headsize64-numhid512-neginf-100000000", # large input 
+    "batchsize4-inputlen16-outputlen16-headsize4-numhid16-neginf-100000000",  # small input
+    "multihead_attention",
+    " --images linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 "
+    " --use_wc_2d_format --use_hwc_3d_format "
+    "--executors host 1 wave 0 2 --scheduler wave2 "
+    "--waive_wavegraph_checks "
+    "--schedule_options ' --nname=generic --no_verify ' " # me options
+    "--partition from_multi "
+        "'multihead_attention/part1/b_q_heads_tiled'," # sg00 - sg01 cut begins.
+        "'multihead_attention/part1/b_k_heads_tiled',"
+        "'multihead_attention/part1/b_bias_br_for_partition',"
+        "'tr_part',"
+        "'multihead_attention/part1/b_v_heads_t_tiled_for_partition' "  # sg00 - sg01 cut ends.
+        "'multihead_attention/part3/pre_output'," # s01-s02 cut begins.
+        "'tr_part2'", # s01 -sg02 cut ends
+    #" --diff_options '--tolerance 3.0 1e-5' "  # large input
+    " --input_files input_x_r:0=trivnet_input_x_r:0.npy "
+                  "input_y_r:0=trivnet_input_y_r:0.npy "
+                  "input_bias_br:0=trivnet_input_bias_br:0.npy "
+                  "input_q:0=trivnet_input_q:0.npy "
+                  "input_k:0=trivnet_input_k:0.npy "
+                  "input_v:0=trivnet_input_v:0.npy "
+                  "input_tr:0=trivnet_input_tr:0.npy "
+  ],
+  
 }
+
 
 def gen_rn50_nne_to_act_norepl(act_num, batch):
     return [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
