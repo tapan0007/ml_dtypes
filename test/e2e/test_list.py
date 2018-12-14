@@ -142,7 +142,7 @@ testConfigMap = {
   "0-matmul_h32c64m32" : [ "trivnet_matmul_2in", "tfloat16-b1-h32-r1-s1-c64-m32-wmin2-wmax2.2-imin3-imax3.2", "1conv" ,
     " --partition none --focus_to 1conv/matmul --executor wave 0 host 1 --images linspace1 linspace1 --use_wc_2d_format " + MEv2("Generic"),
     " --check_against_ref all_available --input_files input0:0=trivnet_input0:0.npy input1:0=trivnet_input1:0.npy "],
-  "0-matmul_h64c1024m64" : [ "trivnet_matmul_2in", "tfloat16-b1-h64-r1-s1-c1024-m64-wmin2-wmax2.2-imin3-imax3.2", "1conv" ,
+  "0-matmul_h64c256m64" : [ "trivnet_matmul_2in", "tfloat16-b1-h64-r1-s1-c256-m64-wmin2-wmax2.2-imin3-imax3.2", "1conv" ,
     " --partition none --focus_to 1conv/matmul --executor wave 0 host 1 --images linspace1 linspace1 --use_wc_2d_format " + MEv2("Generic-NoVerify"),
     " --check_against_ref all_available --input_files input0:0=trivnet_input0:0.npy input1:0=trivnet_input1:0.npy "
     " --diff_options '--tolerance 3.0 1e-5' "],
