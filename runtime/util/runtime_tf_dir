@@ -17,7 +17,7 @@ epilog = '''
 
     mkdir dir1; cp dog.jpg dir1/img01.jpg; cp cat.jpg dir1/img02.jpg; 
 
-    $KAENA_PATH/runtime/util/runtime_tf_dir --image_dir dir1 --tfpb 7-rn50_nosm_fp16_wave/tf.pb --nn_type rn50fp16 --input_map input_1:0=img%d.jpg --output_map fc1000/BiasAdd:0=gold-%d.npy
+    $KAENA_PATH/runtime/util/runtime_tf_dir --image_dir dir1 --tfpb 7-rn50_nosm_fp16_wave-no_repl/tf.pb --nn_type rn50fp16 --input_map input_1:0=img%d.jpg --output_map fc1000/BiasAdd:0=gold-%d.npy  --num_images 10 --batch 1 --tonga_in_dir tonga_in --tonga_gold_dir tonga_gold  
     
     # Run tonga inference using krtd on img01.jpg-prep_tonga.npy and write to img01.bin
     
@@ -30,6 +30,7 @@ epilog = '''
 import argparse
 import os, sys, re
 import numpy as np
+import random
 from tensorflow.python.platform import gfile
 from tensorflow.core.framework import graph_pb2
 from tensorflow.python.saved_model import tag_constants
@@ -48,13 +49,23 @@ parser = argparse.ArgumentParser(description=description, epilog=epilog,
 parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb")
 parser.add_argument('--image_dir', help='Directory where to load input images from',
                     default=None)
-parser.add_argument('--nn_type', help='Neural network type to select the right preprocessor, default rn50fp16',
+parser.add_argument('--nn_type', help='Neural network type to select the right preprocessor, default rn50fp16, other rn50fp16b4  to b16',
                     default='rn50fp16')
 parser.add_argument('--input_map', help='Tensor name to file name map, %%%%d is image id, example '
                     'input1:0=img%%%%d.jpg input2:0=state%%%%d.npy',
                     default=[], nargs='+')
 parser.add_argument('--output_map', help='For output tensors and files, same syntax as --input',
                     default=[], nargs='+')
+parser.add_argument('--tonga_in_dir', help='Output directory for inputs to tonga kelf, default is cwd',
+                    default='.')
+parser.add_argument('--tonga_gold_dir', help='Output directory for expected outputs of kelf inference in tonga format, default is cwd',
+                    default='.')
+parser.add_argument('--num_images', help='Number of images to process. Eg. 400 images with batch 4 means prepare ginputs and golden for 100 inferences, default is 100 ',
+                    default=100, type=int)
+parser.add_argument('--image_select_seed', help='Seed for the random number generator that selects which image from --image_dir are used, default is 7',
+                    default=7, type=int)
+parser.add_argument('--batch', help='Batch images for the inference, must match the compiled kelf, default is 1',
+                    default=1, type=int)
 
 args = parser.parse_args()
 assert len(args.input_map) > 0
@@ -63,6 +74,13 @@ assert len(args.output_map) > 0
 tfpbFile = args.tfpb
 if not os.path.exists(tfpbFile):
   raise("ERROR: missing --tfpb " + tfpbFile)
+
+
+for d in [args.tonga_in_dir, args.tonga_gold_dir]:
+  if not os.path.isdir(d):
+    os.mkdir(d)
+    assert os.path.isdir(d)
+
 
 class RuntimeTf:
   
@@ -134,45 +152,75 @@ class Fmaps:
     self.imageDir = imageDir
     self.nnType = nnType
     self.inputMaps = [TensorFileMap(im) for im in inputMaps]
-    self.outputMap = [TensorFileMap(om) for om in outputMaps]
+    self.outputMaps = [TensorFileMap(om) for om in outputMaps]
     self.runtime = runtime
     self.inputFiles = {}
+    self.tfInputFiles = {}
     self.outputFiles = {}
+    self.batches = []
     # Identify all input files
     for f in os.listdir(self.imageDir):
       for im in self.inputMaps:
         match = re.search(im.fileRe, f)
         if match:
-          infId = match.group(1)
-          if self.inputFiles.get(infId) == None:
-            self.inputFiles[infId] = {}
-          self.inputFiles[infId][im.tensorName] = f
-          print('INFO: found file ', f, infId, im.tensorName)
-    for infId in self.inputFiles:
-      for om in self.outputMap:
+          imgIdStr = match.group(1)
+          imgId = int(imgIdStr)
+          if self.inputFiles.get(imgId) == None:
+            self.inputFiles[imgId] = {}
+          self.inputFiles[imgId][im.tensorName] = f
+          print('INFO: found file ', f, imgId, im.tensorName)
+
+  def selectImages(self, numImages, batchSize, seed):
+    random.seed(seed)
+    numAvail = len(self.inputFiles)
+    numBatches = numImages // batchSize
+    assert len(self.inputMaps) == 1   # This part of code does not support multi-input NNs
+    im = self.inputMaps[0]
+    tensorName = im.tensorName
+    for b in range(numBatches):
+      images = []
+      imgIds = []
+      for i in range(batchSize):
+        imgId = random.randint(0, numAvail)
+        while self.inputFiles.get(imgId) == None:
+          imgId = random.randint(0, numAvail)
+        images.append(self.inputFiles[imgId][tensorName])
+        imgIds.append(imgId)
+      self.batches.append(images)
+      print('INFO: batch %d uses images %s' % (b, " ".join([str(i) for i in imgIds])))
+      
+
+  # Network specific pre/postprocessors
+  def preprocess(self, tongaInDir, tongaGoldDir):
+    
+    # Define names of output files
+    for infId in range(len(self.batches)):
+      for om in self.outputMaps:
         pat = om.filePattern.replace('%d', '%s')
         if self.outputFiles.get(infId) == None:
           self.outputFiles[infId] = {}
-        self.outputFiles[infId][om.tensorName] = pat % infId
+        self.outputFiles[infId][om.tensorName] = tongaGoldDir + '/' + pat % infId
         print('INFO: mapped output ', infId, om.tensorName, self.outputFiles[infId][om.tensorName])
 
-  # Network specific pre/postprocessors
-  def preprocess(self):
-
     if self.nnType == 'rn50fp16':
-      for infId in sorted(self.inputFiles):
+      assert len(self.inputMaps) == 1   # This part of code does not support multi-input NNs
+      im = self.inputMaps[0]
+      tensorName = im.tensorName
+      om = self.outputMaps[0]
+      outTensorName = om.tensorName
+      for infId in range(len(self.batches)):
         rnPre = os.path.join(kPath, "compiler/util/res50_preprocessor.py --data-type fp16")
-        tensorName = list(self.inputFiles[infId].keys())[0]
-        fin = self.inputFiles[infId][tensorName]
-        fout = fin + '-prep_tf.npy'
-        rnPre += '  --inputs %s/%s' % (self.imageDir, fin)
+        images = self.batches[infId]
+        foutBase = '%03d' % infId
+        fout = foutBase + '-prep_tf.npy'
+        rnPre += '  --inputs ' + " ".join(["%s/%s" % (self.imageDir, fin) for fin in images])
         rnPre += '  --output ' + fout
         print('INFO: ', rnPre)
         os.system(rnPre)
-        self.inputFiles[infId][tensorName] = fout
+        self.tfInputFiles[infId]= {tensorName : fout}
         # Reformat the imput fmap layout for Tonga runtime
-        foutTonga = fin + '-prep_tonga.npy'
-        npt.formatNpyFileAs(fout, 'NHWC', 'NCHW', outFile=foutTonga)
+        foutTonga = foutBase + '-prep_tonga.npy'
+        npt.formatNpyFileAs(fout, 'NHWC', 'NCHW', outFile=tongaInDir + '/' + foutTonga)
     else:
       raise ValueError('ERROR: unrecognized --nn_type ' + self.nnType)
 
@@ -189,13 +237,14 @@ class Fmaps:
       raise ValueError('ERROR: unrecognized --nn_type ' + self.nnType)
 
   def infer(self):
-    for infId in self.inputFiles:
-      self.runtime.infer(self.inputFiles[infId], self.outputFiles[infId])
+    for infId in range(len(self.batches)):
+      self.runtime.infer(self.tfInputFiles[infId], self.outputFiles[infId])
 
 
 runtime = RuntimeTf()
 runtime.load(tfpbFile)
 fmaps = Fmaps(args.image_dir, args.nn_type, args.input_map, args.output_map, runtime)
-fmaps.preprocess()
+fmaps.selectImages(args.num_images, args.batch, args.image_select_seed)
+fmaps.preprocess(args.tonga_in_dir, args.tonga_gold_dir)
 fmaps.infer()
 fmaps.postprocess()
