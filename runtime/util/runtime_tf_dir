@@ -11,7 +11,8 @@ SIM kaena-1074, Story kaena-1072
 '''
 
 epilog = '''
-  Example for resnet50 float16 batch 1
+
+  Example for resnet50 float16 batch 1 no replication, single SG NN
 
     $KAENA_PATH/test/e2e/RunAll --test 7-rn50_nosm_fp16_wave-no_repl
 
@@ -19,9 +20,22 @@ epilog = '''
 
     $KAENA_PATH/runtime/util/runtime_tf_dir --image_dir dir1 --tfpb 7-rn50_nosm_fp16_wave-no_repl/tf.pb --nn_type rn50fp16 --input_map input_1:0=img%d.jpg --output_map fc1000/BiasAdd:0=gold-%d.npy  --num_images 10 --batch 1 --tonga_in_dir tonga_in --tonga_gold_dir tonga_gold  
     
-    # Run tonga inference using krtd on img01.jpg-prep_tonga.npy and write to img01.bin
+    # Run tonga inference using krtd on  tonga_in/000-prep_tonga.npy and write to img000.bin
     
-    $KAENA_PATH/compiler/util/npy_diff_files --gold gold-01_tonga.npy --new img01.bin
+    $KAENA_PATH/compiler/util/npy_diff_files --gold tonga_gold/gold-000_tonga.npy --new img000.bin
+
+
+  Example for resnet50 float16 batch 16 replication
+
+    $KAENA_PATH/test/e2e/RunAll --test 8-rn50_nne_fp16_b16_wave
+
+    mkdir dir1; cp dog.jpg dir1/img01.jpg; cp cat.jpg dir1/img02.jpg; 
+
+    $KAENA_PATH/runtime/util/runtime_tf_dir --image_dir dir1 --tfpb 8-rn50_nne_fp16_b16_wave/tf.pb --nn_type rn50fp16repl --input_map input_1:0=img%d.jpg --output_map fc1000/BiasAdd:0=gold-%d.npy  --num_images 32 --batch 16 --tonga_in_dir tonga_in --tonga_gold_dir tonga_gold  
+    
+    # Run tonga inference using krtd on  tonga_in/000-prep_tonga.npy and write to img000.bin
+    
+    $KAENA_PATH/compiler/util/npy_diff_files --gold tonga_gold/gold-000_tonga.npy --new img000.bin
 
 '''
 
@@ -49,7 +63,7 @@ parser = argparse.ArgumentParser(description=description, epilog=epilog,
 parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb")
 parser.add_argument('--image_dir', help='Directory where to load input images from',
                     default=None)
-parser.add_argument('--nn_type', help='Neural network type to select the right preprocessor, default rn50fp16, other rn50fp16b4  to b16',
+parser.add_argument('--nn_type', help='Neural network type to select the right preprocessor, default rn50fp16, other rn50fp16repl',
                     default='rn50fp16')
 parser.add_argument('--input_map', help='Tensor name to file name map, %%%%d is image id, example '
                     'input1:0=img%%%%d.jpg input2:0=state%%%%d.npy',
@@ -173,6 +187,7 @@ class Fmaps:
   def selectImages(self, numImages, batchSize, seed):
     random.seed(seed)
     numAvail = len(self.inputFiles)
+    print('INFO: found %d available images' % numAvail)
     numBatches = numImages // batchSize
     assert len(self.inputMaps) == 1   # This part of code does not support multi-input NNs
     im = self.inputMaps[0]
@@ -196,13 +211,13 @@ class Fmaps:
     # Define names of output files
     for infId in range(len(self.batches)):
       for om in self.outputMaps:
-        pat = om.filePattern.replace('%d', '%s')
+        pat = om.filePattern.replace('%d', '%00d')
         if self.outputFiles.get(infId) == None:
           self.outputFiles[infId] = {}
         self.outputFiles[infId][om.tensorName] = tongaGoldDir + '/' + pat % infId
         print('INFO: mapped output ', infId, om.tensorName, self.outputFiles[infId][om.tensorName])
 
-    if self.nnType == 'rn50fp16':
+    if self.nnType == 'rn50fp16' or self.nnType == 'rn50fp16repl':
       assert len(self.inputMaps) == 1   # This part of code does not support multi-input NNs
       im = self.inputMaps[0]
       tensorName = im.tensorName
@@ -218,21 +233,32 @@ class Fmaps:
         print('INFO: ', rnPre)
         os.system(rnPre)
         self.tfInputFiles[infId]= {tensorName : fout}
-        # Reformat the imput fmap layout for Tonga runtime
+
+        # Reformat the input fmap layout for Tonga runtime
         foutTonga = foutBase + '-prep_tonga.npy'
-        npt.formatNpyFileAs(fout, 'NHWC', 'NCHW', outFile=tongaInDir + '/' + foutTonga)
+        absFoutTonga = tongaInDir + '/' + foutTonga
+        npt.formatNpyFileAs(fout, 'NHWC', 'NCHW', outFile=absFoutTonga)
+        
+        # Padd split data for replication
+        if self.nnType == 'rn50fp16repl':
+          cmd = 'mv %s trivnet_input_1:0_NCHW.npy; ' % absFoutTonga
+          cmd += kPath + '/compiler/util/padsplit_npy_for_repl.py --input_file trivnet_input_1:0_NCHW.npy --format NCHW --stride 2 --padding="[ [0,0], [0,0], [2,3], [2,3] ]"; '
+          cmd += 'mv trivnet_input_1:0_NCHW_padsplit_stride2_n2_s3_w2_e3.npy ' + absFoutTonga
+          print('INFO: executing ', cmd)
+          os.system(cmd)
+          
     else:
       raise ValueError('ERROR: unrecognized --nn_type ' + self.nnType)
 
-  def postprocess(self):
+  def postprocess(self, batchSize):
 
-    if self.nnType == 'rn50fp16':
+    if self.nnType == 'rn50fp16' or self.nnType == 'rn50fp16repl':
       for infId in sorted(self.outputFiles):
         tensorName = list(self.outputFiles[infId].keys())[0]
         foutTf = self.outputFiles[infId][tensorName]
         assert foutTf.endswith('.npy')
         foutTonga = foutTf.replace('.npy', '_tonga.npy')
-        npt.formatNpyFileAs(foutTf, 'NHWC', 'NCHW', outFile=foutTonga, srcShape=[1,1,1,1000])
+        npt.formatNpyFileAs(foutTf, 'NHWC', 'NCHW', outFile=foutTonga, srcShape=[batchSize,1,1,1000])
     else:
       raise ValueError('ERROR: unrecognized --nn_type ' + self.nnType)
 
@@ -247,4 +273,4 @@ fmaps = Fmaps(args.image_dir, args.nn_type, args.input_map, args.output_map, run
 fmaps.selectImages(args.num_images, args.batch, args.image_select_seed)
 fmaps.preprocess(args.tonga_in_dir, args.tonga_gold_dir)
 fmaps.infer()
-fmaps.postprocess()
+fmaps.postprocess(args.batch)
