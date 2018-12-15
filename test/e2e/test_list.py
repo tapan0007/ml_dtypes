@@ -728,6 +728,10 @@ testConfigMap = {
     "--focus_to conv1/BiasAdd --input_node input_1  --depth 2 --show_op_name_in_kgraph  --debug 1 --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16' %s --images %s " %(MEv2("Generic"), rnDogJpg),
     "--input_files %s" % rnDogJpg],
 
+    # more accurate ResNet50 graph
+    "7-rn50_nne_fp16_opt3"        : [ "tf_s3", "s3://kaena-nn-models", "resnet50_fp16_keras_opt3.pb", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  %s --images %s " %(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(1)), "--diff_options '--tolerance 1.1 1e-5' --input_files %s" % getBatchedJpgs(1) ],
+    "8-rn50_nne_fp16_b16_opt3"    : [ "tf_s3", "s3://kaena-nn-models", "resnet50_fp16_keras_opt3.pb", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 %s --batch 16 --images %s "%(rnPreFp16, MEv2("RN50-Repl"), getBatchedJpgs(16)), "--diff_options '--tolerance 1.1 1e-5' --input_files %s" % (getBatchedJpgs(16))],
+
 ##################################################################
 
 
