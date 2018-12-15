@@ -76,6 +76,9 @@ class KgraphJson(object):
       raise RunTimeError("ERROR: failed to identify engine for waveopt %s" % layer)
   
   def plotLayers(self):
+    if not "layers" in self.jsonData:
+        return
+
     dot = Digraph(comment="writeDot")
     for layer in self.jsonData["layers"]:
       # node
