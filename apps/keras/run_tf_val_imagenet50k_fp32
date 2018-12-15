@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 $(dirname "$0")/val_resnet50_tf_inference.py --dataset=50k --input_layer=input_1 --output_layer=fc1000/BiasAdd --graph=s3://kaena-nn-models/resnet50_fp32_keras_opt3.pb | tee $(basename "$0").log

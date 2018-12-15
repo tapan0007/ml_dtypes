@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 $(dirname "$0")/val_resnet50_tf_inference.py --dataset=50k --input_layer=input --output_layer=output --graph=s3://kaena-nn-models/resnet50_uint8_hcv1.pb | tee $(basename "$0").log

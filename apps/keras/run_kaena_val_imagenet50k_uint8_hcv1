@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 $(dirname "$0")/val_resnet50_kaena_inference.py --verbose --dataset=50k --parallel 36 --batch_size 1 --input_layer=input --output_layer=output --graph=s3://kaena-nn-models/resnet50_uint8_hcv1.pb --tffe_options="--partition from_multi 'conv1/quantized_conv2d' 'output' --schedule_options '--nname=generic --no_verify' --scheduler wave2 --executors wave 1 host 0 2" | tee $(basename "$0").log

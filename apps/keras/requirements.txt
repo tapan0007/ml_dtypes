@@ -1,0 +1,10 @@
+tensorflow==1.10
+keras
+tqdm
+mxnet
+networkx
+psutil
+graphviz<0.9.0,>=0.8.1
+pillow
+scikit-image
+boto3
