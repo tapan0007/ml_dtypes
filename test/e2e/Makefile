@@ -140,6 +140,9 @@ TEST_ARGS_CHECK_EMU_TESTS = \
 0-116conv_tanh_sem_qemu_wave \
 2-wavernn_tf_ts0_w1_h02_cb \
 2-wavernn_tf_ts0_w1_h02_membed_cb \
+2-transformer_layer_norm \
+2-transformer_ffn \
+2-transformer_multihead_attention \
 6-inceptionv3_wave_dog_sg00_tpb_upto_concat8 \
 6-inceptionv3_wave_dog_sg00_tpb_upto_concat9 \
 7-inceptionv3_wave_dog_sg00_tpb_upto_concat10 \
