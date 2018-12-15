@@ -178,6 +178,9 @@ TEST_ARGS_CHECK_EMU_TESTS = \
 7-amoebanet_fp16_cell11 \
 7-amoebanet_fp16_rcell0 \
 7-amoebanet_fp16_rcell1 \
+1-1conv1ba1relu_uint8_wave \
+2-rn50_block1_uint8_b1_wave \
+7-rn50_uint8_hcv0_b1_wave \
 8-rn50_nne_fp16_b16_wave
 
 TEST_ARGS_CHECK_EMU_TESTS_EXTRA = \
