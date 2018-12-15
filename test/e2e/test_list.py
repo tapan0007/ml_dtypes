@@ -342,6 +342,7 @@ testConfigMap = {
   "0-sqrt_wave"            : [ "trivnet_act", "tfloat16-b1-h2-c64-sqrt-wmin2-wmax2.2-imin0.1-imax2", "act", MEv2("Generic")],
   "0-reciprocal_wave"       : [ "trivnet_reciprocal", "tfloat16-b1-h2-c64-reciprocal-wmin2-wmax2.2-imin-10-imax10", "reciprocal", MEv2("Generic")],
   "0-reciprocal_fp32_wave"  : [ "trivnet_reciprocal", "tfloat32-b1-h80-c64-reciprocal-wmin2-wmax2.2-imin-10000000-imax10000000", "reciprocal", MEv2("Generic")],
+  "0-rsqrt_wave"      : [ "trivnet_reciprocal", "tfloat16-b1-h2-c64-rsqrt-wmin2-wmax2.2-imin0.1-imax10", "rsqrt_fp32", MEv2("Generic")],
   "0-rsqrt_fp32_wave"      : [ "trivnet_reciprocal", "tfloat32-b1-h2-c64-rsqrt-wmin2-wmax2.2-imin0.1-imax10000000", "rsqrt_fp32", MEv2("Generic")],
   "0-sqrt_wave"            : [ "trivnet_act", "tfloat16-b1-h2-c64-sqrt-wmin2-wmax2.2-imin0.1-imax2", "act", MEv2("Generic")],
 
