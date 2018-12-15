@@ -129,6 +129,8 @@ if __name__ == '__main__':
 
         ############ first multi cut between sg0 and sg1 #################
 
+        #### nodes as sg01 input ####
+
         tr_kernel_t = tf.nn.relu(tr_kernel_t, name='tr_part')
 
         # must have transpose for efficiency reasons

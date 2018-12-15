@@ -414,9 +414,8 @@ class NodeConst(Node):
     npInfo = self.getNpInfo()[0]
     (tpbShape, simFormat, npFileSim) = self.convertShape(npInfo, tensorFormatMap)
 
-      # Spec for future global format tracking
-      #  (newShape, newFile) = npTt.translate("NC", npt.FmapsSIM, npt.FmapsopName, npInfo.npShape, npInfo.npFile)
-
+    # Spec for future global format tracking
+    #  (newShape, newFile) = npTt.translate("NC", npt.FmapsSIM, npt.FmapsopName, npInfo.npShape, npInfo.npFile)
     layerData = {
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
@@ -1438,25 +1437,8 @@ class NodeTranspose(Node):
   def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
 
-    # Output tensor is NC format
     npInfo = self.getNpInfo()[0]
-    if len(npInfo.npShape) == 4:
-      tfShape4D = npInfo.npShape
-      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
-    elif len(npInfo.npShape) == 3:
-      tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
-      tfFormat = npt.NWC
-    elif len(npInfo.npShape) == 2:
-      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-      tfFormat = npt.NC
-    else:
-      raise RuntimeError("Supported number of dimensions for Tranpose's output tensor is between 2 and 4; found %d dimensions instead"%(len(npInfo.npShape)))
-    tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
-    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
-    tensorFormatMap.add(npInfo.tensorName,
-                        TensorFormat(npInfo.tensorName, self.getOpName(),
-                                     npInfo.npFile, tfFormat,
-                                     npFileSim, simFormat, False))
+    (tpbShape, simFormat, npFileSim) = self.convertShape(npInfo, tensorFormatMap)
 
     ((nIn, _), perm) = self.getInputNodesAndNpInfo()
     npInfoIndexinBes = 1

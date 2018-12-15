@@ -129,10 +129,12 @@ class KNode:
                 return i
         return None
 
-    def populate_ofmaps_file_params(self):
+    def populate_ofmaps_file_params(self, const_tensor_load = False):
         layer_info = self.data
         ofmaps_shape_dims = ShapeDims(layer_info['ofmap_format'], layer_info['ofmap_shape'])
         if self.is_placeholder:
+            file_name = layer_info['ref_file']
+        elif const_tensor_load:
             file_name = layer_info['ref_file']
         else:
             file_name = layer_info['ref_file'].replace(".npy", "-midout.npy")
@@ -141,9 +143,13 @@ class KNode:
                                     file_dims   = ofmaps_shape_dims,
                                     data_type   = self.get_out_data_type(),
                                     op_params   = self,
-                                    args        = self.parent.args)
+                                    args        = self.parent.args,
+                                    contain_weights = const_tensor_load)
         self.ofmaps_file_params.layer_name =  layer_info['layer_name']
         self.N, self.M, self.E, self.F = self.ofmaps_file_params.get_nchw_shape()
+
+        if const_tensor_load:
+            self.ofmaps_file_params.load_file()
 
     # populate common parameters for Conv and Pool
     def populate_common_params(self, adjust_for_pool):
@@ -958,6 +964,10 @@ class KGraph:
                         if (self.last_split_next_nodes == []):
                             self.last_split_next_nodes.append([])
                         self.last_split_next_nodes[0].append(new_node)
+                    elif (l['layer_type'] == 'ConstLoad'):
+                        if (self.last_split_next_nodes == []):
+                            self.last_split_next_nodes.append([])
+                        self.last_split_next_nodes[0].append(new_node)
                 # assume the last node is the last one processed (JSON graph is in order), at least for the last one
                 self.final_nodes.append(new_node)
                 self.node_dict[ l['layer_name'] ] = new_node
@@ -1443,6 +1453,8 @@ class PrepareKGraph:
                     self._expand_sum_layer(l)
                 elif (l['layer_type'] == 'Rsqrt'):
                     self._expand_rsqrt_layer(l)
+                elif (l['layer_type'] == 'Transpose'):
+                    self._expand_transpose_2d(l)
                 else:
                     self._add_layer(l)
 
@@ -1490,9 +1502,61 @@ class PrepareKGraph:
         }
 
         self._replace_layer(layer, new_layer)
-        #new_layers_map[new_layer['layer_name']] = new_layer
-        #new_layers_list.append(new_layer)
 
+    def _expand_transpose_2d(self, layer):
+        
+        # Given matrix M where its dimensions are W x C, M = M * I where I is
+        # an identity matrix of C x C.
+        # transpose(M * I) = transpose(I) * transpose(M) = I * transpose(M)
+        # If there are two matrixes A and B on SB, matmul_instr(A, B) is actually
+        # A * transpose(B). Therefore, matmul_instr(I, M) = I * transpose(M) = transpose(M)
+
+        # Only support 2D WxC with float16
+        # Only allow reserve permulation otherwise it is identity.
+        perm = layer['perm']        
+        assert(layer['ofmap_format'] == 'NCHW')
+        assert(perm == [1,0])
+        
+        # Weights
+        input_layer = self._find_layer(layer['previous_layers'][0])
+
+        # Create C x C identity matrix
+        channels = input_layer['ofmap_shape'][1]        
+        identity_nchw_shape = [ 1, channels, 1, channels ]   
+        identity_tensor = np.zeros(identity_nchw_shape, dtype = layer['out_data_type'])
+        for i in range(0,channels):
+            identity_tensor[0][i][0][i] = 1.0
+
+        # nn_executor copies *-constants.npy files
+        identity_file = layer['ref_file'].replace(".npy", "-identity-constants.npy")
+        if (not self.args.inference):
+            np.save(identity_file, identity_tensor)
+
+        identity_layer= {
+        "#comment": "Captured constant",
+        "layer_name": layer['layer_name'] + '/identity',
+        "layer_type": "ConstLoad",
+        "ofmap_format": layer['ofmap_format'],
+        "ofmap_shape": identity_nchw_shape,
+        "out_data_type": layer['out_data_type'],
+        "previous_layers": [],
+        "ref_file": identity_file
+        }
+
+        matmul_layer= {
+        "layer_type"      : "MatMul",
+        "layer_name"      : layer['layer_name'] + '/matmul',
+        "kernel_format"   : "NCHW",
+        "kernel_shape"    : identity_nchw_shape,
+        "ofmap_shape"     : layer['ofmap_shape'],
+        "ofmap_format"    : layer['ofmap_format'],
+        "out_data_type"   : layer['out_data_type'],        
+        "ref_file"        : layer['ref_file'],
+        "previous_layers" : [identity_layer['layer_name'], input_layer['layer_name']],
+        "#comment"        : "MatMul for transpose"
+        }
+
+        self._replace_layer(layer, matmul_layer, [identity_layer, matmul_layer])
 
     def _expand_rsqrt_layer(self, layer):
         
@@ -1524,6 +1588,4 @@ class PrepareKGraph:
         }        
 
         self._replace_layer(layer, reciprocal_layer, [sqrt_layer, reciprocal_layer])
-        #new_layers_map[reciprocal_layer['layer_name']] = new_layer
-        #new_layers_list += [sqrt_layer, reciprocal_layer]
 

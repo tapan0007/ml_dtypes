@@ -201,9 +201,13 @@ testConfigMap = {
   "0-1reshape_wave" : [ "trivnet_reshape",  "tfloat16-b1-h32-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", MEv2("Generic")],
   "0-1squeeze_wave" : [ "trivnet_squeeze",  "tfloat16-b1-h32-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", MEv2("Generic")],
   "0-1expanddims_wave" : [ "trivnet_expanddims",  "tfloat16-b1-h32-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", MEv2("Generic")],
-  "0-1transpose_wave" : [ "trivnet_transpose",  "tfloat16-b1-h4-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", MEv2("Generic")],
   "0-1stridedslice_tanh_sigmoid_wave" : [ "trivnet_stridedslice_tanh_sigmoid",  "tfloat16-b1-h4-r1-s1-c2-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", MEv2("Generic")],
   "0-1stridedslice_wave" : [ "trivnet_stridedslice",  "tfloat16-b1-h4-r1-s1-c2-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", MEv2("Generic")],
+
+  "0-1transpose_wave" : [ "trivnet_transpose",  "tfloat16-b1-h64-r1-s1-c2-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", '--use_wc_2d_format ' + MEv2("Generic")],
+  "0-1transpose_h64_c128" : [ "trivnet_transpose",  "tfloat16-b1-h64-r1-s1-c128-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", '--use_wc_2d_format ' + MEv2("Generic")],
+  "0-1transpose_h64_c1024" : [ "trivnet_transpose",  "tfloat16-b1-h64-r1-s1-c1024-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", '--use_wc_2d_format ' + MEv2("Generic")],
+  
 
   "0-1conv0_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", MEv2("Generic")],
   "0-1conv0_fp32_wave" : [ "trivnet_conv1",  "tfloat32-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", MEv2("Generic")],
@@ -1210,7 +1214,6 @@ testWaiver = [
 
     # Parallel wavenet
     ['0-1squeeze_wave', 'WAIVE_KAENA634'],
-    ['0-1transpose_wave', 'WAIVE_KAENA711'],
     ['0-1stridedslice_tanh_sigmoid_wave', 'WAIVE_KAENA711'],
     ['0-1stridedslice_wave', 'WAIVE_KAENA711'],
     #['.*reshape.*', 'WAIVE_KAENA597'],

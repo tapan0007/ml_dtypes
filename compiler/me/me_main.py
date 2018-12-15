@@ -285,6 +285,10 @@ class TPBSched:
                                 first_op.ofmaps_file_params.input_layer_ifmap = True
                                 first_op.ofmaps_file_params.compute_params(i.stride, args, repl_multiple_of_C = i.repl_multiple_of_C)
                                 print("INFO: Pad and split input FMAPs due to replication, replication multiple %d, input_layer_ifmap %d"%(i.repl_multiple_of_C, first_op.ofmaps_file_params.input_layer_ifmap))
+            elif first_op.data['layer_type'] == 'ConstLoad': 
+                first_op.result_avail = True
+                # Populate OFMAP params                        
+                first_op.populate_ofmaps_file_params(const_tensor_load = True)
             else:       
                 # maintain a linked-list of fused_ops
                 # grab the current batch count from previous fused_ops
