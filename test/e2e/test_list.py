@@ -367,7 +367,6 @@ testConfigMap = {
   # reduce_op tests
   "0-reduce_sum_h1c64" : [ "trivnet_reduce_op",  "tfloat16-b1-h1-r1-s1-c64-m1-wmin-0.01-wmax0.011-imin-0.02-imax0.022", "reduce_sum", MEv2("Generic")],
   "0-reduce_sum_h1c256" : [ "trivnet_reduce_op",  "tfloat16-b1-h1-r1-s1-c256-m1-wmin-0.01-wmax0.011-imin-0.02-imax0.022", "reduce_sum", MEv2("Generic")],
-  "0-reduce_sum_h4c64" : [ "trivnet_reduce_op",  "tfloat16-b1-h4-r1-s1-c64-m1-wmin-0.01-wmax0.011-imin-0.02-imax0.022", "reduce_sum", MEv2("Generic")],
 
   # Wave graph development tcc reference and tests
   "1-1conv0_wave"      : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c33-m1-wmin-0.01-wmax0.011-imin-0.02-imax0.022", "1conv", MEv2("Generic")],
