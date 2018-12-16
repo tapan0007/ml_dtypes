@@ -788,9 +788,18 @@ class FusedOp(list):
                     if self.first_op.data["layer_type"] == "StridedSlice":
                         ofmaps_region_start_addr += ceildiv(self.first_op.data['channel_slice'][0], PEArray.NUM_ROWS) \
                                                     * ifmaps_file_params.fmap_data_len_padded
+                # ReviewMe: Reusing residue memory region doesn't work in the folllowing example.
+                #
+                # a = ..
+                # b = multiply(a, a)  <-- b should not reuse a's memory address
+                # ...
+                #   = conv(b)
+                # ..
+                # c = multiply(a)
                 elif self.has_join and len(self.last_op.ofmaps_file_params.writers_of_shared_fmap) > 1 \
                         and len(residue_file_params.readers_of_shared_fmap) == 1 \
-                        and not self.join_op.is_input:
+                        and not self.join_op.is_input \
+                        and (residue_file_params != ifmaps_file_params):
                     ofmaps_region_start_addr = residue_file_params.mapped_params.start_addr
                 else:    
                     ofmaps_region_start_addr = start_addr

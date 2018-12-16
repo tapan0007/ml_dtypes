@@ -40,8 +40,7 @@ with tf.name_scope(conf.netName):
 
 	mean_b = broadcast_c(mean, "b1")
 
-	#residuals = tf.subtract(inputs, mean_b, name='residuals')
-	residuals = tf.add(inputs, mean_b, name='residuals')
+	residuals = tf.subtract(inputs, mean_b, name='residuals')
 
 	# ME cannot multiply same fmaps
 	res_x_res = tf.multiply(residuals, residuals, name = "res_x_res")
