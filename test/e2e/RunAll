@@ -281,20 +281,21 @@ class QoR:
     if os.path.isfile(feLog):
       self.ops, self.opsPadded = QoR.feLogGetOps(feLog)
       for subdir, dirs, files in os.walk(dirName):
-        for file in files:
-          #print("DEBUG: visited file  " + os.path.join(subdir, file))
-          filepath = subdir + os.sep + file
-          testName = filepath.split("/")[0]
-          assert (testName == self.testName)
-          if re.match(r'.*trace_notifications.json', file):
-            #print("DEBUG: processing file  " + os.path.join(subdir, file))
-            sgCycles, sgElapsedTimeSec = QoR.traceGetCycles(filepath)
-            self.cycles += sgCycles
-            self.elapsedTimeSec += sgElapsedTimeSec
-          elif re.match(r'log-exec-sg\d+-(wave|tcc)', file):
-            sgCycles, sgElapsedTimeSec = QoR.simLogGetCycles(filepath)
-            self.cycles += sgCycles
-            self.elapsedTimeSec += sgElapsedTimeSec
+        if subdir.endswith('/working_dir'): # No working_dir_cached
+          for file in files:
+            #print("DEBUG: visited file  " + os.path.join(subdir, file))
+            filepath = subdir + os.sep + file
+            testName = filepath.split("/")[0]
+            assert (testName == self.testName)
+            if re.match(r'.*trace_notifications.json', file):
+              #print("DEBUG: processing file  " + os.path.join(subdir, file))
+              sgCycles, sgElapsedTimeSec = QoR.traceGetCycles(filepath)
+              self.cycles += sgCycles
+              self.elapsedTimeSec += sgElapsedTimeSec
+            elif re.match(r'log-exec-sg\d+-(wave|tcc)', file):
+              sgCycles, sgElapsedTimeSec = QoR.simLogGetCycles(filepath)
+              self.cycles += sgCycles
+              self.elapsedTimeSec += sgElapsedTimeSec
 
     if self.cycles > 0:
       self.tops = 1.0 * self.ops / self.cycles / 1e12 * self.freq
