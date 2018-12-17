@@ -89,66 +89,30 @@ if __name__ == '__main__':
         b_input_x_r_np = b_input_x_np.reshape([batch_input_len, conf.NUMHID])
         b_input_y_r_np = b_input_y_np.reshape([batch_output_len, conf.NUMHID])
 
-        np_q_kernel_t = q_kernel.T
-        np_k_kernel_t = k_kernel.T
         np_v_kernel_t = v_kernel.T
-        np_tr_kernel_t = tr_kernel.T
 
-        q_kernel_t = tf.placeholder(conf.tfDataType, name='input_q', shape=np_q_kernel_t.shape)
-        k_kernel_t = tf.placeholder(conf.tfDataType, name='input_k', shape=np_q_kernel_t.shape)
-        v_kernel_t = tf.placeholder(conf.tfDataType, name='input_v', shape=np_q_kernel_t.shape)
-        tr_kernel_t = tf.placeholder(conf.tfDataType, name='input_tr', shape=np_q_kernel_t.shape)
-
+        v_kernel_t = tf.placeholder(conf.tfDataType, name='v_kernel_t', shape=np_v_kernel_t.shape)
 
         b_input_x_r = tf.placeholder(conf.tfDataType, name='input_x_r',
             shape=[batch_input_len, conf.NUMHID])
         b_input_y_r = tf.placeholder(conf.tfDataType, name='input_y_r',
             shape=[batch_output_len, conf.NUMHID])
-        b_bias_br = tf.placeholder(conf.tfDataType, name='input_bias_br',
-            shape=[conf.BATCHSIZE, conf.INPUTLEN, conf.OUTPUTLEN])
+        b_bias_br = [
+            tf.placeholder(conf.tfDataType, name='input_bias_br_%d'%i,
+                shape=[conf.INPUTLEN, conf.OUTPUTLEN])
+            for i in range(conf.BATCHSIZE)
+        ]
 
-        # (1024, 1024) * (1024, 64) --> (1024, 64)
-        # scheduling:
-        # (1024, 1024) * (1024, 64)
-        #
-        # [(512, 1024) * (1024, 64),
-        #  (512, 1024) * (1024, 64)]
-        #
-        # each one: (512, 128) * (128, 64) + (512, 128) * (128, 64) + ... (8 of them)
-        b_q_t_heads_tiled = tf.matmul(q_kernel_t, b_input_x_r, transpose_b=True, # (1024, 64), 88.88%
-            name='%s/part1/b_q_heads_t_tiled' % conf.netName)
-        b_k_t_heads_tiled = tf.matmul(k_kernel_t, b_input_y_r, transpose_b=True, # (1024, 64), 88.88%
-            name='%s/part1/b_k_heads_t_tiled' % conf.netName)
-        b_v_t_heads_tiled = tf.matmul(v_kernel_t, b_input_y_r, transpose_b=True, # (1024, 64), 88.88%
-            name='%s/part1/b_v_heads_t_tiled' % conf.netName)
-
-        # if there is no node from input to output in subgraph, runtime is not happy
-        # it cannot find npy files.
-        tr_kernel_t = tf.nn.relu(tr_kernel_t, name='sg00_out__input_tr')
-        b_bias_br = tf.nn.relu(b_bias_br, name='sg00_out__b_bias_br')
-
-        ############ first multi cut between sg0 and sg1 #################
-
-        #### nodes as sg01 input ####
-
-        tr_kernel_t = tf.nn.relu(tr_kernel_t, name='tr_part')
-
-        # must have transpose for efficiency reasons
-        b_q_heads_tiled = tf.transpose(b_q_t_heads_tiled, perm=[1, 0], # (64, 1024)
+        b_q_heads_tiled = tf.matmul(b_input_x_r, q_kernel,
             name='%s/part1/b_q_heads_tiled' % conf.netName)
-        b_k_heads_tiled = tf.transpose(b_k_t_heads_tiled, perm=[1, 0], # (64, 1024)
+        b_k_heads_tiled = tf.matmul(b_input_y_r, k_kernel,
             name='%s/part1/b_k_heads_tiled' % conf.netName)
-
-        b_v_t_heads_tiled = tf.nn.relu(b_v_t_heads_tiled,
-            name='%s/part1/b_v_heads_t_tiled_for_partition' % conf.netName)
-        b_bias_br = tf.nn.relu(b_bias_br,
-            name='%s/part1/b_bias_br_for_partition' % conf.netName)
-
-        ################## END OF CUT #######################
+        b_v_t_heads_tiled = tf.matmul(v_kernel_t, b_input_y_r, transpose_b=True,
+            name='%s/part1/b_v_heads_t_tiled' % conf.netName)
 
         with tf.name_scope('%s/part2' % conf.netName):
             # no way to make this efficient but matrices are small
-            b_weighted_v_list = []
+            b_weighted_v_t_list = []
             for i, (bst_in, bst_out) in enumerate(
                     zip(range(0, batch_input_len, conf.INPUTLEN),
                         range(0, batch_output_len, conf.OUTPUTLEN))):
@@ -156,57 +120,63 @@ if __name__ == '__main__':
                     weighted_v_heads_list = []
                     for j, hst in enumerate(range(0, conf.NUMHID, conf.HEADSIZE)):
                         with tf.name_scope('head_%d' % j):
-                            q_head = b_q_heads_tiled[bst_in:bst_in+conf.INPUTLEN, hst:hst+conf.HEADSIZE]
-                            k_head = b_k_heads_tiled[bst_out:bst_out+conf.OUTPUTLEN, hst:hst+conf.HEADSIZE]
-                            qk_head = tf.matmul(q_head, k_head, transpose_b=True) # (16, 16)
+                            # ME cannot handle channel_slice(w_slice(x)). w_slice(channel_slice(x)) is fine.
+                            #q_head_batch = tf.slice(b_q_heads_tiled, [bst_in, 0], [conf.INPUTLEN, -1], name='q_head_batch')
+                            #q_head = q_head_batch[:, hst:hst+conf.HEADSIZE]
+                            q_head_c_slice = b_q_heads_tiled[:, hst:hst+conf.HEADSIZE]
+                            q_head = tf.slice(q_head_c_slice, [bst_in, 0], [conf.INPUTLEN, -1], name='q_head')
+                                                                                   
+                            #k_head_batch = tf.slice(b_k_heads_tiled, [bst_out, 0], [conf.OUTPUTLEN, -1], name='k_head_batch')
+                            #k_head = k_head_batch[:, hst:hst+conf.HEADSIZE]
+                            #k_head_c_slice = b_k_heads_tiled[:, hst:hst+conf.HEADSIZE]
+                            #wrapped by tf.add to avoid ME bug. ME totally loose this value.
+                            k_head_c_slice = tf.add(b_k_heads_tiled[:, hst:hst+conf.HEADSIZE], 0.0)
+                            k_head = tf.slice(k_head_c_slice, [bst_out, 0], [conf.OUTPUTLEN, -1], name='k_head_batch')
+                            
+                            qk_head = tf.matmul(q_head, k_head, transpose_b=True, name='qk_head') # (16, 16)
 
-                            # add bias then calculate max to prevent overflow and 1.0 / 0.0
+                            # add bias
+                            # skipping overflow prevention for now because that will need tf.reduce_max
                             bias_br = b_bias_br[i] # (16, 16)
                             qk_bias_head = tf.add(qk_head, bias_br)
-                            qk_max_head = tf.reduce_max(qk_bias_head, axis=1, keepdims=True) # (16, 1)
-                            qk_max_br_head = tf.matmul(qk_max_head, ones_for_br) # (16, 16)
-                            qk_mm_head = tf.subtract(qk_bias_head, qk_max_br_head)
-                            qk_mm_exp_head = tf.exp(qk_mm_head) # (16, 16)
-                            norm_factor = tf.reduce_sum(qk_mm_exp_head, axis=1, keepdims=True) # (16, 1)
+                            qk_exp_head = tf.exp(qk_bias_head) # (16, 16)
+                            norm_factor = tf.reduce_sum(qk_exp_head, axis=1, keepdims=True) # (16, 1)
                             norm_factor_rec = tf.reciprocal(norm_factor) # (16, 1)
-                            norm_factor_rec_br = tf.matmul(norm_factor_rec, ones_for_br) # (16, 16)
-                            weight_head = tf.multiply(qk_mm_exp_head, norm_factor_rec_br) # (16, 16)
-                            v_t_head = b_v_t_heads_tiled[hst:hst+conf.HEADSIZE, bst_out:bst_out+conf.OUTPUTLEN] # (16, 64)
-                            weighted_v_head = tf.matmul(weight_head, v_t_head, transpose_b=True) # (16, 64)
+                            norm_factor_rec_br = tf.matmul(norm_factor_rec, ones_for_br, name='norm_factor_rec_br') # (16, 16)
+                            weight_head = tf.multiply(qk_exp_head, norm_factor_rec_br) # (16, 16)
+
+                            #v_t_head_batch = tf.slice(b_v_t_heads_tiled, [hst, 0], [conf.HEADSIZE, -1], name='v_t_head_batch')
+                            #v_t_head = v_t_head_batch[:, bst_out:bst_out+conf.OUTPUTLEN] # (16, 64)
+                            v_t_head_c_slice = b_v_t_heads_tiled[:, bst_out:bst_out+conf.OUTPUTLEN] # (16, 64)
+                            v_t_head = tf.slice(v_t_head_c_slice, [hst, 0], [conf.HEADSIZE, -1], name='v_t_head_batch')
+                                                        
+                            weighted_v_head = tf.matmul(weight_head, v_t_head, transpose_b=True, name='weighted_v_head') # (16, 64)
                             weighted_v_heads_list.append(weighted_v_head)
                     # merge heads
                     weighted_v = tf.concat(weighted_v_heads_list, axis=1) # (16, 1024)
-                    b_weighted_v_list.append(weighted_v)
-            b_weighted_v_tiled = tf.concat(b_weighted_v_list, axis=0, # (64, 1024)
+                    weighted_v_t = tf.transpose(weighted_v, perm=[1, 0]) # (1024, 16)
+                    b_weighted_v_t_list.append(weighted_v_t)
+            b_weighted_v_t_tiled = tf.concat(b_weighted_v_t_list, axis=1, # (1024, 64)
+                name='b_weighted_v_t_tiled')
+            b_weighted_v_tiled = tf.transpose(b_weighted_v_t_tiled, perm=[1, 0], # (64, 1024)
                 name='b_weighted_v_tiled')
 
-        # cut point between sg01 and sg02
-        tr_kernel_t = tf.nn.relu(tr_kernel_t, name = 'tr_part2')
+        output = tf.matmul(b_weighted_v_tiled, tr_kernel,
+            name='%s/part3/output' % conf.netName) # (64, 1024)
 
-        # (1024, 1024) * (1024, 64) --> (1024, 64), 88.88%
-        b_weighted_v_tiled_wa = tf.nn.relu(b_weighted_v_tiled, name='%s/part3/pre_output' % conf.netName)
-        output_t = tf.matmul(tr_kernel_t, b_weighted_v_tiled_wa,
-            transpose_b=True, name='%s/part3/output' % conf.netName) # (1024, 64)
+        input_data = {
+            'input_x_r:0': b_input_x_r_np,
+            'input_y_r:0': b_input_y_r_np,
+            'v_kernel_t:0': np_v_kernel_t,
+            }
+        for i in range(conf.BATCHSIZE):
+            input_data['input_bias_br_%d:0'%i] = b_bias_br_np[i]
 
-        """
         sess = tf.Session()
-        b_att_t_np = sess.run(output_t, feed_dict={
-            b_input_x_r: b_input_x_r_np,
-            b_input_y_r: b_input_y_r_np,
-            b_bias_br: b_bias_br_np})
-        b_att_np = b_att_t_np.T.reshape(conf.BATCHSIZE, conf.INPUTLEN, conf.NUMHID)
+        b_att_t_np = sess.run(output, feed_dict=input_data)
+        b_att_np = b_att_t_np.reshape(conf.BATCHSIZE, conf.INPUTLEN, conf.NUMHID)
         print(b_att_np, b_att_np.shape)
         error = b_att_ref_np.ravel() - b_att_np.ravel()
         print('rms error:', np.sqrt((error * error).mean()))
-        """
 
-        input_data = {
-            'input_q:0': np_q_kernel_t,
-            'input_k:0': np_k_kernel_t,
-            'input_v:0': np_v_kernel_t,
-            'input_tr:0': np_tr_kernel_t,
-            'input_x_r:0': b_input_x_r_np,
-            'input_y_r:0': b_input_y_r_np,
-            'input_bias_br:0': b_bias_br_np,
-            }
-        conf.gen_graph(output_t, input_data, need_freezing=False)
+        conf.gen_graph(output, input_data, need_freezing=False)

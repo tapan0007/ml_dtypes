@@ -663,7 +663,8 @@ class FileParams():
         self.unstack_from_file  = None
         self.unstack_from_file_shape = []
         self.unstack_start_addr = 0
-
+        self.produce_op = op_params  #Knode operation producing this object.
+ 
     def load_file(self):
         if (self.file_name != None):
             # initialize file if it doesn't exist

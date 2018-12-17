@@ -690,7 +690,8 @@ class FusedOp(list):
                 start_addr = bias_region_sz
             # IFMAPs regions                    
             # Input/residue uses upper portion of the shared space
-            if self.first_op.is_input and ifmaps_file_params.mapped_params is None:
+            is_graph_input = self.first_op.is_input or ifmaps_file_params.produce_op.data['layer_type'] == 'ConstLoad'
+            if is_graph_input and ifmaps_file_params.mapped_params is None:
                 if start_addr + ifmaps_region_sz >= tpb.statebuffer.file_mapper.sb_partition_sz:                    
                     start_addr = bias_region_sz
                 ifmaps_region_start_addr = start_addr
@@ -2677,7 +2678,7 @@ class FusedOp(list):
         if slice_stop < slice_start:
             slice_stop += op.C
         slice_count         = slice_stop - slice_start
-        assert(slice_count > 0 and slice_count < PEArray.NUM_COLS)
+        assert(slice_count > 0 and slice_count <= PEArray.NUM_COLS)
         weights_shape       = [op.C, 1, 1, slice_count]
         weights_shape_dims  = ShapeDims("CRSM", tuple(weights_shape))
         weights_data        = np.zeros(weights_shape, dtype = op.data_type)

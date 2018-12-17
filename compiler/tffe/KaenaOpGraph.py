@@ -1376,25 +1376,8 @@ class NodeReshape(Node):
   def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
 
-    # Output tensor is NC format
     npInfo = self.getNpInfo()[0]
-    if len(npInfo.npShape) == 4:
-      tfShape4D = npInfo.npShape
-      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
-    elif len(npInfo.npShape) == 3:
-      tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
-      tfFormat = npt.NWC
-    elif len(npInfo.npShape) == 2:
-      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-      tfFormat = npt.NC
-    else:
-      raise RuntimeError("Supported number of dimensions for Reshape's output tensor is between 2 and 4; found %d dimensions instead"%(len(npInfo.npShape)))
-    tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
-    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
-    tensorFormatMap.add(npInfo.tensorName,
-                        TensorFormat(npInfo.tensorName, self.getOpName(),
-                                     npInfo.npFile, tfFormat,
-                                     npFileSim, simFormat, False))
+    (tpbShape, simFormat, npFileSim) = self.convertShape(npInfo, tensorFormatMap)
 
     # The IFMAP comes from reshape,  the other is (weight) matrix
     ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
@@ -1531,9 +1514,14 @@ class NodeStridedSlice(Node):
       tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
       to_nhwc = lambda l, val : l.insert(2, val)
     elif n_dims == 2: #NC
-      tfFormat = npt.NC
-      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-      to_nhwc = lambda l, val : l.insert(1, val) or l.insert(1, val)
+      if not Config.Graph.useWCFormat:
+        tfFormat = npt.NC
+        tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+        to_nhwc = lambda l, val : l.insert(1, val) or l.insert(1, val)
+      else:
+        tfFormat = npt.WC
+        tfShape4D = npt.wcShapeToNHWC(npInfo.npShape)
+        to_nhwc = lambda l, val : l.insert(0, val) or l.insert(0, val)       
     else: #C
       tfFormat = npt.C
       tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
@@ -1649,14 +1637,27 @@ class NodeSlice(Node):
     else:
       if len(npInfo.npShape) == 3:
         tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
-        widthAxis = 1
-        tfFormat = npt.NWC
-        sliceBegin.insert(widthAxis, 0)
-        sliceSize.insert(widthAxis, -1)
+        if Config.Graph.useWCFormat:
+          tfFormat = npt.HWC
+          # insert 0 for N axis
+          sliceBegin.insert(0, 0)
+          sliceSize.insert(0, 1)
+        else:
+          widthAxis = 1          
+          tfFormat = npt.NWC
+          sliceBegin.insert(widthAxis, 0)
+          sliceSize.insert(widthAxis, -1)
       elif len(npInfo.npShape) == 2:
-        tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-        widthAxis = 1
-        tfFormat = npt.NC
+        if Config.Graph.useWCFormat:
+          tfShape4D = npt.wcShapeToNHWC(npInfo.npShape)
+          widthAxis = 1
+          tfFormat = npt.WC
+          sliceBegin = [0, 0] + sliceBegin
+          sliceSize = [-1, -1] + sliceSize
+        else:
+          tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+          widthAxis = 1
+          tfFormat = npt.NC
       else:
         raise RuntimeError("Supported number of dimensions for Slice's output tensor is between 2 and 4; found %d dimensions instead"%(len(npInfo.npShape)))
 
@@ -1928,10 +1929,31 @@ class NodeReduceOp(Node):
     (tpbShape, simFormat, npFileSim) = self.convertShape(npInfo, tensorFormatMap)
     ((fromIfNode, npInfoIF), (fromIdxNode, npInfoIdx)) = self.getInputNodesAndNpInfo()
 
-    axesTF = [0, 0, 0, 0] 
-    for v in npInfoIdx.getValues():
-      axesTF[3 if v == -1 else v] = 1
-    axesNCHW = list(npt.reorderShape(axesTF, npt.TF, npt.SIM, npt.Fmaps))      
+    axesTF = [0, 0, 0, 0] # NHWC
+    if len(npInfoIF.npShape) == 2:
+      if Config.Graph.useWCFormat:
+        for v in npInfoIdx.getValues():
+          if v == -1 or v == 1:
+            axesTF[3] = 1 # C axis
+          elif v == 0:
+            axesTF[2] = 1 # W axis
+          else:
+            assert(False and 'invalid reduce axis')
+      else:
+        for v in npInfoIdx.getValues():
+          if v == -1 or v == 1:
+            axesTF[3] = 1 # C axis
+          elif v == 0:
+            axesTF[0] = 1 # N axis
+          else:
+            assert(False and 'invalid reduce axis')
+    elif len(npInfoIF.npShape) == 4:
+      for v in npInfoIdx.getValues():
+        axesTF[3 if v == -1 else v] = 1
+    else:
+      assert(False and 'unsupported dimension')
+
+    axesNCHW = list(npt.reorderShape(axesTF, npt.TF, npt.SIM, npt.Fmaps))            
     
     layerData = {
       "reduce_axes"     : axesNCHW,

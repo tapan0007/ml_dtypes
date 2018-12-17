@@ -6,10 +6,9 @@ from trivnet_common import *
 
 input_shape     = [conf.B, conf.H, conf.H, conf.C]
 weight_shape    = [conf.R, conf.R, conf.C, conf.M]
-strides         = [1, conf.S, conf.S, 1]
 
 i0      = tf.placeholder(conf.tfDataType, shape = input_shape, name = "input")
-i1      = tf.reduce_sum(i0, 3, name = conf.netName + "/i1")
+i1      = tf.reduce_sum(i0, 3, name = conf.netName + "/i1", keepdims=True)
 output  = tf.identity(i1, name = conf.netName + "/output")
 
 i0val   = conf.gen_array_rand(conf.IMIN, conf.IMAX, input_shape)
