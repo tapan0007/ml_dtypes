@@ -335,6 +335,85 @@ SerWaveOp::verifyReciprocal() const
 
 
 bool
+SerWaveOp::verifyRegLoad() const
+{
+    if (m_InDtype == "") {
+        RETURN_ASSERT(false);
+    }
+    if (m_NumPartitions < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (!m_ParallelMode && m_NumPartitions > 1) {
+        RETURN_ASSERT(false);
+    }
+
+    if (m_SrcXNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcXStep == 0 && m_SrcXNum != 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcYNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcYStep == 0 && m_SrcYNum != 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcZNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcZStep == 0 && m_SrcZNum != 1) {
+        RETURN_ASSERT(false);
+    }
+
+    if (m_SrcSbAddress < 0) {
+        RETURN_ASSERT(false);
+    }
+
+    return true;
+}
+
+bool
+SerWaveOp::verifyRegStore() const
+{
+    if (m_OutDtype == "") {
+        RETURN_ASSERT(false);
+    }
+    if (m_NumPartitions < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (!m_ParallelMode && m_NumPartitions > 1) {
+        RETURN_ASSERT(false);
+    }
+
+    if (m_DstXNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstXStep == 0 && m_DstXNum != 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstYNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstYStep == 0 && m_DstYNum != 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstZNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstZStep == 0 && m_DstZNum != 1) {
+        RETURN_ASSERT(false);
+    }
+
+    if (m_DstSbAddress < 0) {
+        RETURN_ASSERT(false);
+    }
+
+    return true;
+}
+
+
+bool
 SerWaveOp::verifyActivation() const
 {
     if (m_ActivationFunc == "") {
@@ -1090,41 +1169,45 @@ SerWaveOp::verify() const
         RETURN_ASSERT(false);
     }
 
-    if (m_WaveOpType == wave::WaveOpTypeStr_SBAtomLoad) {
+    if (m_WaveOpType == wave::WaveOpTypeStr::SBAtomLoad) {
         return verifySbAtomLoad();
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_SBAtomSave) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::SBAtomSave) {
         return verifySbAtomSave();
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_MatMul) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::MatMul) {
         return verifyMatMul();
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Pool) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Pool) {
         return verifyPool();
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Reciprocal) {
-        return verifyReciprocal();        
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Activation) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Reciprocal) {
+        return verifyReciprocal();
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::RegLoad) {
+        return verifyRegLoad();
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::RegStore) {
+        return verifyRegStore();
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Activation) {
         return verifyActivation();
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_ClipByValue) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::ClipByValue) {
         return verifyClipByValue();
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_TensorTensor) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::TensorTensor) {
         return verifyTensorTensor();
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_TensorScalar) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::TensorScalar) {
         return verifyTensorScalar();
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Barrier) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Barrier) {
         return verifyBarrier();
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Nop) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Nop) {
         return verifyNop();
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_ScaleAdd) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::ScaleAdd) {
         return verifyScaleAdd();
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_ResAdd) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::ResAdd) {
         return verifyResAdd();
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Maximum) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Maximum) {
         return verifyTensor();
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Minimum) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Minimum) {
         return verifyTensor();
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Multiply) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Multiply) {
         return verifyTensor();
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Sub) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Sub) {
         return verifyTensor();
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Add) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Add) {
         return verifyTensor();
     } else {
         RETURN_ASSERT(false);
@@ -1137,32 +1220,32 @@ SerWaveOp::activationType2Str(ActivationFunc actType)
 {
     switch (actType) {
     case ActivationFunc::Identity:
-        return WaveOpKey_ActivationFunc_Identity;
+        return WaveOpKey::ActivationFunc_Identity;
         break;
     case ActivationFunc::Relu:
-        return WaveOpKey_ActivationFunc_Relu;
+        return WaveOpKey::ActivationFunc_Relu;
         break;
     case ActivationFunc::LeakyRelu:
-        return WaveOpKey_ActivationFunc_LeakyRelu;
+        return WaveOpKey::ActivationFunc_LeakyRelu;
         break;
     case ActivationFunc::PRelu:
-        return WaveOpKey_ActivationFunc_Prelu;
+        return WaveOpKey::ActivationFunc_Prelu;
         break;
     case ActivationFunc::Sigmoid:
-        return WaveOpKey_ActivationFunc_Sigmoid;
+        return WaveOpKey::ActivationFunc_Sigmoid;
         break;
     case ActivationFunc::Tanh:
-        return WaveOpKey_ActivationFunc_Tanh;
+        return WaveOpKey::ActivationFunc_Tanh;
         break;
     case ActivationFunc::Exp:
-        return WaveOpKey_ActivationFunc_Exp;
+        return WaveOpKey::ActivationFunc_Exp;
         break;
     case ActivationFunc::Softplus:
-        return WaveOpKey_ActivationFunc_Softplus;
+        return WaveOpKey::ActivationFunc_Softplus;
         break;
     case ActivationFunc::Sqrt:
-        return WaveOpKey_ActivationFunc_Sqrt;
-        break;        
+        return WaveOpKey::ActivationFunc_Sqrt;
+        break;
     default:
         assert(false && "Wrong activation type");
         break;
@@ -1173,25 +1256,25 @@ SerWaveOp::activationType2Str(ActivationFunc actType)
 ActivationFunc
 SerWaveOp::str2ActivationFunc(const std::string& actType)
 {
-    if (actType == WaveOpKey_ActivationFunc_Identity
-        || actType == WaveOpKey_ActivationFunc_None /* until Jeff fixes none */) {
+    if (actType == WaveOpKey::ActivationFunc_Identity
+        || actType == WaveOpKey::ActivationFunc_None /* until Jeff fixes none */) {
         return ActivationFunc::Identity;
-    } else if (actType  == WaveOpKey_ActivationFunc_Relu) {
+    } else if (actType  == WaveOpKey::ActivationFunc_Relu) {
         return ActivationFunc::Relu;
-    } else if (actType  == WaveOpKey_ActivationFunc_LeakyRelu) {
+    } else if (actType  == WaveOpKey::ActivationFunc_LeakyRelu) {
         return ActivationFunc::LeakyRelu;
-    } else if (actType  == WaveOpKey_ActivationFunc_Prelu) {
+    } else if (actType  == WaveOpKey::ActivationFunc_Prelu) {
         return ActivationFunc::PRelu;
-    } else if (actType  == WaveOpKey_ActivationFunc_Sigmoid) {
+    } else if (actType  == WaveOpKey::ActivationFunc_Sigmoid) {
         return ActivationFunc::Sigmoid;
-    } else if (actType  == WaveOpKey_ActivationFunc_Tanh) {
+    } else if (actType  == WaveOpKey::ActivationFunc_Tanh) {
         return ActivationFunc::Tanh;
-    } else if (actType  == WaveOpKey_ActivationFunc_Exp) {
+    } else if (actType  == WaveOpKey::ActivationFunc_Exp) {
         return ActivationFunc::Exp;
-    } else if (actType  == WaveOpKey_ActivationFunc_Softplus) {
+    } else if (actType  == WaveOpKey::ActivationFunc_Softplus) {
         return ActivationFunc::Softplus;
-    } else if (actType  == WaveOpKey_ActivationFunc_Sqrt) {
-        return ActivationFunc::Sqrt;        
+    } else if (actType  == WaveOpKey::ActivationFunc_Sqrt) {
+        return ActivationFunc::Sqrt;
     } else {
         assert(false && "Wrong activation type");
     }

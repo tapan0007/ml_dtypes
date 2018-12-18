@@ -44,6 +44,8 @@ class KgraphJson(object):
     "SBAtomFile"        : "green",
     "SBAtomSave"        : "brown",
     "Pool"              : "orange",    
+    "RegLoad"           : "cyan",    
+    "RegStore"          : "green",    
     }
   def type2color(self, layerType):
     return KgraphJson.t2c.get(layerType, "black")
@@ -56,6 +58,8 @@ class KgraphJson(object):
     "TensorTensor"      : "POOL",
     "TensorScalar"      : "POOL",
     "TensorScalarPtr"   : "POOL",
+    "RegLoad"           : "POOL",    
+    "RegStore"          : "POOL",    
     "ResAdd"            : "ACT",
     "SBAtomFile"        : "SP",
     "SBAtomSave"        : "SP",

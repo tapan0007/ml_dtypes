@@ -129,7 +129,7 @@ ScaleAddWaveOp::Params::verify() const
 std::string
 ScaleAddWaveOp::gTypeStrStatic()
 {
-    return WaveOpTypeStr_ScaleAdd;
+    return WaveOpTypeStr::ScaleAdd;
 }
 
 }}

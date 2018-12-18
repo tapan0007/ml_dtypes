@@ -184,7 +184,7 @@ PoolWaveOp::Params::verify() const
 std::string
 PoolWaveOp::gTypeStrStatic()
 {
-    return WaveOpTypeStr_Pool;
+    return WaveOpTypeStr::Pool;
 }
 
 }}

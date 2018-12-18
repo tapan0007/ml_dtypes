@@ -33,6 +33,8 @@ namespace wave {
     class MatMulWaveOp;
     class PoolWaveOp;
     class ReciprocalWaveOp;
+    class RegLoadWaveOp;
+    class RegStoreWaveOp;
     class ActivationWaveOp;
     class ClipByValueWaveOp;
     class TensorWaveOp;

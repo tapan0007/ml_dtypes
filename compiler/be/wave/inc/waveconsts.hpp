@@ -6,29 +6,33 @@
 namespace kcc {
 namespace wave {
 
-constexpr const char* const WaveOpTypeStr_SBAtomLoad    = "SBAtomLoad";
-constexpr const char* const WaveOpTypeStr_SBAtomSave    = "SBAtomSave";
-constexpr const char* const WaveOpTypeStr_MatMul        = "MatMul";
-constexpr const char* const WaveOpTypeStr_Pool          = "Pool";
-constexpr const char* const WaveOpTypeStr_Reciprocal    = "Reciprocal";
-constexpr const char* const WaveOpTypeStr_Activation    = "Activation";
-constexpr const char* const WaveOpTypeStr_Barrier       = "Barrier";
+namespace WaveOpTypeStr {
+constexpr const char* const SBAtomLoad    = "SBAtomLoad";
+constexpr const char* const SBAtomSave    = "SBAtomSave";
+constexpr const char* const MatMul        = "MatMul";
+constexpr const char* const Pool          = "Pool";
+constexpr const char* const Reciprocal    = "Reciprocal";
+constexpr const char* const RegLoad       = "RegLoad";
+constexpr const char* const RegStore      = "RegStore";
+constexpr const char* const Activation    = "Activation";
+constexpr const char* const Barrier       = "Barrier";
 
-constexpr const char* const WaveOpTypeStr_ResAdd        = "ResAdd";
-constexpr const char* const WaveOpTypeStr_Nop           = "Nop";
-constexpr const char* const WaveOpTypeStr_ScaleAdd      = "ScaleAdd";
-constexpr const char* const WaveOpTypeStr_Multiply      = "Multiply";
-constexpr const char* const WaveOpTypeStr_Add           = "Add";
-constexpr const char* const WaveOpTypeStr_Sub           = "Sub";
-constexpr const char* const WaveOpTypeStr_ClipByValue   = "ClipByValue";
-constexpr static const char* WaveOpTypeStr_TensorTensor = "TensorTensor";
-constexpr static const char* WaveOpTypeStr_TensorScalar = "TensorScalar";
-constexpr static const char* WaveOpTypeStr_TensorScalarPtr = "TensorScalarPtr";
-constexpr const char* const WaveOpTypeStr_Maximum       = "Maximum";
-constexpr const char* const WaveOpTypeStr_Minimum       = "Minimum";
+constexpr const char* const ResAdd        = "ResAdd";
+constexpr const char* const Nop           = "Nop";
+constexpr const char* const ScaleAdd      = "ScaleAdd";
+constexpr const char* const Multiply      = "Multiply";
+constexpr const char* const Add           = "Add";
+constexpr const char* const Sub           = "Sub";
+constexpr const char* const ClipByValue   = "ClipByValue";
+constexpr static const char* TensorTensor = "TensorTensor";
+constexpr static const char* TensorScalar = "TensorScalar";
+constexpr static const char* TensorScalarPtr = "TensorScalarPtr";
+constexpr const char* const Maximum       = "Maximum";
+constexpr const char* const Minimum       = "Minimum";
 
-constexpr const char* const WaveOpTypeStr_MaxPool       = "MaxPool";
-constexpr const char* const WaveOpTypeStr_AvgPool       = "AvgPool";
+constexpr const char* const MaxPool       = "MaxPool";
+constexpr const char* const AvgPool       = "AvgPool";
+}
 
 }}
 

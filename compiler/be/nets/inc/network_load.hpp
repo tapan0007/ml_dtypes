@@ -21,6 +21,8 @@ public:
     wave::SbAtomSaveWaveOp* loadSbAtomSave(const serialize::SerWaveOp& serWaveOp);
     wave::PoolWaveOp* loadPool(const serialize::SerWaveOp& serWaveOp);
     wave::ReciprocalWaveOp* loadReciprocal(const serialize::SerWaveOp& serWaveOp);
+    wave::RegLoadWaveOp* loadRegLoad(const serialize::SerWaveOp& serWaveOp);
+    wave::RegStoreWaveOp* loadRegStore(const serialize::SerWaveOp& serWaveOp);
     wave::MatMulWaveOp* loadMatMul(const serialize::SerWaveOp& serWaveOp);
     wave::ActivationWaveOp* loadActivation(const serialize::SerWaveOp& serWaveOp);
     wave::ClipByValueWaveOp* loadClipByValue(const serialize::SerWaveOp& serWaveOp);
@@ -37,23 +39,16 @@ public:
 
 
 private:
+    //====================================================================================
     template <typename ParamsType>
-    void loadSrc(ParamsType& PARAMS, const serialize::SerWaveOp& serWaveOp, Dims dims)
+    void loadSrcStepNum(ParamsType& PARAMS, const serialize::SerWaveOp& serWaveOp, Dims dims)
     {
         PARAMS.m_InDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_InDtype.c_str());
-        KCC_UNSERIALIZE(SrcIsPsum);
-        if (serWaveOp.m_SrcIsPsum) {
-            KCC_UNSERIALIZE(SrcPsumBankId);
-            KCC_UNSERIALIZE(SrcPsumBankOffset);
-        } else {
-            KCC_UNSERIALIZE(SrcSbAddress);
-            KCC_UNSERIALIZE(SrcStartAtMidPart);
-        }
         switch (dims) {
         //case Dims::XYZW:
         //    KCC_UNSERIALIZE(SrcWNum);
         //    KCC_UNSERIALIZE(SrcWStep);
-        //    // fall through!
+            // fall through!
         case Dims::XYZ:
             KCC_UNSERIALIZE(SrcZNum);
             KCC_UNSERIALIZE(SrcZStep);
@@ -72,6 +67,34 @@ private:
     }
 
     template <typename ParamsType>
+    void loadSrcSbuf(ParamsType& PARAMS, const serialize::SerWaveOp& serWaveOp, Dims dims)
+    {
+        KCC_UNSERIALIZE(SrcSbAddress);
+        KCC_UNSERIALIZE(SrcStartAtMidPart);
+        loadSrcStepNum(PARAMS, serWaveOp, dims);
+    }
+
+    template <typename ParamsType>
+    void loadSrcPsum(ParamsType& PARAMS, const serialize::SerWaveOp& serWaveOp, Dims dims)
+    {
+        KCC_UNSERIALIZE(SrcPsumBankId);
+        KCC_UNSERIALIZE(SrcPsumBankOffset);
+        loadSrcStepNum(PARAMS, serWaveOp, dims);
+    }
+
+    template <typename ParamsType>
+    void loadSrc(ParamsType& PARAMS, const serialize::SerWaveOp& serWaveOp, Dims dims)
+    {
+        KCC_UNSERIALIZE(SrcIsPsum);
+        if (serWaveOp.m_SrcIsPsum) {
+            loadSrcPsum(PARAMS, serWaveOp, dims);
+        } else {
+            loadSrcSbuf(PARAMS, serWaveOp, dims);
+        }
+    }
+
+    //====================================================================================
+    template <typename ParamsType>
     void loadSrcA(ParamsType& PARAMS, const serialize::SerWaveOp& serWaveOp, Dims dims)
     {
         PARAMS.m_InADtypeId = DataType::dataTypeStr2Id(serWaveOp.m_InADtype.c_str());
@@ -84,10 +107,10 @@ private:
             KCC_UNSERIALIZE(SrcAStartAtMidPart);
         }
         switch (dims) {
-        case Dims::XYZW:
+        //case Dims::XYZW:
         //    KCC_UNSERIALIZE(SrcAWNum);
         //    KCC_UNSERIALIZE(SrcAWStep);
-        //    // fall through!
+            // fall through!
         case Dims::XYZ:
             KCC_UNSERIALIZE(SrcAZNum);
             KCC_UNSERIALIZE(SrcAZStep);
@@ -105,6 +128,7 @@ private:
         }
     }
 
+    //====================================================================================
     template <typename ParamsType>
     void loadSrcB(ParamsType& PARAMS, const serialize::SerWaveOp& serWaveOp, Dims dims)
     {
@@ -121,7 +145,7 @@ private:
         //case Dims::XYZW:
         //    KCC_UNSERIALIZE(SrcBWNum);
         //    KCC_UNSERIALIZE(SrcBWStep);
-        //    // fall through!
+            // fall through!
         case Dims::XYZ:
             KCC_UNSERIALIZE(SrcBZNum);
             KCC_UNSERIALIZE(SrcBZStep);
@@ -139,6 +163,7 @@ private:
         }
     }
 
+    //====================================================================================
     template <typename ParamsType>
     void loadSrcAB(ParamsType& params, const serialize::SerWaveOp& serWaveOp, Dims dims)
     {
@@ -146,24 +171,18 @@ private:
         loadSrcB(params, serWaveOp, dims);
     }
 
+
+
+    //====================================================================================
     template <typename ParamsType>
-    void loadDst(ParamsType& PARAMS, const serialize::SerWaveOp& serWaveOp, Dims dims)
+    void loadDstStepNum(ParamsType& PARAMS, const serialize::SerWaveOp& serWaveOp, Dims dims)
     {
         PARAMS.m_OutDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype.c_str());
-        KCC_UNSERIALIZE(DstStartAtMidPart);
-        KCC_UNSERIALIZE(DstIsPsum);
-        if (serWaveOp.m_DstIsPsum) {
-            KCC_UNSERIALIZE(DstPsumBankId);
-            KCC_UNSERIALIZE(DstPsumBankOffset);
-        } else {
-            KCC_UNSERIALIZE(DstSbAddress);
-            KCC_UNSERIALIZE(DstStartAtMidPart);
-        }
         switch (dims) {
         //case Dims::XYZW:
         //    KCC_UNSERIALIZE(DstWNum);
         //    KCC_UNSERIALIZE(DstWStep);
-        //    // fall through!
+            // fall through!
         case Dims::XYZ:
             KCC_UNSERIALIZE(DstZNum);
             KCC_UNSERIALIZE(DstZStep);
@@ -181,6 +200,35 @@ private:
         }
     }
 
+    template <typename ParamsType>
+    void loadDstSbuf(ParamsType& PARAMS, const serialize::SerWaveOp& serWaveOp, Dims dims)
+    {
+        KCC_UNSERIALIZE(DstSbAddress);
+        KCC_UNSERIALIZE(DstStartAtMidPart);
+        loadDstStepNum(PARAMS, serWaveOp, dims);
+    }
+
+    template <typename ParamsType>
+    void loadDstPsum(ParamsType& PARAMS, const serialize::SerWaveOp& serWaveOp, Dims dims)
+    {
+        KCC_UNSERIALIZE(DstPsumBankId);
+        KCC_UNSERIALIZE(DstPsumBankOffset);
+        loadDstStepNum(PARAMS, serWaveOp, dims);
+    }
+
+    template <typename ParamsType>
+    void loadDst(ParamsType& PARAMS, const serialize::SerWaveOp& serWaveOp, Dims dims)
+    {
+        KCC_UNSERIALIZE(DstIsPsum);
+        if (serWaveOp.m_DstIsPsum) {
+            loadDstPsum(PARAMS, serWaveOp, dims);
+        } else {
+            loadDstSbuf(PARAMS, serWaveOp, dims);
+        }
+    }
+
+
+    //====================================================================================
     void
     fillWaveOpParams(const serialize::SerWaveOp& serWaveOp,
                      std::vector<wave::WaveOp*>& prevWaveOps,

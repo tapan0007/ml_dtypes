@@ -12,7 +12,7 @@
 
 namespace kcc {
 namespace serialize {
-#define KCC_ARCHIVE(X) archive(cereal::make_nvp(KCC_CONCAT(WaveOpKey_,X), KCC_CONCAT(m_,X)))
+#define KCC_ARCHIVE(X) archive(cereal::make_nvp(WaveOpKey::X, KCC_CONCAT(m_,X)))
 
 
 template<>
@@ -24,39 +24,43 @@ SerWaveOp::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(LayerName);
     KCC_ARCHIVE(PreviousWaveOps);
 
-    if (m_WaveOpType == wave::WaveOpTypeStr_SBAtomLoad ||
-        m_WaveOpType == wave::WaveOpTypeStr_SBAtomSave)
+    if (m_WaveOpType == wave::WaveOpTypeStr::SBAtomLoad ||
+        m_WaveOpType == wave::WaveOpTypeStr::SBAtomSave)
     {
         loadSbAtom(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Pool) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Pool) {
         loadPool(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Reciprocal) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Reciprocal) {
         loadReciprocal(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_MatMul) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::RegLoad) {
+        loadRegLoad(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::RegStore) {
+        loadRegStore(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::MatMul) {
         loadMatMul(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Activation) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Activation) {
         loadActivation(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_ResAdd) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::ResAdd) {
         loadResAdd(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Multiply) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Multiply) {
         loadMultiply(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Sub) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Sub) {
         loadSub(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Add) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Add) {
         loadAdd(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_ClipByValue) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::ClipByValue) {
         loadClipByValue(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_ScaleAdd) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::ScaleAdd) {
         loadScaleAdd(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Maximum) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Maximum) {
         loadMaximum(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Minimum) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Minimum) {
         loadMinimum(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_TensorTensor) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::TensorTensor) {
         loadTensorTensor(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_TensorScalar) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::TensorScalar) {
         loadTensorScalar(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_TensorScalarPtr) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::TensorScalarPtr) {
         loadTensorScalarPtr(archive);
     } else {
         Assert(false, "Unknown waveop type: ", m_WaveOpType);
@@ -79,7 +83,7 @@ SerWaveOp::loadSbAtom(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(RefFileShape);
 
     const arch::StateBuffer stateBuf(arch::Arch::gArch().gStateBuffer());
-    if (m_WaveOpType == wave::WaveOpTypeStr_SBAtomLoad) {
+    if (m_WaveOpType == wave::WaveOpTypeStr::SBAtomLoad) {
         Assert(stateBuf.qTpbWriteAccessCheck(m_SbAddress, m_Length),
             "State buffer write address 0x",
             std::hex, m_SbAddress, std::dec,
@@ -135,6 +139,27 @@ SerWaveOp::loadReciprocal(cereal::JSONInputArchive& archive)
 }
 
 void
+SerWaveOp::loadRegLoad(cereal::JSONInputArchive& archive)
+{
+    KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(ParallelMode);
+    loadSrc(archive, Dims::XYZ);
+    KCC_ARCHIVE(InDtype);
+    KCC_ARCHIVE(SrcIsPsum);
+
+}
+
+void
+SerWaveOp::loadRegStore(cereal::JSONInputArchive& archive)
+{
+    KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(ParallelMode);
+    loadDst(archive, Dims::XYZ);
+    KCC_ARCHIVE(OutDtype);
+    KCC_ARCHIVE(DstIsPsum);
+}
+
+void
 SerWaveOp::loadMatMul(cereal::JSONInputArchive& archive)
 {
     KCC_ARCHIVE(FmapXNum);
@@ -178,7 +203,7 @@ void
 SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
 {
 
-    //archive(cereal::make_nvp(WaveOpKey_ActivationFunc, m_ActivationFunc);
+    //archive(cereal::make_nvp(WaveOpKey::ActivationFunc, m_ActivationFunc);
     KCC_ARCHIVE(ActivationFunc);
     KCC_ARCHIVE(BiasAddEn);
     KCC_ARCHIVE(BiasSbAddress);

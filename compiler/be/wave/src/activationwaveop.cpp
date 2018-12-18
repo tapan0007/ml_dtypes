@@ -227,7 +227,7 @@ ActivationWaveOp::Params::verify() const
 std::string
 ActivationWaveOp::gTypeStrStatic()
 {
-    return WaveOpTypeStr_Activation;
+    return WaveOpTypeStr::Activation;
 }
 
 }}

@@ -84,7 +84,7 @@ BarrierWaveOp::Params::verify() const
 std::string 
 BarrierWaveOp::gTypeStrStatic()
 {
-    return WaveOpTypeStr_Barrier;
+    return WaveOpTypeStr::Barrier;
 }
 
 }}

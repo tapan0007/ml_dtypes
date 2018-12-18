@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef KCC_WAVE_POOLENGWAVEOP_H
-#define KCC_WAVE_POOLENGWAVEOP_H
+#ifndef KCC_WAVE_REGWAVEOP_H
+#define KCC_WAVE_REGWAVEOP_H
 
 
 #include <string>
@@ -17,7 +17,6 @@
 #include "utils/inc/consts.hpp"
 #include "utils/inc/datatype.hpp"
 #include "utils/inc/fmapdesc.hpp"
-
 #include "wave/inc/waveop.hpp"
 
 
@@ -26,26 +25,21 @@ namespace kcc {
 namespace wave {
 
 
-class PoolEngWaveOp : public WaveOp {
+class RegWaveOp : public WaveOp {
 private:
     using BaseClass = WaveOp;
 public:
     class Params;
 public:
-    PoolEngWaveOp(const PoolEngWaveOp::Params& params,
+    RegWaveOp(const RegWaveOp::Params& params,
                   const std::vector<WaveOp*>& prevWaveOps);
+public:
+    bool verify() const override;
 
 private:
-    PoolEngWaveOp() = delete;
+    RegWaveOp() = delete;
 
 public:
-    const DataType& gOutDtype () const {
-        return m_OutDtype;
-    }
-    kcc_int32 gNumPartitions () const {
-        return m_NumPartitions;
-    }
-
     EngineId gEngineId() const override {
         return EngineId::Pooling;
     }
@@ -56,23 +50,29 @@ public:
         return gNumPartitions();
     }
 
-protected:
-    bool verify() const;
+    kcc_int32 gNumPartitions () const {
+        return m_NumPartitions;
+    }
+    bool qParallelMode() const {
+        return m_ParallelMode;
+    }
 
-protected:
-    const DataType&     m_OutDtype;
-    kcc_int32           m_NumPartitions = -1;
-}; // class PoolEngWaveOp : public WaveOp
+private:
+    kcc_int32                   m_NumPartitions = -1;
+    bool                        m_ParallelMode  = true;
+}; // class RegWaveOp : public WaveOp
 
 
 
 
 
 
-class PoolEngWaveOp::Params : public PoolEngWaveOp::BaseClass::Params {
+class RegWaveOp::Params : public RegWaveOp::BaseClass::Params {
 public:
-    DataTypeId m_OutDtypeId    = DataTypeId::None;
-    kcc_int32  m_NumPartitions = -1;
+    bool verify() const;
+public:
+    kcc_int32                   m_NumPartitions = -1;
+    bool                        m_ParallelMode          = true;
 };
 
 

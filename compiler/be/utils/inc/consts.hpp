@@ -41,12 +41,14 @@ static_assert(StrideIndex_LeftRight == DilateIndex_LeftRight, "Stride and Dilate
 
 const char* const SCHED_MEM_FORMAT = "%-24s %10s %6s  %8s  %8s  %8s  %8s";
 
-constexpr const char* const EngineIdStr_PeArray         = "PeArrayEng";
-constexpr const char* const EngineIdStr_Pool            = "PoolEng";
-constexpr const char* const EngineIdStr_Activation      = "ActivationEng";
-constexpr const char* const EngineIdStr_StreamProc      = "StreamProcEng";
-constexpr const char* const EngineIdStr_Dma             = "DmaEng";
-constexpr const char* const EngineIdStr_Angel             = "AngelEng";
+namespace EngineIdStr {
+constexpr const char* const PeArray         = "PeArrayEng";
+constexpr const char* const Pool            = "PoolEng";
+constexpr const char* const Activation      = "ActivationEng";
+constexpr const char* const StreamProc      = "StreamProcEng";
+constexpr const char* const Dma             = "DmaEng";
+constexpr const char* const Angel             = "AngelEng";
+}
 
 } // namespace kcc
 

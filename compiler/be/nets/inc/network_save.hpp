@@ -20,13 +20,17 @@ public:
                     serialize::SerWaveOp& serWaveOp) const;
     void savePool(const wave::PoolWaveOp* poolWaveOp,
                     serialize::SerWaveOp& serWaveOp) const;
-    void saveReciprocal(const wave::ReciprocalWaveOp* poolWaveOp,
+    void saveReciprocal(const wave::ReciprocalWaveOp* reciprocalWaveOp,
+                    serialize::SerWaveOp& serWaveOp) const;
+    void saveRegLoad(const wave::RegLoadWaveOp* regloadWaveOp,
+                    serialize::SerWaveOp& serWaveOp) const;
+    void saveRegStore(const wave::RegStoreWaveOp* regstoreWaveOp,
                     serialize::SerWaveOp& serWaveOp) const;
     void saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
                     serialize::SerWaveOp& serWaveOp) const;
     void saveActivation(const wave::ActivationWaveOp* activationWaveOp,
                        serialize::SerWaveOp& serWaveOp) const;
-    void saveClipByValue(const wave::ClipByValueWaveOp* activationWaveOp,
+    void saveClipByValue(const wave::ClipByValueWaveOp* clipbyvalueWaveOp,
                        serialize::SerWaveOp& serWaveOp) const;
     void saveTensorTensor(const wave::TensorTensorWaveOp* tensorTensorWaveOp,
                        serialize::SerWaveOp& serWaveOp) const;
@@ -38,18 +42,11 @@ public:
                        serialize::SerWaveOp& serWaveOp) const;
 
 private:
+    //====================================================================================
     template <typename WaveOp>
-    void saveSrc(const WaveOp* WAVE_OP, serialize::SerWaveOp& serWaveOp, Dims dims) const
+    void saveSrcStepNum(const WaveOp* WAVE_OP, serialize::SerWaveOp& serWaveOp, Dims dims) const
     {
         serWaveOp.m_InDtype  = WAVE_OP->gInDtype().gName();
-        serWaveOp.m_SrcIsPsum = (WAVE_OP)->qSrcIsPsum();
-        if (serWaveOp.m_SrcIsPsum) {
-            KCC_SERIALIZE(SrcPsumBankId);
-            KCC_SERIALIZE(SrcPsumBankOffset);
-        } else {
-            KCC_SERIALIZE(SrcSbAddress);
-            KCC_SERIALIZE(SrcStartAtMidPart);
-        }
         switch (dims) {
         //case Dims::XYZW:
         //    KCC_SERIALIZE(SrcWNum);
@@ -72,6 +69,34 @@ private:
         }
     }
 
+    template <typename WaveOp>
+    void saveSrcSbuf(const WaveOp* WAVE_OP, serialize::SerWaveOp& serWaveOp, Dims dims) const
+    {
+        KCC_SERIALIZE(SrcSbAddress);
+        KCC_SERIALIZE(SrcStartAtMidPart);
+        saveSrcStepNum(WAVE_OP, serWaveOp, dims);
+    }
+
+    template <typename WaveOp>
+    void saveSrcPsum(const WaveOp* WAVE_OP, serialize::SerWaveOp& serWaveOp, Dims dims) const
+    {
+        KCC_SERIALIZE(SrcPsumBankId);
+        KCC_SERIALIZE(SrcPsumBankOffset);
+        saveSrcStepNum(WAVE_OP, serWaveOp, dims);
+    }
+
+    template <typename WaveOp>
+    void saveSrc(const WaveOp* WAVE_OP, serialize::SerWaveOp& serWaveOp, Dims dims) const
+    {
+        serWaveOp.m_SrcIsPsum = (WAVE_OP)->qSrcIsPsum();
+        if (serWaveOp.m_SrcIsPsum) {
+            saveSrcPsum(WAVE_OP, serWaveOp, dims);
+        } else {
+            saveSrcSbuf(WAVE_OP, serWaveOp, dims);
+        }
+    }
+
+    //====================================================================================
     template <typename WaveOp>
     void saveSrcA(const WaveOp* WAVE_OP, serialize::SerWaveOp& serWaveOp, Dims dims) const
     {
@@ -106,6 +131,7 @@ private:
         }
     }
 
+    //====================================================================================
     template <typename WaveOp>
     void saveSrcB(const WaveOp* WAVE_OP, serialize::SerWaveOp& serWaveOp, Dims dims) const
     {
@@ -140,6 +166,7 @@ private:
         }
     }
 
+    //====================================================================================
     template <typename WaveOp>
     void saveSrcAB(const WaveOp* WAVE_OP, serialize::SerWaveOp& serWaveOp, Dims dims) const
     {
@@ -147,18 +174,12 @@ private:
         saveSrcB(WAVE_OP, serWaveOp, dims);
     }
 
+
+    //====================================================================================
     template <typename WaveOp>
-    void saveDst(const WaveOp* WAVE_OP, serialize::SerWaveOp& serWaveOp, Dims dims) const
+    void saveDstStepNum(const WaveOp* WAVE_OP, serialize::SerWaveOp& serWaveOp, Dims dims) const
     {
         serWaveOp.m_OutDtype  = WAVE_OP->gOutDtype().gName();
-        serWaveOp.m_DstIsPsum = (WAVE_OP)->qDstIsPsum();
-        if (serWaveOp.m_DstIsPsum) {
-            KCC_SERIALIZE(DstPsumBankId);
-            KCC_SERIALIZE(DstPsumBankOffset);
-        } else {
-            KCC_SERIALIZE(DstSbAddress);
-            KCC_SERIALIZE(DstStartAtMidPart);
-        }
         switch (dims) {
         //case Dims::XYZW:
         //    KCC_SERIALIZE(DstWNum);
@@ -180,6 +201,34 @@ private:
             Assert(false, "Wrong dim for save Dst");
         }
     }
+
+    template <typename WaveOp>
+    void saveDstSbuf(const WaveOp* WAVE_OP, serialize::SerWaveOp& serWaveOp, Dims dims) const
+    {
+        KCC_SERIALIZE(DstSbAddress);
+        KCC_SERIALIZE(DstStartAtMidPart);
+        saveDstStepNum(WAVE_OP, serWaveOp, dims);
+    }
+
+    template <typename WaveOp>
+    void saveDstPsum(const WaveOp* WAVE_OP, serialize::SerWaveOp& serWaveOp, Dims dims) const
+    {
+        KCC_SERIALIZE(DstPsumBankId);
+        KCC_SERIALIZE(DstPsumBankOffset);
+        saveDstStepNum(WAVE_OP, serWaveOp, dims);
+    }
+
+    template <typename WaveOp>
+    void saveDst(const WaveOp* WAVE_OP, serialize::SerWaveOp& serWaveOp, Dims dims) const
+    {
+        serWaveOp.m_DstIsPsum = (WAVE_OP)->qDstIsPsum();
+        if (serWaveOp.m_DstIsPsum) {
+            saveDstPsum(WAVE_OP, serWaveOp, dims);
+        } else {
+            saveDstSbuf(WAVE_OP, serWaveOp, dims);
+        }
+    }
+
 private:
     const Network& m_Network;
 };

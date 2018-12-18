@@ -6,8 +6,9 @@ WARNING_OPTS := -ansi -W -Wall -Werror -pedantic -pedantic-errors -Wno-missing-f
 ## -Wdangling-else
 
 ########################################################
-LINK_OPTS := $(WARNING_OPTS) -g -ggdb -std=c++14
-COMPILE_OPTS := -ansi $(LINK_OPTS)
+COMMON_OPTS := $(WARNING_OPTS) -g -ggdb -std=c++14
+LINK_OPTS := $(COMMON_OPTS) -rdynamic
+COMPILE_OPTS := -ansi $(COMMON_OPTS)
 
 platform=$(shell uname -s)
 

@@ -12,8 +12,8 @@ namespace utils {
 const std::string&
 poolType2Str(PoolType poolType)
 {
-    static const std::string maxPool(PoolTypeStr_MaxPool);
-    static const std::string avgPool(PoolTypeStr_AvgPool);
+    static const std::string maxPool(PoolTypeStr::MaxPool);
+    static const std::string avgPool(PoolTypeStr::AvgPool);
     static const std::string badPool("Bad pool type");
 
     switch(poolType) {
@@ -34,9 +34,9 @@ poolType2Str(PoolType poolType)
 PoolType
 poolTypeStr2Id(const std::string& str)
 {
-    if (str == PoolTypeStr_MaxPool) {
+    if (str == PoolTypeStr::MaxPool) {
         return PoolType::Max;
-    } else if (str == PoolTypeStr_AvgPool) {
+    } else if (str == PoolTypeStr::AvgPool) {
         return PoolType::Avg;
     } else {
         Assert(false, "Wrong Pool Name", str);
@@ -49,15 +49,15 @@ poolTypeStr2Id(const std::string& str)
 EngineId
 engineId2Str(const std::string& str)
 {
-    if (str == EngineIdStr_PeArray) {
+    if (str == EngineIdStr::PeArray) {
         return EngineId::PeArray;
-    } else if (str == EngineIdStr_Activation) {
+    } else if (str == EngineIdStr::Activation) {
         return EngineId::Activation;
-    } else if (str == EngineIdStr_Pool) {
+    } else if (str == EngineIdStr::Pool) {
         return EngineId::Pooling;
-    } else if (str == EngineIdStr_StreamProc) {
+    } else if (str == EngineIdStr::StreamProc) {
         return EngineId::StreamProc;
-    } else if (str == EngineIdStr_Angel) {
+    } else if (str == EngineIdStr::Angel) {
         return EngineId::AngelEng;
     } else {
         Assert(false, "Wrong Engine name ", str);
@@ -69,12 +69,12 @@ engineId2Str(const std::string& str)
 const std::string&
 engineId2Str(EngineId engId)
 {
-    static const std::string peArrayEng(EngineIdStr_PeArray);
-    static const std::string actEng(EngineIdStr_Activation);
-    static const std::string poolEng(EngineIdStr_Pool);
-    static const std::string spEng(EngineIdStr_StreamProc);
-    static const std::string dmaEng(EngineIdStr_Dma);
-    static const std::string angelEng(EngineIdStr_Angel);
+    static const std::string peArrayEng(EngineIdStr::PeArray);
+    static const std::string actEng(EngineIdStr::Activation);
+    static const std::string poolEng(EngineIdStr::Pool);
+    static const std::string spEng(EngineIdStr::StreamProc);
+    static const std::string dmaEng(EngineIdStr::Dma);
+    static const std::string angelEng(EngineIdStr::Angel);
     static const std::string badEng("Bad Engine");
 
     switch(engId) {

@@ -78,7 +78,7 @@ SbAtomLoadWaveOp::Params::verify() const
 std::string
 SbAtomLoadWaveOp::gTypeStrStatic()
 {
-    return WaveOpTypeStr_SBAtomLoad;
+    return WaveOpTypeStr::SBAtomLoad;
 }
 
 }}

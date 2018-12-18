@@ -56,7 +56,7 @@ SbAtomSaveWaveOp::Params::verify() const
 std::string
 SbAtomSaveWaveOp::gTypeStrStatic()
 {
-    return WaveOpTypeStr_SBAtomSave;
+    return WaveOpTypeStr::SBAtomSave;
 }
 
 }}

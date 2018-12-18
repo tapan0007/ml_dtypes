@@ -26,13 +26,14 @@
 #include "wave/inc/sbatomsavewaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/reciprocalwaveop.hpp"
+#include "wave/inc/regloadwaveop.hpp"
+#include "wave/inc/regstorewaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/clipbyvaluewaveop.hpp"
 #include "wave/inc/tensortensorwaveop.hpp"
 #include "wave/inc/tensorscalarwaveop.hpp"
 #include "wave/inc/barrierwaveop.hpp"
 #include "wave/inc/nopwaveop.hpp"
-
 #include "serialize/inc/serwaveop.hpp"
 
 namespace kcc {
@@ -96,6 +97,14 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         }
         if (const auto reciprocalWaveOp = dynamic_cast<wave::ReciprocalWaveOp*>(waveOp)) {
             m_Save->saveReciprocal(reciprocalWaveOp, serWaveOp);
+            continue;
+        }        
+        if (const auto regloadWaveOp = dynamic_cast<wave::RegLoadWaveOp*>(waveOp)) {
+            m_Save->saveRegLoad(regloadWaveOp, serWaveOp);
+            continue;
+        }        
+        if (const auto regstoreWaveOp = dynamic_cast<wave::RegStoreWaveOp*>(waveOp)) {
+            m_Save->saveRegStore(regstoreWaveOp, serWaveOp);
             continue;
         }        
         if (const auto activationWaveOp = dynamic_cast<const wave::ActivationWaveOp*>(waveOp)) {
@@ -228,6 +237,44 @@ Network::Save::saveReciprocal(const wave::ReciprocalWaveOp* reciprocalWaveOp,
         serWaveOp.m_TileId[i] = reciprocalWaveOp->gTileId()[i];
     }
     KCC_SERIALIZE(TileIdFormat);
+#undef WAVE_OP
+}
+
+void
+Network::Save::saveRegLoad(const wave::RegLoadWaveOp* regloadWaveOp,
+                    serialize::SerWaveOp& serWaveOp) const
+{
+#undef WAVE_OP
+#define WAVE_OP regloadWaveOp
+    serWaveOp.m_WaveOpType = wave::RegLoadWaveOp::gTypeStrStatic();
+
+    KCC_SERIALIZE(NumPartitions);
+    serWaveOp.m_InDtype  = WAVE_OP->gInDtype().gName();
+    serWaveOp.m_ParallelMode = WAVE_OP->qParallelMode();
+
+    serWaveOp.m_SrcIsPsum = WAVE_OP->qSrcIsPsum();
+    Assert(! WAVE_OP->qSrcIsPsum(), "RegLoad must load from SBUF");
+    saveSrcSbuf(WAVE_OP, serWaveOp, Dims::XYZ);
+
+#undef WAVE_OP
+}
+
+void
+Network::Save::saveRegStore(const wave::RegStoreWaveOp* regstoreWaveOp,
+                    serialize::SerWaveOp& serWaveOp) const
+{
+#undef WAVE_OP
+#define WAVE_OP regstoreWaveOp
+    serWaveOp.m_WaveOpType = wave::RegStoreWaveOp::gTypeStrStatic();
+
+    KCC_SERIALIZE(NumPartitions);
+    serWaveOp.m_OutDtype  = WAVE_OP->gOutDtype().gName();
+    serWaveOp.m_ParallelMode = WAVE_OP->qParallelMode();
+
+    serWaveOp.m_DstIsPsum = WAVE_OP->qDstIsPsum();
+    Assert(! WAVE_OP->qDstIsPsum(), "RegStore must store in SBUF");
+    saveDstSbuf(WAVE_OP, serWaveOp, Dims::XYZ);
+
 #undef WAVE_OP
 }
 

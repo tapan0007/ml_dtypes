@@ -22,6 +22,8 @@
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/reciprocalwaveop.hpp"
+#include "wave/inc/regloadwaveop.hpp"
+#include "wave/inc/regstorewaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/clipbyvaluewaveop.hpp"
 #include "wave/inc/tensortensorwaveop.hpp"
@@ -81,6 +83,10 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 waveOp = m_Load->loadPool(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::ReciprocalWaveOp::gTypeStrStatic()) {
                 waveOp = m_Load->loadReciprocal(serWaveOp);                
+            } else if (serWaveOp.m_WaveOpType == wave::RegLoadWaveOp::gTypeStrStatic()) {
+                waveOp = m_Load->loadRegLoad(serWaveOp);                
+            } else if (serWaveOp.m_WaveOpType == wave::RegStoreWaveOp::gTypeStrStatic()) {
+                waveOp = m_Load->loadRegStore(serWaveOp);                
             } else if (serWaveOp.m_WaveOpType == wave::MatMulWaveOp::gTypeStrStatic()) {
                 waveOp = m_Load->loadMatMul(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::ActivationWaveOp::gTypeStrStatic()) {
@@ -278,6 +284,47 @@ Network::Load::loadReciprocal(const serialize::SerWaveOp& serWaveOp)
 
     auto waveOp = new wave::ReciprocalWaveOp(reciprocalParams, prevWaveOps);
     Assert(waveOp->gName() == reciprocalParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
+    return waveOp;
+#undef PARAMS
+}
+
+
+wave::RegLoadWaveOp*
+Network::Load::loadRegLoad(const serialize::SerWaveOp& serWaveOp)
+{
+#undef PARAMS
+#define PARAMS regloadParams
+    std::vector<wave::WaveOp*> prevWaveOps;
+    wave::RegLoadWaveOp::Params regloadParams;
+    fillWaveOpParams(serWaveOp, prevWaveOps, PARAMS);
+
+    regloadParams.m_ParallelMode = serWaveOp.m_ParallelMode;
+    regloadParams.m_NumPartitions = serWaveOp.m_NumPartitions;
+    loadSrcSbuf(PARAMS, serWaveOp, Dims::XYZ);
+    regloadParams.m_InDtypeId  = DataType::dataTypeStr2Id(serWaveOp.m_InDtype.c_str());
+
+    auto waveOp = new wave::RegLoadWaveOp(regloadParams, prevWaveOps);
+    Assert(waveOp->gName() == regloadParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
+    return waveOp;
+#undef PARAMS
+}
+
+wave::RegStoreWaveOp*
+Network::Load::loadRegStore(const serialize::SerWaveOp& serWaveOp)
+{
+#undef PARAMS
+#define PARAMS regstoreParams
+    std::vector<wave::WaveOp*> prevWaveOps;
+    wave::RegStoreWaveOp::Params regstoreParams;
+    fillWaveOpParams(serWaveOp, prevWaveOps, PARAMS);
+
+    regstoreParams.m_ParallelMode = serWaveOp.m_ParallelMode;
+    regstoreParams.m_NumPartitions = serWaveOp.m_NumPartitions;
+    loadDstSbuf(PARAMS, serWaveOp, Dims::XYZ);
+    regstoreParams.m_OutDtypeId  = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype.c_str());
+
+    auto waveOp = new wave::RegStoreWaveOp(regstoreParams, prevWaveOps);
+    Assert(waveOp->gName() == regstoreParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
     return waveOp;
 #undef PARAMS
 }

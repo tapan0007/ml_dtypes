@@ -166,7 +166,7 @@ ClipByValueWaveOp::Params::verify() const
 std::string
 ClipByValueWaveOp::gTypeStrStatic()
 {
-    return WaveOpTypeStr_ClipByValue;
+    return WaveOpTypeStr::ClipByValue;
 }
 
 }}

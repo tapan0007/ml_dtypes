@@ -149,7 +149,7 @@ ReciprocalWaveOp::Params::verify() const
 std::string
 ReciprocalWaveOp::gTypeStrStatic()
 {
-    return WaveOpTypeStr_Reciprocal;
+    return WaveOpTypeStr::Reciprocal;
 }
 
 }}

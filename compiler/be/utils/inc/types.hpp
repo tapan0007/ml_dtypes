@@ -98,6 +98,8 @@ enum class WaveOpType {
     Save,
     Pool,
     Reciprocal,
+    RegLoad,
+    RegStore,
     MatMul,
     Activation,
     TensorTensor,
@@ -193,8 +195,10 @@ enum class PoolType {
     Max,
     Avg
 };
-constexpr const char* const PoolTypeStr_MaxPool       = "MaxPool";
-constexpr const char* const PoolTypeStr_AvgPool       = "AvgPool";
+namespace PoolTypeStr {
+constexpr const char* const MaxPool       = "MaxPool";
+constexpr const char* const AvgPool       = "AvgPool";
+}
 
 
 //**********************************************************************

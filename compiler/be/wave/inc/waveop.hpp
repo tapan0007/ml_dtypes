@@ -87,6 +87,12 @@ public:
     virtual bool qReciprocalWaveOp() const {
         return false;
     }
+    virtual bool qRegLoadWaveOp() const {
+        return false;
+    }
+    virtual bool qRegStoreWaveOp() const {
+        return false;
+    }
     virtual bool qScaleAddWaveOp() const {
         return false;
     }

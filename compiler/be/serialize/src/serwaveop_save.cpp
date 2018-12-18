@@ -40,7 +40,7 @@ namespace cereal
 
 namespace kcc {
 namespace serialize {
-#define KCC_ARCHIVE(X) archive(cereal::make_nvp(KCC_CONCAT(WaveOpKey_,X), KCC_CONCAT(m_,X)))
+#define KCC_ARCHIVE(X) archive(cereal::make_nvp(WaveOpKey::X, KCC_CONCAT(m_,X)))
 
 
 //===========================================================================
@@ -63,43 +63,47 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
     KCC_ARCHIVE(Order);
 
 
-    if (m_WaveOpType == wave::WaveOpTypeStr_SBAtomLoad ||
-        m_WaveOpType == wave::WaveOpTypeStr_SBAtomSave)
+    if (m_WaveOpType == wave::WaveOpTypeStr::SBAtomLoad ||
+        m_WaveOpType == wave::WaveOpTypeStr::SBAtomSave)
     {
        saveSbAtom(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Pool) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Pool) {
         savePool(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Reciprocal) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Reciprocal) {
         saveReciprocal(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_MatMul) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::RegLoad) {
+        saveRegLoad(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::RegStore) {
+        saveRegStore(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::MatMul) {
         saveMatMul(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Activation) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Activation) {
         saveActivation(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_ClipByValue) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::ClipByValue) {
         saveClipByValue(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_TensorTensor) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::TensorTensor) {
         saveTensorTensor(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_TensorScalar) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::TensorScalar) {
         saveTensorScalar(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_TensorScalarPtr) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::TensorScalarPtr) {
         saveTensorScalarPtr(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_ResAdd) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::ResAdd) {
         saveResAdd(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_ScaleAdd) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::ScaleAdd) {
         saveScaleAdd(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Barrier) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Barrier) {
         saveBarrier(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Nop) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Nop) {
         saveNop(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Minimum) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Minimum) {
         saveMinimum(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Maximum) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Maximum) {
         saveMaximum(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Add) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Add) {
         saveAdd(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Sub) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Sub) {
         saveSub(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Multiply) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::Multiply) {
         saveMult(archive);
     } else {
         Assert(false, "Serialization: unsupported WaveOp ", m_WaveOpType);
@@ -120,7 +124,7 @@ SerWaveOp::saveSbAtom(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(RefFile);
     KCC_ARCHIVE(RefFileFormat);
     KCC_ARCHIVE(RefFileShape);
-    if (m_WaveOpType == wave::WaveOpTypeStr_SBAtomLoad) {
+    if (m_WaveOpType == wave::WaveOpTypeStr::SBAtomLoad) {
         KCC_ARCHIVE(NumPartitions);
         KCC_ARCHIVE(ContainWeights);
 
@@ -163,6 +167,24 @@ SerWaveOp::saveReciprocal(cereal::JSONOutputArchive& archive) const
 
     KCC_ARCHIVE(TileId);
     KCC_ARCHIVE(TileIdFormat);
+}
+
+//===========================================================================
+void
+SerWaveOp::saveRegLoad(cereal::JSONOutputArchive& archive) const
+{
+    saveSrc(archive, Dims::XYZ);
+    KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(ParallelMode);
+}
+
+//===========================================================================
+void
+SerWaveOp::saveRegStore(cereal::JSONOutputArchive& archive) const
+{
+    saveDst(archive, Dims::XYZ);
+    KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(ParallelMode);
 }
 
 //===========================================================================

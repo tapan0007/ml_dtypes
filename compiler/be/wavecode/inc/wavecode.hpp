@@ -51,6 +51,8 @@ class WaveCodeTensorScalar;
 class WaveCodeBarrier;
 class WaveCodeNop;
 class WaveCodeTensorTensor;
+class WaveCodeRegLoad;
+class WaveCodeRegStore;
 
 
 
@@ -181,31 +183,33 @@ private:
     void determinePrecSbEdges();
 
 private:
-    nets::Network&                      m_Network;
-    const arch::Arch&                   m_Arch;
+    nets::Network&                          m_Network;
+    const arch::Arch&                       m_Arch;
 
-    InstrStreams*                       m_InstrStreams;
+    InstrStreams*                           m_InstrStreams;
 
-    std::unique_ptr<WaveCodeMatMul>     m_CodeMatMul;
-    std::unique_ptr<WaveCodeSbAtomLoad> m_CodeSbAtomLoad;
-    std::unique_ptr<WaveCodeSbAtomSave> m_CodeSbAtomSave;
-    std::unique_ptr<WaveCodePool>       m_CodePool;
-    std::unique_ptr<WaveCodeReciprocal> m_CodeReciprocal;
-    std::unique_ptr<WaveCodeActivation> m_CodeActivation;
-    std::unique_ptr<WaveCodeClipByValue> m_CodeClipByValue;
-    std::unique_ptr<WaveCodeBarrier>    m_CodeBarrier;
-    std::unique_ptr<WaveCodeNop>        m_CodeNop;
-    std::unique_ptr<WaveCodeTensorTensor> m_CodeTensorTensor;
-    std::unique_ptr<WaveCodeTensorScalar> m_CodeTensorScalar;
+    std::unique_ptr<WaveCodeMatMul>         m_CodeMatMul;
+    std::unique_ptr<WaveCodeSbAtomLoad>     m_CodeSbAtomLoad;
+    std::unique_ptr<WaveCodeSbAtomSave>     m_CodeSbAtomSave;
+    std::unique_ptr<WaveCodePool>           m_CodePool;
+    std::unique_ptr<WaveCodeReciprocal>     m_CodeReciprocal;
+    std::unique_ptr<WaveCodeActivation>     m_CodeActivation;
+    std::unique_ptr<WaveCodeClipByValue>    m_CodeClipByValue;
+    std::unique_ptr<WaveCodeBarrier>        m_CodeBarrier;
+    std::unique_ptr<WaveCodeNop>            m_CodeNop;
+    std::unique_ptr<WaveCodeTensorTensor>   m_CodeTensorTensor;
+    std::unique_ptr<WaveCodeTensorScalar>   m_CodeTensorScalar;
+    std::unique_ptr<WaveCodeRegLoad>        m_CodeRegLoad;
+    std::unique_ptr<WaveCodeRegStore>       m_CodeRegStore;
 
-    kcc_int64                           m_CurrentDramAddress;
-    std::map<std::string, NpyFileInfo>  m_NpyFile2DramAddress;
-    bool                                m_ParallelStreams = false;
-    BinFileType                         m_BinFileType = BinFileType::SimAngel;
-    bool                                m_FirstInputDMA_ActEng  = true;
-    bool                                m_FirstInputDMA_PeArray = true;
+    kcc_int64                               m_CurrentDramAddress;
+    std::map<std::string, NpyFileInfo>      m_NpyFile2DramAddress;
+    bool                                    m_ParallelStreams = false;
+    BinFileType                             m_BinFileType = BinFileType::SimAngel;
+    bool                                    m_FirstInputDMA_ActEng  = true;
+    bool                                    m_FirstInputDMA_PeArray = true;
 
-    kelf::DmaDescription                m_DmaDescription;
+    kelf::DmaDescription                    m_DmaDescription;
 };
 
 

@@ -83,7 +83,7 @@ NopWaveOp::Params::verify() const
 std::string
 NopWaveOp::gTypeStrStatic()
 {
-    return WaveOpTypeStr_Nop;
+    return WaveOpTypeStr::Nop;
 }
 
 }}
