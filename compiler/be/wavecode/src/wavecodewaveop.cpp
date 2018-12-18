@@ -105,7 +105,7 @@ WaveCodeWaveOp::GenerateSemaphoreInstr(const wave::WaveEdge* prevWaveEdge)
 
     const auto succWaveop = prevWaveEdge->gToOp();
     std::ostringstream oss;
-    oss << prevSbAtomWaveop->gOrder() << "->" << succWaveop->gName();
+    oss << prevSbAtomWaveop->gOrder() << "->" << succWaveop->gOrder() << ": " << succWaveop->gName();
     m_WaveCode.SaveName(semInstr, oss.str().c_str());
     m_WaveCode.writeInstruction(semInstr, succWaveop->gEngineId());
 } // WaveCodeWaveOp::GenerateSemaphoreInstr

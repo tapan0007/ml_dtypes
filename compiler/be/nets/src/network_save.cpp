@@ -59,13 +59,15 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         serWaveOp.m_LayerName = waveOp->gLayerName();
 
         for (auto prevWaveEdge : waveOp->gPrevWaveEdges()) {
+            const bool needSync = prevWaveEdge->qNeedToImplementSync();
             auto prevWaveOp = prevWaveEdge->gFromOp();
             serWaveOp.addPreviousWaveOp(prevWaveOp->gName());
             if (m_UseSem && prevWaveOp->qSbAtomWaveOp()) {
-                    const char* buf = "NOSEM";
+                    const char* buf = "NoQue";
                     kcc_int32 trigOrd = -1;
-                    auto sbAtomWop = dynamic_cast<wave::SbAtomWaveOp*>(prevWaveOp);
-                    if (auto dmaQue = sbAtomWop->gDmaQueue()) {
+                    if (needSync) {
+                        auto sbAtomWop = dynamic_cast<wave::SbAtomWaveOp*>(prevWaveOp);
+                        auto dmaQue = sbAtomWop->gDmaQueue();
                         buf = dmaQue->gName().c_str();
                         trigOrd = sbAtomWop->gTriggerOrd();
                     }

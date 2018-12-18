@@ -467,7 +467,7 @@ WaveCode::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, EngineId eng
         break;
     }
     std::ostringstream oss;
-    oss << waveop->gOrder() << "-" << waveop->gName();
+    oss << waveEdge->gFromOp()->gOrder() << "->" << waveEdge->gToOp()->gOrder() << ": " << waveop->gName();
     writeWaitOrWaitClearInstr(waveEdge->gEventId(), waitEventMode,
         engineId, oss.str().c_str());
 }
