@@ -571,6 +571,7 @@ class ShapeDims():
         self.format_str = format_str
         self.shape_tuple = tuple(shape_tuple)
         self.tot_elems = 1
+        self.tot_elems_exc_1st = 1
         self.has_M = False
         self.has_c = False
         if (len(format_str) != len(shape_tuple)):
@@ -590,6 +591,8 @@ class ShapeDims():
             self.dim[format_str[i]] = shape_tuple[i]
             self.axis[format_str[i]] = i
             self.tot_elems *= shape_tuple[i]
+            if i > 0:
+                self.tot_elems_exc_1st *= shape_tuple[i]
             if format_str[i] == 'M': 
                 self.has_M = True
             if format_str[i] == 'c': 
@@ -1968,12 +1971,15 @@ class FileMapper():
         # if this is last chunk in OFMAP, mark it as last
         last_atom_of_file = chunk_id == (file_params.tot_num_chunks - 1)
         #last_atom_of_file = (tile_id.m_id+1 == tile_id.m) and (ceildiv(offset_in_fold+length, self.atom_data_sz) == ceildiv(self.ofmap_data_len, self.atom_data_sz))
-        #print("m_id %d m %d offset_in_fold %d length %d ofmap_data_len %d last %d"%(tile_id.m_id, tile_id.m, offset_in_fold, length, self.ofmap_data_len, last_atom_of_file))
         # use "simout" tag for Back-end/Inkling result file
         simout_file = file_params.file_name.replace("-midout.", "-simout.")
         waveop_name = simout_file.replace(":", "__") + "_%d"%(chunk_id)
-        #assert_align_addr_sb_read(file_params.fmap_data_len)
         assert_align_addr_sb_read(sb_addr)
+        # kaena-703 hack: if data has be transposed, try to save data in the original shape (of the node before the identity pool)
+        ref_file_shape = file_params.file_dims.shape_tuple
+        if file_params.produce_op.is_id_pool:
+            if len(file_params.produce_op.prev) > 0:
+                ref_file_shape = file_params.produce_op.prev[0].data["ofmap_shape"]
         #if (waveop_name == 'trivnet_activation_1__Relu__0_NCHW-simout.npy_0'):
         #    import inspect
         #    print ("INFO: %s is calling gen_dram_save_waveop"%(
@@ -1988,7 +1994,7 @@ class FileMapper():
               'ref_file'         : simout_file,
               'ref_file_sz'      : file_params.file_sz,
               'ref_file_format'  : file_params.file_dims.format_str,
-              'ref_file_shape'   : file_params.file_dims.shape_tuple,
+              'ref_file_shape'   : ref_file_shape,
               'offset_in_file'   : offset_in_file,
               'length'           : length,
               'start_at_mid_part' : False, #(tile_id.m_id%2) == 1,

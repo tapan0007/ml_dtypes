@@ -754,6 +754,21 @@ class KNode:
     def get_out_data_type(self):
         return self.data['out_data_type']
 
+    def has_transposed_output(self):
+        ofmaps_shape_dims = ShapeDims(self.data['ofmap_format'], self.data['ofmap_shape'])
+        has_transposed_output = False
+        for i in self.prev:
+            ifmaps_shape_dims = ShapeDims(i.data['ofmap_format'], i.data['ofmap_shape'])
+            if ifmaps_shape_dims.tot_elems == ofmaps_shape_dims.tot_elems:
+                if ifmaps_shape_dims.shape_tuple != ofmaps_shape_dims.shape_tuple:
+                    has_transposed_output = True
+
+    def has_vector_output(self):
+        ofmaps_shape_dims = ShapeDims(self.data['ofmap_format'], self.data['ofmap_shape'])
+        for i in ofmaps_shape_dims.shape_tuple:
+            if i == ofmaps_shape_dims.tot_elems_exc_1st:
+                return True
+        return False
 
 """Graph class for KGraph or WaveGraph
 """
@@ -818,7 +833,6 @@ class KGraph:
         #  - Transform k-graph for ME to better process it
         prepare_pass = PrepareKGraph(self.data_type, self.args)
         prepare_pass.run(kgraph_json)
-
 
         # process layers
         node_number = 0
@@ -1072,6 +1086,18 @@ class KGraph:
                 print("ERROR: can't find any Input layer!")
                 exit(-1)
 
+        # Add final identity layer to help transpose
+        if len(self.final_nodes) > 0:
+            last_node_of_nn = self.final_nodes[-1]
+            #if last_node_of_nn.has_transposed_output():
+            if last_node_of_nn.has_vector_output() and self.args.transpose_ofmap:
+                final_id_node = self.gen_id_pool_op(last_node_of_nn, final_vector_transpose=True)
+                node_number += 1
+                self.final_nodes.append(final_id_node)
+
+        # Save final modified kgraph for debug
+        self.write_mod_kgraph(kgraph_json)
+
         # process waveops
         if ("waveops" in kgraph_json):
             layers = kgraph_json["waveops"]
@@ -1102,17 +1128,18 @@ class KGraph:
                 exit(-1)
 
     def write_mod_kgraph(self, old_kgraph):
-        mod_kgraph_name = "mod-" + self.args.kgraph
+        mod_kgraph_name = "compiler.final_mod.json"
         mod_kgraph = {}
         mod_kgraph["layers"] = []
         mod_kgraph["data_type"] = old_kgraph["data_type"]
-        for i in old_kgraph["layers"]:
-            node = self.node_dict[i["layer_name"]]
-            if node.prev_old == []:
-                node.data["previous_layers"] = []
-                for i in node.prev:
-                    node.data["previous_layers"].append(i.data["layer_name"])
-                mod_kgraph["layers"].append(node.data)
+        if "layers" in old_kgraph:
+            for i in old_kgraph["layers"]:
+                node = self.node_dict[i["layer_name"]]
+                if node.prev_old == []:
+                    node.data["previous_layers"] = []
+                    for i in node.prev:
+                        node.data["previous_layers"].append(i.data["layer_name"])
+                    mod_kgraph["layers"].append(node.data)
         try:
             print("Saving K-Graph %s for verification"%mod_kgraph_name)
             with (open(mod_kgraph_name, 'w')) as f:
@@ -1233,7 +1260,7 @@ class KGraph:
                 or last_node_type == "MatMul"
                 or (last_node_type == "StridedSlice" and not fused_ops[-1].is_nop)
                 or last_node_type == "Concat"):
-            fused_ops.add(self.gen_id_pool_op(fused_ops[-1]))
+            fused_ops.add(self.gen_id_pool_op(fused_ops[-1], final_vector_transpose=False))
 
         # A chain of operations is fused. Update fmap_file_params 
         # for the first and last operation of one FuseOp.
@@ -1302,10 +1329,11 @@ class KGraph:
 
     def gen_identity_op(self, last_op):
         id_layer_data = {
-          "layer_name"      : last_op.data['layer_name'],
+          "layer_name"      : last_op.data['layer_name'] + "_id_op",
           "layer_type"      : "Identity",
           "ofmap_format"    : last_op.data['ofmap_format'],
           "ofmap_shape"     : last_op.data['ofmap_shape'],
+          "out_data_type"   : last_op.data['out_data_type'],
           "previous_layers" : [ last_op.data['layer_name'] ],
           "ref_file"        : last_op.data['ref_file']
         }
@@ -1323,10 +1351,16 @@ class KGraph:
         last_op.next = [id_op]
         return id_op
 
-    def gen_id_pool_op(self, last_op):
+    def transpose_vector_shape(self, shape):
+        num_elems = 1
+        for i in range(1, len(shape)):
+            num_elems *= shape[i]
+        return [shape[0], 1, 1, num_elems]
+
+    def gen_id_pool_op(self, last_op, final_vector_transpose=False):
         id_pool_layer_data = {
           "kernel_shape"    : [ 1, 1, 1, 1 ],
-          "layer_name"      : last_op.data['layer_name'],
+          "layer_name"      : last_op.data['layer_name'] + "_id_op",
           "layer_type"      : "MaxPool",
           "ofmap_format"    : last_op.data['ofmap_format'],
           "ofmap_shape"     : last_op.data['ofmap_shape'],
@@ -1336,6 +1370,10 @@ class KGraph:
           "stride"          : [ 1, 1, 1, 1 ],
           "ref_file"        : last_op.data['ref_file']
         }
+        if final_vector_transpose:
+            id_pool_layer_data["layer_type"] = "TransposeVector"
+            id_pool_layer_data["ofmap_shape"] = self.transpose_vector_shape(last_op.data['ofmap_shape'])
+            id_pool_layer_data["perm"] = [0, 2, 3, 1]
         # WARNING: node_number is not unique when there's ID pool
         id_pool_op = KNode(self, id_pool_layer_data, self.item_sz, self.data_type, last_op.node_number + 1)
         id_pool_op.is_fork = last_op.is_fork
@@ -1348,6 +1386,7 @@ class KGraph:
                 if next_op.prev[j] == last_op:
                     next_op.prev[j] = id_pool_op
         last_op.next = [id_pool_op]
+        last_op.data['ref_file'] = last_op.data['ref_file'].replace(".npy", "-pre_idpool.npy")
         return id_pool_op
 
     def walk_ended(self):

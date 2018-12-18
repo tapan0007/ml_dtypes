@@ -57,9 +57,13 @@ class PEWave:
         # compute_ifmap_ofmap_pewave_info will overwrite these with correct values
         self.subtile_rect = tile.tile_rect
         (self.lower_addr, self.upper_addr) = self.get_subtile_file_addrs()
+        (self.tile.lower_addr, self.tile.upper_addr) = (self.lower_addr, self.upper_addr) 
         self.lower_to_upper_len_bytes = []
+        self.tile.lower_to_upper_len_bytes = []
         for i in range(len(self.lower_addr)):
-            self.lower_to_upper_len_bytes.append(self.upper_addr[i] - self.lower_addr[i] + self.tile.file_params.item_sz)
+            size = self.upper_addr[i] - self.lower_addr[i] + self.tile.file_params.item_sz
+            self.lower_to_upper_len_bytes.append(size)
+            self.tile.lower_to_upper_len_bytes.append(size)
 
     def __str__(self):
         return self.id_string
@@ -938,7 +942,7 @@ class FusedOp(list):
             self.execute_unfused_concat_op(tpb, batch_item)
         elif (first_op_type == "StridedSlice"):
             self.execute_unfused_stridedslice_op(tpb, batch_item)
-        elif (first_op_type == "Transpose"):
+        elif (first_op_type == "Transpose" or first_op_type == "TransposeVector"):
             self.execute_unfused_transpose_op(tpb, batch_item)
         elif (re.search("Reshape|Squeeze|ExpandDims", first_op_type)):
             self.execute_unfused_reshape_op(tpb, batch_item)
@@ -995,6 +999,86 @@ class FusedOp(list):
                                     )
                     tpb.waveop_stream.add_outputs(waveops)
                 self.last_op.ofmaps_file_params.save_file()
+
+    def gen_regload_vector_waveop(self,
+            tpb,
+            layer_name,
+            subtile,
+            parallel_mode):
+        batch_item = subtile.tile.n_id * subtile.tile.Tn
+        for z in range(subtile.tile.Tn):
+            file_addr = subtile.lower_addr[z]
+            sb_addr = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(subtile.tile.file_params, batch_item + z, file_addr)
+            (prev_waveops, dram_ifmaps_waveops, new_reader_morsels) =\
+                    self.get_producers_for_subtile_region (
+                        tpb = tpb, 
+                        fmap_subtile = subtile, 
+                        reader_engine = EngineEnum.POOL,
+                        subbatch_item = z)
+            waveop = {
+                  'previous_waveops'        : prev_waveops,
+                  'waveop_type'             : 'RegLoad',
+                  'waveop_name'             : layer_name + "/RegLoad",
+                  'layer_name'              : layer_name,
+                  'parallel_mode'           : parallel_mode,
+                  'in_dtype'                : subtile.tile.file_params.data_type,
+                  'src_is_psum'             : False,
+                  'src_x_step'              : 1,
+                  'src_x_num'               : 1,
+                  'src_y_step'              : 1,
+                  'src_y_num'               : 1,
+                  'src_z_step'              : 1,
+                  'src_z_num'               : 1,
+                  'src_sb_address'          : sb_addr,
+                  'src_start_at_mid_part'   : (subtile.tile.m_id % 2) == 1,
+                  'num_partitions'          : subtile.tile.channel_count,
+                }
+            if not parallel_mode:
+                waveop['num_partitions']  = 1
+                waveop['src_x_num']       = subtile.subtile_rect.upper.x - subtile.subtile_rect.lower.x + 1
+                waveop['src_start_at_mid_part'] = False
+            tpb.waveop_stream.add_linked(waveop, dram_ifmaps_waveops, -1, new_reader_morsels)
+        return waveop
+
+    def gen_regstore_vector_waveop(self,
+            tpb,
+            layer_name,
+            subtile,
+            parallel_mode):
+        batch_item = subtile.tile.n_id * subtile.tile.Tn
+        waveop_list = []
+        for z in range(subtile.tile.Tn):
+            file_addr = subtile.lower_addr[z]
+            sb_addr = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(subtile.tile.file_params, batch_item + z, file_addr)
+            waveop = {
+                  'previous_waveops'        : [],
+                  'waveop_type'             : 'RegStore',
+                  'waveop_name'             : layer_name + "/RegStore",
+                  'layer_name'              : layer_name,
+                  'parallel_mode'           : parallel_mode,
+                  'out_dtype'               : subtile.tile.file_params.data_type,
+                  'dst_is_psum'             : False,
+                  'dst_x_step'              : 1,
+                  'dst_x_num'               : 1,
+                  'dst_y_step'              : 1,
+                  'dst_y_num'               : 1,
+                  'dst_z_step'              : 1,
+                  'dst_z_num'               : 1,
+                  'dst_sb_address'          : sb_addr,
+                  'dst_start_at_mid_part'   : (subtile.tile.m_id % 2) == 1,
+                  'num_partitions'          : subtile.tile.channel_count,
+                }
+            if not parallel_mode:
+                waveop['num_partitions']  = 1
+                waveop['dst_x_num']       = subtile.subtile_rect.upper.x - subtile.subtile_rect.lower.x + 1
+                waveop['dst_start_at_mid_part'] = False
+            tpb.waveop_stream.add_linked(waveop, [], -1, [])
+            self.mark_producers_for_subtile_region(
+                    tpb          = tpb, 
+                    fmap_subtile = subtile,
+                    waveop       = waveop,
+                    subbatch_item = z)
+        return waveop
 
     # generate MatMul waveop and add it to waveop stream
     def gen_matmul_waveop(self, 
@@ -2260,7 +2344,7 @@ class FusedOp(list):
         if data doesn't exist in SB, generate SBAtomLoad waveops and return them
         Returns: (list of prev waveops, list of DRAM waveops)
     """
-    def get_producers_for_subtile_region (self, tpb, fmap_subtile, reader_engine):
+    def get_producers_for_subtile_region (self, tpb, fmap_subtile, reader_engine, subbatch_item = -1):
         # New 1
         # Start of RAW part
         tile = fmap_subtile.tile
@@ -2268,7 +2352,11 @@ class FusedOp(list):
         dram_fmaps_waveops = []
         list_of_accessors = []
         new_reader_morsels = []
-        for z in range(tile.Tn):
+        if subbatch_item >= 0:
+            subbatch_range = range(subbatch_item, subbatch_item+1)
+        else:
+            subbatch_range = range(tile.Tn)
+        for z in subbatch_range:
             if 1: # (tile.m_id%2 == 0):
                 (writers, readers, waveops, reader_morsels) \
                     = tpb.statebuffer.file_mapper.read_file_data_region(
@@ -2305,7 +2393,7 @@ class FusedOp(list):
         extract WAW dependencies and attach to first waveop of current
         Tn batch items
     """
-    def mark_producers_for_subtile_region (self, tpb, fmap_subtile, waveop):
+    def mark_producers_for_subtile_region (self, tpb, fmap_subtile, waveop, subbatch_item = -1):
         # New 3
         # Start of WAW and WAR part
         tile = fmap_subtile.tile
@@ -2314,13 +2402,17 @@ class FusedOp(list):
         dram_output_waveops = []                            
         list_of_accessors_wr = []
         list_of_accessors_rd = [[] for l in range(EngineEnum.COUNT)]
-        for z in range(tile.Tn):
+        if subbatch_item >= 0:
+            subbatch_range = range(subbatch_item, subbatch_item+1)
+        else:
+            subbatch_range = range(tile.Tn)
+        for z in subbatch_range:
             # for scheduling, map resulting tile into portion of atom that is 
             # itself mapped to a portion in DRAM (file)
             # only record the writer to SB chunks in below code; 
             # use flush_file to write chunks to DRAM
             # (mark writer using ID of last waveop of current Tn batch items)
-            (writers, readers, waveops) \
+            (writers, readers, dram_waveops) \
                 = tpb.statebuffer.file_mapper.write_file_data_region(
                                         tpb.waveop_stream.waveop_count - 1,    # adjust since pool waveop already generated
                                         tpb.waveop_stream,
@@ -2333,7 +2425,7 @@ class FusedOp(list):
             list_of_accessors_wr += writers # Include readers for WAR dependencies and writers for WAW dependencies
             for l in range(EngineEnum.COUNT):
                 list_of_accessors_rd[l] += readers[l]    # Include readers for WAR dependencies and writers for WAW dependencies
-            dram_output_waveops += waveops
+            dram_output_waveops += dram_waveops
 
             if (self.args.debug > 3): print("TRACE execute_unfused_first_op %s:\
                     tile %s done, ofmap_tile_lower_addr %d\
@@ -2642,16 +2734,41 @@ class FusedOp(list):
 
     # Execute an unfused transpose operator
     def execute_unfused_transpose_op(self, tpb, batch_item):
-        self.last_op.ofmaps_file_params.dram_data = \
-            np.transpose(self.first_op.ifmaps_file_params.dram_data, self.first_op.data['perm'])
-        (last_writer, last_reader, waveops) = tpb.statebuffer.file_mapper.write_file_data_region(
-                                    -1,  # signifies a pass-through (keep old writers of region)
-                                    tpb.waveop_stream,
-                                    self.last_op.ofmaps_file_params,
-                                    batch_item,
-                                    0,
-                                    self.first_op.ifmaps_file_params.file_sz,   # mark entire file
-                                    False)
+        first_op = self.first_op
+        last_op = self.last_op
+        layer_name = first_op.data["layer_name"]
+        # For ME behavior verification
+        last_op.ofmaps_file_params.dram_data = \
+            np.transpose(first_op.ifmaps_file_params.dram_data, first_op.data['perm'])
+        # For wavegraph:    
+        # for each group of 64 input channels
+        # regload parallel -> regstore serial
+        transpose_vec = False
+        if first_op.data["layer_type"] == "TransposeVector":
+            transpose_vec = True
+            n_id = batch_item // first_op.Tn
+            num_64_chan_folds = ceildiv(first_op.C, PEArray.NUM_COLS)            
+            for m_id in range(num_64_chan_folds):
+                ifmap_tile_id = (n_id, m_id, 0, 0, first_op.n, first_op.m, 1, 1)
+                ifmap_tile = Tile(ifmap_tile_id, first_op.ifmaps_file_params, first_op.Tn, is_pe_input=False)
+                ifmap_tile.tile_rect = Rect(Coord(0,0), Coord(0,0))
+                ifmap_subtile = PEWave(ifmap_tile, 0, 0, 0)
+                ofmap_tile_id = (n_id, 0, 0, m_id, first_op.n, 1, 1, first_op.m)
+                ofmap_tile = Tile(ofmap_tile_id, last_op.ofmaps_file_params, last_op.Tn, is_pe_input=False)
+                ofmap_tile.tile_rect = Rect(Coord(ifmap_tile.channel_start, 0), Coord(ifmap_tile.channel_stop - 1, 0))
+                ofmap_subtile = PEWave(ofmap_tile, 0, 0, 0)
+                self.gen_regload_vector_waveop(tpb, layer_name, ifmap_subtile, parallel_mode=True)
+                self.gen_regstore_vector_waveop(tpb, layer_name, ofmap_subtile, parallel_mode=False)
+
+        # Mark the entire output file for dependency checking
+        #(last_writer, last_reader, waveops) = tpb.statebuffer.file_mapper.write_file_data_region(
+        #                            tpb.waveop_stream.waveop_count - 1 if transpose_vec else -1,  # -1 signifies a pass-through (keep old writers of region)
+        #                            tpb.waveop_stream,
+        #                            last_op.ofmaps_file_params,
+        #                            batch_item,
+        #                            0,
+        #                            last_op.ofmaps_file_params.file_sz,   # mark entire file
+        #                            False)
 
     def execute_unfused_reshape_op(self, tpb, batch_item):
         self.first_op.ofmaps_file_params.dram_data = self.first_op.ifmaps_file_params.dram_data.view()

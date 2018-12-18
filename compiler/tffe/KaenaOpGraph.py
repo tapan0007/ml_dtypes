@@ -297,7 +297,7 @@ class Node(Object):
 
     # Overwrite format from command line
     simFormat = ""
-    if self.getName() in Config.Graph.inputNamesToFormat:
+    if self.getName() in Config.Graph.inputNamesToFormat and not isConst:
       # overriding is limited to Fmaps now.
       tfFormat = Config.Graph.inputNamesToFormat[self.getName()]
       assert(len(tfFormat) == len(npInfo.npShape))
@@ -556,28 +556,9 @@ class NodeSoftmax(Node):
   def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     npInfo = self.getNpInfo()[0]
-    if len(npInfo.npShape) == 3:
-      tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
-      tfFormat = npt.NWC
-    elif len(npInfo.npShape) == 2:
-      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-      tfFormat = npt.NC
-    elif len(npInfo.npShape) == 1:
-      tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
-      tfFormat = npt.C
-    else:
-      assert len(npInfo.npShape) == 4
-      tfShape4D = npInfo.npShape
-      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
+    (tpbShape, simFormat, npFileSim) = self.convertShape(npInfo, tensorFormatMap)
 
-    tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
-    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
-    tensorFormatMap.add(npInfo.tensorName,
-                        TensorFormat(npInfo.tensorName, self.getOpName(),
-                                     npInfo.npFile, tfFormat,
-                                     npFileSim, simFormat, False))
-
-    ((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
+    ((fromIfNode, _),) = self.getInputNodesAndNpInfo()
     layerData = {
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
@@ -1222,7 +1203,7 @@ class NodeSimple2(Node):
         #   (npFileSimF0, simFormatIF0)  = npt.copyNpyFileAs(npInfoIF0.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D0)
         # Side input has to be collapsed to a constant
     
-        (tpbShape1, simFormat1, npFileSim1) = self.convertShape(npInfoIFSide, tensorFormatMap, True)
+        (tpbShape1, simFormat1, npFileSim1) = self.convertShape(npInfoIFSide, tensorFormatMap, isConst=True)
 
         constLayerData = {
           "layer_type" :  "Const",

@@ -318,6 +318,8 @@ class BiasAddAct:
             return np.log(1 + np.exp(in_array))
         elif (type == 'Sqrt'):
             return np.sqrt(in_array)
+        elif (type == 'Identity'):
+            return in_array
         else:
             print("ERROR BiasAddAct.act: unrecognized activation type %s"%type)
             exit(-1)

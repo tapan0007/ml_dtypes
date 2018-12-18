@@ -579,6 +579,7 @@ if __name__ == "__main__":
     parser.add_argument("--fuse_lrelu", action='store_true', help="Fuse the function max(y, a*y) into Lrelu activation function")
     parser.add_argument("--sb_partition_sz", type=int, default=96*1024-256, help="Size of one SB partition (to reserve space at end of SB for stress test)")
     parser.add_argument("--psum_512_chunk_4k", action='store_true', help="Set PSUM to 256 and cap chunk size at 2KB (default is 512 PSUM entries and max 4KB chunk size")
+    parser.add_argument("--transpose_ofmap", action='store_true', help="Transpose output vector so data can be streamed out in fewer DMAs")
     parser.add_argument("--uint8_performance_mode", action='store_true',
         help="uint8 matmul performance mode. Instruction level modes "
         "'double_row', 'double_column', or 'double_pixel' are automatically "
@@ -606,7 +607,6 @@ if __name__ == "__main__":
     # create graph from JSON file        
     kgraph = KGraph(args)
     kgraph.populate_from_kgraph_json(kgraph_json)
-    #kgraph.write_mod_kgraph(kgraph_json)  # check modifications
 
     # add forward references
     kgraph.add_forward_refs(kgraph.final_nodes)
