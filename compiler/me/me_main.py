@@ -465,7 +465,9 @@ class TPBSched:
     """Write out wavegraph
     """
     def write_wavegraph(self):
-        wavegraph_json = kgraph_json
+        wavegraph_json = {}
+        wavegraph_json["data_type"] = kgraph_json["data_type"]
+        wavegraph_json["net_name"] = kgraph_json["net_name"]
         if (args.wavegraph != None and args.inference == False): 
             wavegraph_json['waveops'] = tpb.waveop_stream
             if (args.enable_cleanup == True):
