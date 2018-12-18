@@ -25,8 +25,9 @@ class NpUtils:
   # Modes:
   #   py - like python all close but still has the verbose option
   #   max - use max B for relative difference -> very loose match criteria
+  # Verbose: 0 - exit code only, 1 summary line, 3 every mismatch
   @staticmethod
-  def allclose(a, b, rtol=1e-05, atol=1e-08, equal_nan_inf=False, verbose=False, mode='max'):
+  def allclose(a, b, rtol=1e-05, atol=1e-08, equal_nan_inf=False, verbose=0, mode='max'):
     # b is gold/refernce, a is new
     if not a.shape == b.shape:
       return False
@@ -61,7 +62,8 @@ class NpUtils:
             relDiff = (absDiff - atol)/bRange
         if not absDiff <= tolerance:
           passStatus = False
-          print("INFO: NpUtils::allclose comparison failed at %s: abs(%g - %g) = %g is greater than (%g + %g * %g) = %g" % (str(index), aval, bval, absDiff, atol, rtol, bRange, tolerance))
-    if verbose:
+          if verbose >= 3:
+            print("INFO: NpUtils::allclose comparison failed at %s: abs(%g - %g) = %g is greater than (%g + %g * %g) = %g" % (str(index), aval, bval, absDiff, atol, rtol, bRange, tolerance))
+    if verbose >= 1:
       print("\nINFO: NpUtils::allclose comparison summary: largest abs diff = %g, rel diff = %g %% (check against current rel tolerance of %g %%)\n" % (largestAbsDiff, relDiff * 100.0, rtol * 100.0))
     return passStatus

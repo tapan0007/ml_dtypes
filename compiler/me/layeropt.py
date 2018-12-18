@@ -3483,7 +3483,7 @@ if __name__ == "__main__":
                 if (args.debug > 1): print("\nComputed OFMAPS:\n", results)
                 if (args.debug > 1): print("\nExpected OFMAPS:\n", outputs)
                 if (args.debug > 1): print("\nDiffed   OFMAPS:\n", diff)
-                if (not npu.allclose(results, outputs, 1/100, 1e-5, verbose=True)):
+                if (not npu.allclose(results, outputs, 1/100, 1e-5, verbose=3)):
                     print("\nERROR: layer %s computed OFMAPS is not equal to expected OFMAPS!\n"%(last_op.data['layer_name']))
                     num_mismatches += 1
 

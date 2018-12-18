@@ -966,7 +966,7 @@ class FusedOp(list):
                             if (self.args.debug > 1): print("\nExpected OFMAPS:\n", expected_ofmaps_extracted)
                             if (self.args.debug > 1): print("\nDiffed   OFMAPS:\n", diff)
                             if (self.args.debug > 1): print("========= End ====================")
-                            if (not npu.allclose(ofmaps, expected_ofmaps_extracted, 1/100, 1e-5, verbose=True)):
+                            if (not npu.allclose(ofmaps, expected_ofmaps_extracted, 1/100, 1e-5, verbose=3)):
                                 print("\nERROR: layer %s batch item %d computed OFMAPS is not equal to expected OFMAPS!\n"%(self.last_op.data['layer_name'], i))
                                 tpb.num_mismatches += 1
 
