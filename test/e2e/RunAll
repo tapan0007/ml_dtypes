@@ -21,6 +21,7 @@ import subprocess
 import json
 import datetime
 import importlib
+import collections
 
 kPath = os.environ.get('KAENA_PATH')
 kePath = os.environ.get('KAENA_EXT_PATH')
@@ -808,6 +809,91 @@ class Ktests:
       fh.write(wc_pass_list)
     print("INFO: wrote wave-checker status into %s" % rptFileName)
 
+
+  # Sealife per tool status tracking and analysis of unique errors
+  def reportFailureStats(self, outCsvFile):
+    
+    def analyzeLogfile(fieldNames, logFile):
+      stage2pass = {}
+      errText = ''
+      txt2map = {
+        'compileJf COMPLETED PASS' : {'JF' : 'PASS'},
+        'compileHh COMPLETED PASS' : {'HH' : 'PASS'},
+        'compileSf COMPLETED PASS' : {'SF' : 'PASS'},
+        'compileSg' : {'SG' : 'PASS'},
+        'Finished HH IR simulation using mode outputs. Verification status PASS' : {'HhSim' : 'PASS'},
+        'wavechecker1 COMPLETED PASS' : {'WC1' : 'PASS'},
+        'wavechecker2 COMPLETED PASS' : {'WC2' : 'PASS'},
+        'Kaena Compiler status PASS' : {'KCC' : 'PASS'},
+        'Kaena RT status PASS' : {'RT' : 'PASS'},
+        }
+      errRe = [
+        # re.compile('allclose comparison failed'),
+        re.compile('Allclose .+ result is FAIL'),
+        re.compile(' File ".+", line \d+, in .*'),
+        ]
+      if os.path.isfile(logFile):
+        with open(logFile) as f:
+          for l in f:
+            for text, mapVal in txt2map.items():
+              if text in l:
+                stage2pass.update(mapVal)
+            for regexp in errRe:
+              if re.search(regexp, l):
+                errText += l
+      return stage2pass, errText
+    
+    fieldNames = ['TestName', 'TestStatus', 'JF', 'HH', 'HhSim', 'SF', 'WC1', 'WC2','SG', 'KCC', 'RT', 'ErrorCode', 'ErrorText']
+    rows = []
+    for testName in self.testList:
+      stage2pass = {}
+      errorText = ''
+      for logType in ['top', 'fe', 'rt']:
+        logFile = '%s/log-%s.txt' % (testName, logType)
+        localStage2pass, localErrorText = analyzeLogfile(fieldNames, logFile)
+        stage2pass.update(localStage2pass)
+        errorText += localErrorText
+      row = stage2pass
+      row['TestName'] = testName
+      t = self.getTestByName(testName)
+      reportStatus = self.calcWaivedStatus(testName, t.status)
+      row['TestStatus'] = reportStatus
+      row['ErrorText'] = errorText
+      rows.append(row)
+    # Label unique errors by frequency
+    errText2count = collections.Counter([row['ErrorText'] for row in rows])
+    errId = 0
+    errText2id = {}
+    for errText, count in sorted(errText2count.items(), reverse=True,
+                                 key=lambda item : item[1]):
+      #print('DEBUG: count ', count)
+      if len(errText) > 0:
+        errId += 1
+        errText2id[errText] = 'E%03d (%dx)' % (errId, count)
+      else:
+        errText2id[errText] = ''
+    # Sort rows
+    rows = sorted(rows, key=lambda row:  str(99 - list(row.values()).count('PASS')) +
+                  '  ' + row['TestStatus'] + '  ' + errText2id[row['ErrorText']] + '  ' +
+                  row['TestName'])
+    seenErrors = set()
+    for row in rows:
+      errorText = row['ErrorText']
+      if len(errorText) > 0:
+        row['ErrorCode'] = errText2id[errorText]
+        if errorText in seenErrors:
+          row['ErrorText'] = ''
+        else:
+          seenErrors.add(errorText)
+      
+    with open(outCsvFile, 'w') as f:
+      writer = csv.DictWriter(f, fieldnames=fieldNames)
+      writer.writeheader()
+      writer.writerows(rows)
+    print("INFO: Wrote " + outCsvFile)
+
+
+
   def report(self, outFileName, csvFile, prefixText):
     numAll = self.getNumTests()
     numWaived = self.calcNumWaivedTest()
@@ -1087,6 +1173,8 @@ else:
     tests.plotHistory("qor_history.svg", histDb, keyDesignsHistory)
 
   # Slower or new (high-risk) reports and actions
+  if args.sealife:
+    tests.reportFailureStats("qor_failures.csv")
   tests.report_junit_xml("RunAllReport.xml")
   tests.report_wavechecker_status("wave_checker_report.txt")
 
