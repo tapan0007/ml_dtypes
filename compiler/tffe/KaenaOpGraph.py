@@ -1940,6 +1940,7 @@ class NodeReduceOp(Node):
           else:
             assert(False and 'invalid reduce axis')
       else:
+        # NC format
         for v in npInfoIdx.getValues():
           if v == -1 or v == 1:
             axesTF[3] = 1 # C axis
