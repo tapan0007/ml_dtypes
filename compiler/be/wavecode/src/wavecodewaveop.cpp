@@ -1,4 +1,5 @@
 #include <set>
+#include <array>
 
 
 #include "utils/inc/asserter.hpp"
@@ -12,6 +13,9 @@
 #include "wave/inc/waveedge.hpp"
 #include "wave/inc/waveop.hpp"
 #include "wave/inc/sbatomwaveop.hpp"
+#include "wave/inc/sbatomloadwaveop.hpp"
+
+#include "dma/inc/dmaqueue.hpp"
 
 #include "wavecode/inc/wavecode.hpp"
 #include "wavecode/inc/wavecodewaveop.hpp"
@@ -94,20 +98,51 @@ WaveCodeWaveOp::GenerateSemaphoreInstr(const wave::WaveEdge* prevWaveEdge)
     const auto prevWaveop = prevWaveEdge->gFromOp();
     auto prevSbAtomWaveop = dynamic_cast<const wave::SbAtomWaveOp*>(prevWaveop);
     Assert(prevSbAtomWaveop, "WaveOp ", prevWaveop->gName(), " should be Load/Save");
+    const auto succWaveop = prevWaveEdge->gToOp();
 
     // semaphore wait must >= because 2 DMA transfers that are on the same queue
     // could both finish before the engine(s) that is(are) waiting on the first
     // condition arrives to the semaphore.wait, misses the condition, and gets stuck.
     compisa::SemaphoreInstr semInstr;
-    AssignWithSizeCheck(semInstr.semaphore_id, prevSbAtomWaveop->gDmaQueue()->gSemaphoreId());
-    AssignWithSizeCheck(semInstr.wait_cond, TONGA_ISA_TPB_SEMAPHORE_WAIT_COND_GREATER_EQUAL);
-    AssignWithSizeCheck(semInstr.wait_value, prevSbAtomWaveop->gTriggerOrd());
 
-    const auto succWaveop = prevWaveEdge->gToOp();
     std::ostringstream oss;
     oss << prevSbAtomWaveop->gOrder() << "->" << succWaveop->gOrder() << ": " << succWaveop->gName();
     m_WaveCode.SaveName(semInstr, oss.str().c_str());
-    m_WaveCode.writeInstruction(semInstr, succWaveop->gEngineId());
+
+
+    std::array<const dma::DmaQueue*, 2> dmaQues;
+    std::array<kcc_int32, dmaQues.size()> trigOrds;
+
+
+    dmaQues[0]  = prevSbAtomWaveop->gDmaQueue();
+    dmaQues[1]  = nullptr;
+    trigOrds[0] = prevSbAtomWaveop->gTriggerOrd();
+    trigOrds[1] = -1;
+
+    //----------------------------------------------------------------
+    // For weights with 2 queues: wait on the 2nd queue
+    //----------------------------------------------------------------
+    auto prevSbLoad = dynamic_cast<const wave::SbAtomLoadWaveOp*>(prevSbAtomWaveop);
+    if (prevSbLoad) {
+        const dma::DmaQueue* que1 = prevSbLoad->gDmaQueue1();
+        dmaQues[1] = que1;
+        Assert(!que1 || prevSbLoad->qContainWeights(), "Double DMA supported only for Loading weights");
+        trigOrds[1] = prevSbLoad->gTriggerOrd1();
+    }
+
+
+    for (kcc_uint32 i = 0; i < dmaQues.size(); ++i) {
+        auto que = dmaQues[i];
+        if (! que) {
+            continue;
+        }
+        auto trigOrd = trigOrds[i];
+
+        AssignWithSizeCheck(semInstr.wait_cond, TONGA_ISA_TPB_SEMAPHORE_WAIT_COND_GREATER_EQUAL);
+        AssignWithSizeCheck(semInstr.semaphore_id, que->gSemaphoreId());
+        AssignWithSizeCheck(semInstr.wait_value, trigOrd);
+        m_WaveCode.writeInstruction(semInstr, succWaveop->gEngineId());
+    }
 } // WaveCodeWaveOp::GenerateSemaphoreInstr
 
 //======================================================================

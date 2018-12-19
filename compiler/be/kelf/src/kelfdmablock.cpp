@@ -9,7 +9,7 @@ namespace kelf {
 
 /***********************************************************************
 ***********************************************************************/
-DmaDescription::DmaBlock::DmaBlock(DmaDescription& dmaDescription,
+DmaDescription::DmaBlock::DmaBlock(DmaDescription* dmaDescription,
                         const dma::DmaQueue* que, const char* comment)
     : m_DmaDescription(dmaDescription)
     , m_Queue(que)
@@ -44,7 +44,7 @@ DmaDescription::DmaBlock::setDmaEventField(nlohmann::json& jDmaBlock) const
 
 /***********************************************************************
 ***********************************************************************/
-DmaDescription::DmaBlockNonIo::DmaBlockNonIo(DmaDescription& dmaDescription,
+DmaDescription::DmaBlockNonIo::DmaBlockNonIo(DmaDescription* dmaDescription,
             const dma::DmaQueue* que, EngineId engId, const char* comment)
     : DmaBlock(dmaDescription, que, comment)
     , m_EngineId(engId)
@@ -55,12 +55,12 @@ DmaDescription::DmaBlockNonIo::DmaBlockNonIo(DmaDescription& dmaDescription,
 
 /***********************************************************************
 ***********************************************************************/
-DmaDescription::DmaBlockToTpb::DmaBlockToTpb(DmaDescription& dmaDescription,
+DmaDescription::DmaBlockToTpb::DmaBlockToTpb(DmaDescription* dmaDescription,
             const dma::DmaQueue* que, EngineId engId, bool qWeights, const char* comment)
     : DmaBlockNonIo(dmaDescription, que, engId, comment)
     , m_QWeights(qWeights)
 {
-    m_BlockId = m_DmaDescription.gBlockIdForQueue(m_Queue);
+    m_BlockId = m_DmaDescription->gBlockIdForQueue(m_Queue);
 }
 
 /***********************************************************************
@@ -71,7 +71,7 @@ DmaDescription::DmaBlockToTpb::addDmaDesc(TongaAddress srcFileAddress,
         TpbAddress dstTpbSbAddress, kcc_int32 numBytes)
 {
     DmaDescToTpb desc(numBytes, dstTpbSbAddress, srcFileAddress,
-                      m_DmaDescription.gFileSymbolicId(refFile, FileType::Weight));
+                      m_DmaDescription->gFileSymbolicId(refFile, FileType::Weight));
 
     m_Descs.push_back(desc);
 }
@@ -79,12 +79,12 @@ DmaDescription::DmaBlockToTpb::addDmaDesc(TongaAddress srcFileAddress,
 
 /***********************************************************************
 ***********************************************************************/
-DmaDescription::DmaBlockFromTpb::DmaBlockFromTpb(DmaDescription& dmaDescription,
+DmaDescription::DmaBlockFromTpb::DmaBlockFromTpb(DmaDescription* dmaDescription,
         const dma::DmaQueue* que, EngineId engId, bool qOut, const char* comment)
     : DmaBlockNonIo(dmaDescription, que, engId, comment)
     , m_QOut(qOut)
 {
-    m_BlockId = m_DmaDescription.gBlockIdForQueue(m_Queue);
+    m_BlockId = m_DmaDescription->gBlockIdForQueue(m_Queue);
 }
 
 /***********************************************************************
@@ -95,7 +95,7 @@ DmaDescription::DmaBlockFromTpb::addDmaDesc(TpbAddress srcTpbSbAddress,
         const std::string& refFile,
         kcc_int32 numBytes)
 {
-    const FileIdType idType = m_DmaDescription.gFileSymbolicId(refFile, FileType::LoadSave);
+    const FileIdType idType = m_DmaDescription->gFileSymbolicId(refFile, FileType::LoadSave);
     DmaDescFromTpb desc(numBytes, srcTpbSbAddress, dstFileAddress, idType);
 
     m_Descs.push_back(desc);
@@ -104,12 +104,12 @@ DmaDescription::DmaBlockFromTpb::addDmaDesc(TpbAddress srcTpbSbAddress,
 
 /***********************************************************************
 ***********************************************************************/
-DmaDescription::DmaBlockInput::DmaBlockInput(DmaDescription& dmaDescription,
+DmaDescription::DmaBlockInput::DmaBlockInput(DmaDescription* dmaDescription,
             const dma::DmaQueue* que, EngineId engId, const char* comment)
     : DmaBlock(dmaDescription, que, comment)
     , m_EngineId(engId)
 {
-    m_BlockId = m_DmaDescription.gBlockIdForQueue(m_Queue);
+    m_BlockId = m_DmaDescription->gBlockIdForQueue(m_Queue);
 }
 
 
@@ -122,7 +122,7 @@ DmaDescription::DmaBlockInput::addDmaDesc(TongaAddress inputAddress,
         const std::string& refFile,
         kcc_int32 numBytes)
 {
-    const FileIdType& idType(m_DmaDescription.gInFileSymbolicId(refFile));
+    const FileIdType& idType(m_DmaDescription->gInFileSymbolicId(refFile));
     DmaDescToTpb desc(numBytes, dstSbAddress, inputAddress, idType);
 
     m_Descs.push_back(desc);

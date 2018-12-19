@@ -18,7 +18,7 @@ public:
         None
     };
 public:
-    DmaQueue(const std::string& name, EngineId engId, QueueType typ, kcc_int32 semId);
+    DmaQueue(const std::string& name, EngineId engId, QueueType typ, kcc_int32 semId, bool firstQue);
 
     DmaQueue(const DmaQueue&) = default;
     DmaQueue() = delete;
@@ -35,6 +35,9 @@ public:
     kcc_int32 gSemaphoreId() const {
         return m_SemaphoreId;
     }
+    bool qFirstQueue() const {
+        return m_FirstQueue;
+    }
 
 private:
     const std::string m_Name        = "";
@@ -42,6 +45,7 @@ private:
     const QueueType   m_QueueType   = QueueType::None;
     const kcc_int32   m_SemaphoreId = -1;
     kcc_int32         m_Count       = 0;
+    bool              m_FirstQueue  = true;
 };
 
 }}

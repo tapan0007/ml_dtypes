@@ -41,9 +41,6 @@ private:
     void generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
     void generateForSimNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
 
-    void generateDmaCopySimKelf(wave::SbAtomLoadWaveOp*sbAtomLoadWaveop,
-            EngineId chosenEngId,
-            const std::vector<events::EventId>& succEventIds);
 
     void generateDmaDescAndTriggerRuntimeKelf(wave::SbAtomLoadWaveOp*sbAtomLoadWaveop,
             EngineId chosenEngId,

@@ -79,7 +79,6 @@ using TongaAddress = Integer<tonga_addr, TongaAddressTag>;
 
 enum class BinFileType {
     SimAngel,
-    SimKelf,
     RuntimeKelf
 };
 

@@ -387,29 +387,55 @@ EventMgr::determineQueuesAndSemaphoreValues()
         if (! waveop->qSbAtomWaveOp()) {
             continue;
         }
-        const auto sbatomWop = dynamic_cast<wave::SbAtomWaveOp*>(waveop);
-        Assert(sbatomWop, "Waveop ", waveop->gName(), " expected to be SbAtom");
+        {
+            const auto sbatomWop = dynamic_cast<wave::SbAtomWaveOp*>(waveop);
+            Assert(sbatomWop, "Waveop ", waveop->gName(), " expected to be SbAtom");
 
-        const dma::DmaQueue* que(findQueue(sbatomWop));
-        sbatomWop->rDmaQueue(que);
+            const dma::DmaQueue* que0(findQueue(sbatomWop, true));
+            sbatomWop->rDmaQueue(que0);
 
-        const auto it = m_DmaQueueCount.find(que);
-        kcc_int32 n = -1;
-        if (it == m_DmaQueueCount.end()) {
-            n = 1;
-            m_DmaQueueCount[que] = n;
-        } else {
-            ++(*it).second;
-            n = (*it).second;
+            const auto it = m_DmaQueueCount.find(que0);
+            kcc_int32 n = -1;
+            if (it == m_DmaQueueCount.end()) {
+                n = 1;
+                m_DmaQueueCount[que0] = n;
+            } else {
+                ++(*it).second;
+                n = (*it).second;
+            }
+            sbatomWop->rTriggerOrd(n);
         }
-        sbatomWop->rTriggerOrd(n);
+
+        //------------------------------------
+        {
+            const auto sbatomloadWop = dynamic_cast<wave::SbAtomLoadWaveOp*>(waveop);
+            if (!sbatomloadWop || !sbatomloadWop->qContainWeights()) {
+                continue;
+            }
+            if (sbatomloadWop->gNumPartitions() <= 1) {
+                continue;
+            }
+            const dma::DmaQueue* que1(findQueue(sbatomloadWop, false));
+            sbatomloadWop->rDmaQueue1(que1);
+
+            const auto it = m_DmaQueueCount.find(que1);
+            kcc_int32 n = -1;
+            if (it == m_DmaQueueCount.end()) {
+                n = 1;
+                m_DmaQueueCount[que1] = n;
+            } else {
+                ++(*it).second;
+                n = (*it).second;
+            }
+            sbatomloadWop->rTriggerOrd1(n);
+        }
     }
 }
 
 /***********************************************************************
 ***********************************************************************/
 const dma::DmaQueue* 
-EventMgr::findQueue(const wave::SbAtomWaveOp* sbatomWop)
+EventMgr::findQueue(const wave::SbAtomWaveOp* sbatomWop, bool firstQueue)
 {
     dma::DmaQueue::QueueType typ = dma::DmaQueue::QueueType::None;
     const EngineId engId = sbatomWop->gEngineId();
@@ -441,7 +467,11 @@ EventMgr::findQueue(const wave::SbAtomWaveOp* sbatomWop)
         auto loadWop = dynamic_cast<const wave::SbAtomLoadWaveOp*>(sbatomWop);
         if (loadWop->qContainWeights()) {
             typ = dma::DmaQueue::QueueType::Weights;
-            queName += "_in_w";
+            if (firstQueue) {
+                queName += "_in_w0";
+            } else {
+                queName += "_in_w1";
+            }
         } else {
             typ = dma::DmaQueue::QueueType::Input;
             queName += "_in_d";
@@ -454,7 +484,7 @@ EventMgr::findQueue(const wave::SbAtomWaveOp* sbatomWop)
     const auto it = m_Name2Queue.find(queName);
     if (it == m_Name2Queue.end()) {
         const auto semId = ReservedSemaphore_FirstNonReserved + m_Name2Queue.size();
-        const auto que = new dma::DmaQueue(queName, engId, typ, semId);
+        const auto que = new dma::DmaQueue(queName, engId, typ, semId, firstQueue);
         m_Name2Queue[queName] = que;
         return que;
     } else {

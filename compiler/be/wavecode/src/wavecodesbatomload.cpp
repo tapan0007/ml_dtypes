@@ -45,7 +45,7 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
     const kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
     calcInputSize(sbAtomLoadWaveop);
     if (qGenerateKelf()) {
-        if (sbAtomLoadWaveop->qContainWeights() || m_WaveCode.qBinFileSimKelf()) {
+        if (sbAtomLoadWaveop->qContainWeights()) {
             generateForKelf(sbAtomLoadWaveop);
         } else {
             if (kelfDma.qHasFile(sbAtomLoadWaveop->gRefFileName())) {
@@ -58,6 +58,14 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
         generateForSim(sbAtomLoadWaveop);
     }
 }
+
+
+
+
+
+
+
+
 
 void
 WaveCodeSbAtomLoad::generateForSim(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
@@ -410,6 +418,13 @@ WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
 
 
 
+
+
+
+
+
+
+
 //************************************************************************
 // Suppose an SbLoad has the following predecessors and successors
 // MM1          POOL        |
@@ -477,15 +492,10 @@ WaveCodeSbAtomLoad::generateForKelf(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
     const kcc_int32 numSyncs = findSuccEventsAndChosenEngine(sbAtomLoadWaveop,
                                         chosenEngId, succEventIds);
 
-    if (m_WaveCode.qBinFileSimKelf()) {
-        generateDmaCopySimKelf(sbAtomLoadWaveop, chosenEngId, succEventIds);
+    if (sbAtomLoadWaveop->gIfmapReplicationResolution() == 0) {
+        generateDmaDescAndTriggerRuntimeKelf(sbAtomLoadWaveop, chosenEngId, succEventIds);
     } else {
-        if (sbAtomLoadWaveop->gIfmapReplicationResolution() == 0) {
-            generateDmaDescAndTriggerRuntimeKelf(sbAtomLoadWaveop, chosenEngId, succEventIds);
-        } else {
-            generateDmaDescAndTriggerRuntimeKelfWithReplication(sbAtomLoadWaveop, chosenEngId, succEventIds);
-        }
-
+        generateDmaDescAndTriggerRuntimeKelfWithReplication(sbAtomLoadWaveop, chosenEngId, succEventIds);
     }
 
     return numSyncs;
@@ -507,23 +517,43 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelf(wave::SbAtomLoadWaveOp*
     const kcc_int64 startPart       = sbAtomLoadWaveop->gStartAtMidPart()
                                         ? arch::Arch::gArch().gNumberPeArrayRows()/2 : 0;
     const bool weights              = sbAtomLoadWaveop->qContainWeights();
+    if (weights) {
+        Assert(succEventIds.size() <= 0, "No events allowed on LoadSbAtom");
+    }
 
     //************************************************************************
     kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
 
     std::ostringstream oss;
     oss << sbAtomLoadWaveop->gOrder() << "-" << sbAtomLoadWaveop->gName();
-    kelf::DmaDescription::DmaBlockToTpb& dmaBlockToTpb(
-                        kelfDma.startNewDmaBlockToTpb(sbAtomLoadWaveop->gDmaQueue(), chosenEngId, weights, oss.str().c_str()));
+    kelf::DmaDescription::DmaBlockToTpb* dmaBlockToTpb0 = nullptr;
+    kelf::DmaDescription::DmaBlockToTpb* dmaBlockToTpb1 = nullptr;
+    const kcc_int32 blockIdx0 = kelfDma.startNewDmaBlockToTpb(sbAtomLoadWaveop->gDmaQueue(), chosenEngId, weights, oss.str().c_str());
+    const auto que1 = sbAtomLoadWaveop->gDmaQueue1();
+    if (que1) {
+        Assert(weights, "Cannot have 2 DMA queues for non-weights");
+        oss << "-1";
+        const kcc_int32 blockIdx1 = kelfDma.startNewDmaBlockToTpb(que1, chosenEngId, weights, oss.str().c_str());
+        // both gDmaBlockToTpb() calls must occur AFTER both blocks have been started
+        dmaBlockToTpb1 = kelfDma.gDmaBlockToTpb(blockIdx1);
+        dmaBlockToTpb0 = kelfDma.gDmaBlockToTpb(blockIdx0);
+    } else {
+        dmaBlockToTpb0 = kelfDma.gDmaBlockToTpb(blockIdx0);
+    }
+
     const std::string& refFileName(sbAtomLoadWaveop->gRefFileName());
 
     for (kcc_int32 partIdx = startPart; partIdx < startPart + numPartitions; ++partIdx) {
         const TongaAddress fileAddress = sbAtomLoadWaveop->gOffsetInFile() + (partIdx * stepSize);
         const TpbAddress sbTpbAddress = stateBuf.gEntryTpbAddress(partIdx, addressInPart);
-        dmaBlockToTpb.addDmaDesc(fileAddress, refFileName, sbTpbAddress, numBytesPerPart);
+        if (!dmaBlockToTpb1 || (partIdx < startPart + numPartitions/2)) {
+            dmaBlockToTpb0->addDmaDesc(fileAddress, refFileName, sbTpbAddress, numBytesPerPart);
+        } else {
+            dmaBlockToTpb1->addDmaDesc(fileAddress, refFileName, sbTpbAddress, numBytesPerPart);
+        }
     }
     for (auto eventId : succEventIds) {
-        dmaBlockToTpb.addTailEventId(eventId);
+        dmaBlockToTpb0->addTailEventId(eventId);
     }
     //************************************************************************
     // Incoming events were processed in
@@ -544,25 +574,36 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelf(wave::SbAtomLoadWaveOp*
 
     //************************************************************************
     addDmaBarrier(sbAtomLoadWaveop, chosenEngId);
+
     //************************************************************************
     compisa::DmaTriggerInstr dmaTriggerInstr;
-    dmaTriggerInstr.SetDmaQueueName(dmaBlockToTpb.gDmaQueue()->gName().c_str());
-    AssignWithSizeCheck(dmaTriggerInstr.use_raw_count, 0); // get from JSON
-    AssignWithSizeCheck(dmaTriggerInstr.block_id, dmaBlockToTpb.gBlockId());
-
     AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_idx, 0);
     AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
     AssignWithSizeCheck(dmaTriggerInstr.inst_events.set_event_idx, 0); // succ evt is in the descriptor block
     AssignWithSizeCheck(dmaTriggerInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
+
+    AssignWithSizeCheck(dmaTriggerInstr.use_raw_count, 0); // get from JSON
+
+    AssignWithSizeCheck(dmaTriggerInstr.block_id, dmaBlockToTpb0->gBlockId());
+    dmaTriggerInstr.SetDmaQueueName(dmaBlockToTpb0->gDmaQueue()->gName().c_str());
+
     {
         std::ostringstream oss;
         oss << sbAtomLoadWaveop->gOrder()
             << ":" << (succEventIds.size() > 0 ? succEventIds[0] : -1)
             << "-" << sbAtomLoadWaveop->gName();
         m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
+        m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
+
+
+        if (dmaBlockToTpb1) {
+            dmaTriggerInstr.SetDmaQueueName(dmaBlockToTpb1->gDmaQueue()->gName().c_str());
+            AssignWithSizeCheck(dmaTriggerInstr.block_id, dmaBlockToTpb1->gBlockId());
+            oss << "-1";
+            m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
+            m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
+        }
     }
-    m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
-    addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
 }
 
 //======================================================================
@@ -610,8 +651,8 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
     std::ostringstream oss;
     oss << sbAtomLoadWaveop->gOrder() << "-" << sbAtomLoadWaveop->gName();
     //************************************************************************
-    kelf::DmaDescription::DmaBlockInput& dmaInBlock(kelfDma.startNewDmaBlockInput(
-                        sbAtomLoadWaveop->gDmaQueue(), chosenEngId, oss.str().c_str()));
+    const kcc_int32 blockIdx = kelfDma.startNewDmaBlockInput(sbAtomLoadWaveop->gDmaQueue(), chosenEngId, oss.str().c_str());
+    kelf::DmaDescription::DmaBlockInput* dmaInBlock = kelfDma.gDmaBlockInput(blockIdx);
     {
         const TongaAddress sbPartStep = stateBuf.gEntryTpbAddress(1, 0) - stateBuf.gEntryTpbAddress(0, 0);
         const kcc_int32 stride       = replStepElem;
@@ -680,7 +721,7 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
                                 std::cout << "\n";
                             }
                         }
-                        dmaInBlock.addDmaDesc(filePartAddress, sbTpbAddress, sbAtomLoadWaveop->gRefFileName(), numBytesToWrite);
+                        dmaInBlock->addDmaDesc(filePartAddress, sbTpbAddress, sbAtomLoadWaveop->gRefFileName(), numBytesToWrite);
                     }
                     sbTpbAddress += sbPartStep;
                 }
@@ -693,16 +734,16 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
     }
 
     for (auto eventId : succEventIds) {
-        dmaInBlock.addTailEventId(eventId);
+        dmaInBlock->addTailEventId(eventId);
     }
 
     //************************************************************************
 
     addDmaBarrier(sbAtomLoadWaveop, chosenEngId);
     compisa::DmaTriggerInstr dmaTriggerInstr;
-    dmaTriggerInstr.SetDmaQueueName(dmaInBlock.gDmaQueue()->gName().c_str());
+    dmaTriggerInstr.SetDmaQueueName(dmaInBlock->gDmaQueue()->gName().c_str());
     AssignWithSizeCheck(dmaTriggerInstr.use_raw_count, 0); // get from JSON
-    AssignWithSizeCheck(dmaTriggerInstr.block_id, dmaInBlock.gBlockId());
+    AssignWithSizeCheck(dmaTriggerInstr.block_id, dmaInBlock->gBlockId());
 
     AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_idx, 0);
     AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
@@ -717,7 +758,6 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
         m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
     }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
-    addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
 } // WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
 
 
@@ -745,24 +785,24 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     std::ostringstream oss;
     oss << sbAtomLoadWaveop->gOrder() << "-" << sbAtomLoadWaveop->gName();
     //************************************************************************
-    kelf::DmaDescription::DmaBlockInput& dmaInBlock(
-                kelfDma.startNewDmaBlockInput(sbAtomLoadWaveop->gDmaQueue(), chosenEngId, oss.str().c_str()));
+    const kcc_int32 blockIdx = kelfDma.startNewDmaBlockInput(sbAtomLoadWaveop->gDmaQueue(), chosenEngId, oss.str().c_str());
+    kelf::DmaDescription::DmaBlockInput* dmaInBlock = kelfDma.gDmaBlockInput(blockIdx);
 
     for (kcc_int32 partIdx = startPart; partIdx < startPart + numPartitions; ++partIdx) {
         const kcc_uint64 fileAddress = sbAtomLoadWaveop->gOffsetInFile() + (partIdx * stepSize);
         const TpbAddress sbAddress = stateBuf.gEntryTpbAddress(partIdx, addressInPart);
-        dmaInBlock.addDmaDesc(fileAddress, sbAddress, sbAtomLoadWaveop->gRefFileName(), numBytesPerPart);
+        dmaInBlock->addDmaDesc(fileAddress, sbAddress, sbAtomLoadWaveop->gRefFileName(), numBytesPerPart);
     }
     for (auto eventId : succEventIds) {
-        dmaInBlock.addTailEventId(eventId);
+        dmaInBlock->addTailEventId(eventId);
     }
 
     //************************************************************************
     addDmaBarrier(sbAtomLoadWaveop, chosenEngId);
     compisa::DmaTriggerInstr dmaTriggerInstr;
-    dmaTriggerInstr.SetDmaQueueName(dmaInBlock.gDmaQueue()->gName().c_str());
+    dmaTriggerInstr.SetDmaQueueName(dmaInBlock->gDmaQueue()->gName().c_str());
     AssignWithSizeCheck(dmaTriggerInstr.use_raw_count, 0); // get from JSON
-    AssignWithSizeCheck(dmaTriggerInstr.block_id, dmaInBlock.gBlockId());
+    AssignWithSizeCheck(dmaTriggerInstr.block_id, dmaInBlock->gBlockId());
 
     AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_idx, 0);
     AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
@@ -777,7 +817,6 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
         m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
     }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
-    addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
 } // WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
 
 //======================================================================
@@ -832,27 +871,45 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::Sb
 
     const std::string& refFileName(sbAtomLoadWaveop->gRefFileName());
     kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
+    kelf::DmaDescription::DmaBlockToTpb* dmaBlockToTpb0 = nullptr;
+    kelf::DmaDescription::DmaBlockToTpb* dmaBlockToTpb1 = nullptr;
 
     std::ostringstream oss;
     oss << sbAtomLoadWaveop->gOrder() << "-" << sbAtomLoadWaveop->gName();
-    kelf::DmaDescription::DmaBlockToTpb& dmaBlockToTpb(kelfDma.startNewDmaBlockToTpb(
-                                                    sbAtomLoadWaveop->gDmaQueue(),
-                                                    chosenEngId, qWeights, oss.str().c_str()));
     if (qWeights) {
+        Assert(succEventIds.size() <= 0, "Weights cannot have events, only semaphore");
+        const kcc_uint32 numChans       = replResolution;
+        const TpbAddress partStepBytes  = sbAtomLoadWaveop->gPartitionStepBytes();
+        const TpbAddress sbPartStep     = stateBuf.gEntryTpbAddress(1, 0) - stateBuf.gEntryTpbAddress(0, 0);
         Assert(1 == replStepElem, "Load weights should have stride 1 in replication");
         Assert(numBytesPerPart == ifmapReplStepBytes, "Replication step bytes should be equal to length");
-        const kcc_uint32 numChans    = replResolution;
-        const TpbAddress  partStepBytes       = sbAtomLoadWaveop->gPartitionStepBytes();
-        const TpbAddress  sbPartStep = stateBuf.gEntryTpbAddress(1, 0) - stateBuf.gEntryTpbAddress(0, 0);
 
-        TongaAddress fileAddress     = sbAtomLoadWaveop->gOffsetInFile();
-        TpbAddress   sbTpbAddress    = stateBuf.gEntryTpbAddress(startPart, addressInPart);
+
+        const kcc_int32 blockIdx0 = kelfDma.startNewDmaBlockToTpb(sbAtomLoadWaveop->gDmaQueue(), chosenEngId, qWeights, oss.str().c_str());
+        const auto que1 = sbAtomLoadWaveop->gDmaQueue1();
+        if (que1) {
+            oss << "-1";
+            const kcc_int32 blockIdx1 = kelfDma.startNewDmaBlockToTpb(que1, chosenEngId, qWeights, oss.str().c_str());
+            // both gDmaBlockToTpb() calls must occur AFTER both blocks have been started
+            dmaBlockToTpb1 = kelfDma.gDmaBlockToTpb(blockIdx1);
+            dmaBlockToTpb0 = kelfDma.gDmaBlockToTpb(blockIdx0);
+            } else {
+        dmaBlockToTpb0 = kelfDma.gDmaBlockToTpb(blockIdx0);
+        }
+
+
+        TongaAddress fileAddress        = sbAtomLoadWaveop->gOffsetInFile();
+        TpbAddress   sbTpbAddress       = stateBuf.gEntryTpbAddress(startPart, addressInPart);
 
         kcc_int32 part = startPart;
         while (part < startPart + numActiveParts) {
             for (kcc_uint32 c_idx = 0; c_idx < numChans; ++c_idx) {
                 const TongaAddress currFileAddress = fileAddress + c_idx * partStepBytes;
-                dmaBlockToTpb.addDmaDesc(currFileAddress, refFileName, sbTpbAddress, ifmapReplStepBytes);
+                if (!dmaBlockToTpb1 || part < startPart + numActiveParts/2) {
+                    dmaBlockToTpb0->addDmaDesc(currFileAddress, refFileName, sbTpbAddress, ifmapReplStepBytes);
+                } else {
+                    dmaBlockToTpb1->addDmaDesc(currFileAddress, refFileName, sbTpbAddress, ifmapReplStepBytes);
+                }
 
                 sbTpbAddress += sbPartStep;   // += 128k
                 ++part;
@@ -862,6 +919,8 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::Sb
 
 
     } else {
+        const kcc_int32 blockIdx0 = kelfDma.startNewDmaBlockToTpb(sbAtomLoadWaveop->gDmaQueue(), chosenEngId, qWeights, oss.str().c_str());
+        kelf::DmaDescription::DmaBlockToTpb* dmaBlockToTpb0 = kelfDma.gDmaBlockToTpb(blockIdx0);
         const TpbAddress    sbPartStep = stateBuf.gEntryTpbAddress(1, addressInPart) - stateBuf.gEntryTpbAddress(0, addressInPart);
         const kcc_int32 numInChans = replResolution / replStepElem;
         Assert(numInChans*replStepElem == replResolution,
@@ -883,7 +942,7 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::Sb
                 for (kcc_int32 chanIdx = 0; chanIdx < numInChans; ++chanIdx) {
                     TongaAddress chanOffset = chanIdx * partStepBytes;
                     TongaAddress filePartAddress = fileAddress + chanOffset + strideFileOffset;
-                    dmaBlockToTpb.addDmaDesc(filePartAddress, refFileName, sbTpbAddress, numBytesPerPart);
+                    dmaBlockToTpb0->addDmaDesc(filePartAddress, refFileName, sbTpbAddress, numBytesPerPart);
                     sbTpbAddress += sbPartStep;
                 }
             }
@@ -891,34 +950,44 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::Sb
             fileGroupAddress    += ifmapReplStepBytes;
             sbGroupTpbAddress   += ifmapReplNumRows * sbPartStep;
         }
+
+        for (auto eventId : succEventIds) {
+            dmaBlockToTpb0->addTailEventId(eventId);
+        }
     }
 
-    for (auto eventId : succEventIds) {
-        dmaBlockToTpb.addTailEventId(eventId);
-    }
 
 
     //************************************************************************
     addDmaBarrier(sbAtomLoadWaveop, chosenEngId);
     //************************************************************************
-    compisa::DmaTriggerInstr dmaTriggerInstr;
-    dmaTriggerInstr.SetDmaQueueName(dmaBlockToTpb.gDmaQueue()->gName().c_str());
-    AssignWithSizeCheck(dmaTriggerInstr.use_raw_count, 0); // get from JSON
-    AssignWithSizeCheck(dmaTriggerInstr.block_id, dmaBlockToTpb.gBlockId());
-
-    AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_idx, 0);
-    AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
-    AssignWithSizeCheck(dmaTriggerInstr.inst_events.set_event_idx, 0); // succ evt is in the descriptor block
-    AssignWithSizeCheck(dmaTriggerInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
     {
+        compisa::DmaTriggerInstr dmaTriggerInstr;
+        AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_idx, 0);
+        AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
+        AssignWithSizeCheck(dmaTriggerInstr.inst_events.set_event_idx, 0); // succ evt is in the descriptor block
+        AssignWithSizeCheck(dmaTriggerInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
+
+        AssignWithSizeCheck(dmaTriggerInstr.use_raw_count, 0); // get from JSON
+
+        dmaTriggerInstr.SetDmaQueueName(dmaBlockToTpb0->gDmaQueue()->gName().c_str());
+        AssignWithSizeCheck(dmaTriggerInstr.block_id, dmaBlockToTpb0->gBlockId());
+
         std::ostringstream oss;
         oss << sbAtomLoadWaveop->gOrder()
             << ":" << (succEventIds.size() > 0 ? succEventIds[0] : -1)
             << "-" << sbAtomLoadWaveop->gName();
         m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
+        m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
+
+        if (dmaBlockToTpb1) {
+            dmaTriggerInstr.SetDmaQueueName(dmaBlockToTpb1->gDmaQueue()->gName().c_str());
+            AssignWithSizeCheck(dmaTriggerInstr.block_id, dmaBlockToTpb1->gBlockId());
+            oss << "-1";
+            m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
+            m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
+        }
     }
-    m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
-    addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
 } // WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop,
 
 
@@ -927,104 +996,6 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::Sb
 
 
 
-
-//======================================================================
-void
-WaveCodeSbAtomLoad::generateDmaCopySimKelf(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop,
-                    EngineId chosenEngId, const std::vector<events::EventId>& succEventIds)
-{
-    Assert(m_WaveCode.qBinFileSimKelf(), "Must be binary for SIM Kelf");
-    const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
-
-    const kcc_int64 numPartitions   = sbAtomLoadWaveop->gNumPartitions();
-    const kcc_int64 numBytesPerPart = sbAtomLoadWaveop->gLength();
-    const kcc_int64 addressInPart   = sbAtomLoadWaveop->gSbAddress();
-    const kcc_int64 stepSize        = sbAtomLoadWaveop->gPartitionStepBytes();
-    const kcc_int64 startPart       = sbAtomLoadWaveop->gStartAtMidPart() ? arch::Arch::gArch().gNumberPeArrayRows()/2 : 0;
-
-    //************************************************************************
-
-    kcc_int64 npyFileDramOffset = m_WaveCode.getDramForNpyFile(sbAtomLoadWaveop->gRefFileName());
-    if (npyFileDramOffset < 0) { // Load whole numpy file to DRAM
-        compisa::SimWrNpyInstr simNpyToDramInstr;
-        AssignWithSizeCheck(simNpyToDramInstr.inst_events.wait_event_idx, 0);
-        AssignWithSizeCheck(simNpyToDramInstr.inst_events.wait_event_mode, eventWaitMode2Isa(events::EventWaitMode::DontWait));
-        AssignWithSizeCheck(simNpyToDramInstr.inst_events.set_event_idx, 0);
-        AssignWithSizeCheck(simNpyToDramInstr.inst_events.set_event_mode, eventSetMode2Isa(events::EventSetMode::DontSet));
-
-        const kcc_int64 numPySize = sbAtomLoadWaveop->gLoadDataSizeInBytes();
-        strcpy(simNpyToDramInstr.src_fname, sbAtomLoadWaveop->gRefFileName().c_str());
-        npyFileDramOffset           = m_WaveCode.gCurrentDramAddress(numPySize);
-
-        AssignWithSizeCheck(simNpyToDramInstr.dst_addr, npyFileDramOffset);
-        m_WaveCode.writeInstruction(simNpyToDramInstr);
-
-        WaveCode::NpyFileInfo npyFileInfo;
-        npyFileInfo.m_Dirty          = false;
-        npyFileInfo.m_FileDramOffset = npyFileDramOffset;
-        npyFileInfo.m_SimTypeId = sbAtomLoadWaveop->gDataType().gSimTypeId();
-        npyFileInfo.m_RefFileShape = sbAtomLoadWaveop->gRefFileShape();
-        m_WaveCode.recordDramForNpyFile(sbAtomLoadWaveop->gRefFileName(), npyFileInfo);
-    }
-
-
-    compisa::SimDmaCopyInstr simDmaCopyInstr;
-    AssignWithSizeCheck(simDmaCopyInstr.inst_events.wait_event_idx, 0);
-    AssignWithSizeCheck(simDmaCopyInstr.inst_events.wait_event_mode, eventWaitMode2Isa(events::EventWaitMode::DontWait));
-    AssignWithSizeCheck(simDmaCopyInstr.inst_events.set_event_idx, 0);
-    AssignWithSizeCheck(simDmaCopyInstr.inst_events.set_event_mode, eventSetMode2Isa(events::EventSetMode::DontSet));
-
-    events::EventId setEventId = 0; // events::EventId_Invalid();
-    events::EventSetMode setEventMode = events::EventSetMode::DontSet;
-    events::EventId waitEventId = 0; // events::EventId_Invalid();
-    events::EventWaitMode waitEventMode = events::EventWaitMode::DontWait;
-
-    //************************************************************************
-    if (qParallelStreams()) { // incoming events
-        processIncomingEdges(sbAtomLoadWaveop, waitEventId, waitEventMode);
-    } // end incoming events
-
-    AssignWithSizeCheck(simDmaCopyInstr.inst_events.wait_event_idx, waitEventId);
-    AssignWithSizeCheck(simDmaCopyInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(waitEventMode));
-
-    if (qParallelStreams()) { // Find first successor for embedded
-        findFirstSetEventIdMode(sbAtomLoadWaveop, setEventId,  setEventMode);
-    }
-
-    //************************************************************************
-    const kcc_int64 fileAddress = npyFileDramOffset + sbAtomLoadWaveop->gOffsetInFile() + (startPart * stepSize);
-    const TongaAddress sbStartTongaAddress = stateBuf.gEntryTongaAddress(startPart, addressInPart);
-
-    // DRAM
-    AssignWithSizeCheck(simDmaCopyInstr.src_start_addr, fileAddress);
-    AssignWithSizeCheck(simDmaCopyInstr.src_num_elem[0], numPartitions * numBytesPerPart);
-    AssignWithSizeCheck(simDmaCopyInstr.src_step_elem[0], 1);
-    AssignWithSizeCheck(simDmaCopyInstr.src_num_elem[1], 1);
-    AssignWithSizeCheck(simDmaCopyInstr.src_step_elem[1], 0);
-
-    // SB
-    AssignWithSizeCheck(simDmaCopyInstr.dst_start_addr, sbStartTongaAddress);
-    AssignWithSizeCheck(simDmaCopyInstr.dst_num_elem[0], numBytesPerPart);
-    AssignWithSizeCheck(simDmaCopyInstr.dst_step_elem[0], 1);
-    AssignWithSizeCheck(simDmaCopyInstr.dst_num_elem[1], numPartitions);
-    AssignWithSizeCheck(simDmaCopyInstr.dst_step_elem[1], stateBuf.gEntryTongaAddress(1, addressInPart) - stateBuf.gEntryTongaAddress(0, addressInPart));
-
-    // Should we assert that size <= 1?
-    if (succEventIds.size() > 0) {
-        AssignWithSizeCheck(simDmaCopyInstr.queue_idx, succEventIds[0]);
-    } else {
-        AssignWithSizeCheck(simDmaCopyInstr.queue_idx, 0);
-    }
-
-    {
-        std::ostringstream oss;
-        oss << sbAtomLoadWaveop->gOrder()
-            << ":" << succEventIds[0]
-            << "-" << sbAtomLoadWaveop->gName();
-        m_WaveCode.SaveName(simDmaCopyInstr, oss.str().c_str());
-    }
-    m_WaveCode.writeInstruction(simDmaCopyInstr, chosenEngId);
-}
 
 /***********************************************************************
 ***********************************************************************/

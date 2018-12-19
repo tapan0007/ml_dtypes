@@ -64,33 +64,33 @@ DmaDescription::gNumBlockIdsForQueue(const dma::DmaQueue* que) const
 
 /***********************************************************************
 ***********************************************************************/
-auto
+kcc_int32
 DmaDescription::startNewDmaBlockToTpb(const dma::DmaQueue* que, EngineId engId, bool qWeights, const char* comment)
-    -> DmaBlockToTpb&
 {
-    m_DmaBlocksToTpb.push_back(DmaBlockToTpb(*this, que, engId, qWeights, comment));
-    return m_DmaBlocksToTpb[m_DmaBlocksToTpb.size()-1];
+    DmaBlockToTpb block(this, que, engId, qWeights, comment);
+    m_DmaBlocksToTpb.push_back(block);
+    return m_DmaBlocksToTpb.size()-1;
 }
 
 
 /***********************************************************************
 ***********************************************************************/
-auto
+kcc_int32
 DmaDescription::startNewDmaBlockFromTpb(const dma::DmaQueue* que, EngineId engId, bool qOut, const char* comment)
-    -> DmaBlockFromTpb&
 {
-    m_DmaBlocksFromTpb.push_back(DmaBlockFromTpb(*this, que, engId, qOut, comment));
-    return m_DmaBlocksFromTpb[m_DmaBlocksFromTpb.size()-1];
+    DmaBlockFromTpb block(this, que, engId, qOut, comment);
+    m_DmaBlocksFromTpb.push_back(block);
+    return m_DmaBlocksFromTpb.size()-1;
 }
 
 /***********************************************************************
 ***********************************************************************/
-auto
+kcc_int32
 DmaDescription::startNewDmaBlockInput(const dma::DmaQueue* que, EngineId engId,  const char* comment)
-    -> DmaBlockInput&
 {
-    m_DmaBlocksInput.push_back(DmaBlockInput(*this, que, engId, comment));
-    return m_DmaBlocksInput[ m_DmaBlocksInput.size()-1];
+    DmaBlockInput block (this, que, engId, comment);
+    m_DmaBlocksInput.push_back(block);
+    return m_DmaBlocksInput.size()-1;
 }
 
 
@@ -552,6 +552,9 @@ DmaDescription::writeDefinitions(const char* peInstrFileName,
                     queDesc[Keys::gSemId()] = que->gSemaphoreId();
                 }
                 queDesc[Keys::gOwner()] = gEngineName(que->gEngineId());
+                if (! que->qFirstQueue()) {
+                    queDesc[Keys::gAxiPort()] = 1;
+                }
                 jDmaQueue[que->gName()]  = queDesc;
             }
         }
@@ -828,6 +831,11 @@ const char* DmaDescription::Keys::gQueueType()
 const char* DmaDescription::Keys::gOwner()
 {
     return "owner";
+}
+
+const char* DmaDescription::Keys::gAxiPort()
+{
+    return "axi_port";
 }
 
 const char* DmaDescription::Keys::gDmaBlock()

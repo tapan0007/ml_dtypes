@@ -158,7 +158,7 @@ private:
                           std::vector<wave::WaveOp*>& newWaveops);
 
     void determineQueuesAndSemaphoreValues();
-    const dma::DmaQueue* findQueue(const wave::SbAtomWaveOp* sbatomWop);
+    const dma::DmaQueue* findQueue(const wave::SbAtomWaveOp* sbatomWop, bool firstQueue);
 
     EventId gEventIdBetweenEngines(EngineId fromId, EngineId toId) const;
 

@@ -98,7 +98,6 @@ public:
     void rDmaQueue(const dma::DmaQueue* dmaQueue) {
         m_DmaQueue = dmaQueue;
     }
-
     kcc_int32 gTriggerOrd() const {
         return m_TriggerOrd;
     }

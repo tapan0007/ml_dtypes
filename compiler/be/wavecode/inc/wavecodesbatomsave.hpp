@@ -43,8 +43,6 @@ private:
     //                EngineId chosenEngId, const std::vector<events::EventId>& succEventIds);
     void generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop,
                     EngineId chosenEngId, const std::vector<events::EventId>& succEventIds);
-    void generateDmaCopySimKelf(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop,
-                    EngineId chosenEngId, const std::vector<events::EventId>& succEventIds);
 
     void calcOutputSize(const wave::SbAtomSaveWaveOp* sbAtomSaveWaveop);
 };

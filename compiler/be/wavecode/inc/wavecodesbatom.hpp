@@ -36,7 +36,6 @@ public:
 protected:
     void processOutgoingEdgesAlreadyEmb(wave::SbAtomWaveOp* waveop, events::EventId);
     void addDmaBarrier(const wave::SbAtomWaveOp* sbAtomWaveop, EngineId engId);
-    void addSecondDmaTrigger(compisa::DmaTriggerInstr& dmaTriggerInstr, EngineId chosenEngId);
 
     kcc_int32 findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWaveop,
                         EngineId& chosenEngId,

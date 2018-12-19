@@ -93,25 +93,6 @@ WaveCodeSbAtom::addDmaBarrier(const wave::SbAtomWaveOp* sbAtomWaveop, EngineId e
 } // WaveCodeSbAtom::addDmaBarrier
 
 //************************************************************************
-void
-WaveCodeSbAtom::addSecondDmaTrigger(
-    compisa::DmaTriggerInstr& dmaTriggerInstr, EngineId chosenEngId)
-{
-    enum {
-        TWO_DMA_TRIGGER_INST = 0,
-    };
-
-    if (TWO_DMA_TRIGGER_INST) {
-        // dummy
-        AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_idx, 0);
-        AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
-        AssignWithSizeCheck(dmaTriggerInstr.inst_events.set_event_idx, 0);
-        AssignWithSizeCheck(dmaTriggerInstr.inst_events.set_event_mode, events::eventSetMode2Isa(events::EventSetMode::DontSet));
-        m_WaveCode.SaveName(dmaTriggerInstr, "Second DMA_TRIGGER for non-atomic double WRITE");
-        m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
-    }
-} // WaveCodeSbAtom::addSecondDmaTrigger
-
 //======================================================================
 kcc_int32
 WaveCodeSbAtom::findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWaveop,

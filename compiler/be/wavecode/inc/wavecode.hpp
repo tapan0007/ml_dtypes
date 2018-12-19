@@ -115,14 +115,11 @@ public:
     bool qBinFileSimAngel() const {
         return BinFileType::SimAngel == m_BinFileType;
     }
-    bool qBinFileSimKelf() const {
-        return BinFileType::SimKelf == m_BinFileType;
-    }
     bool qBinFileRuntimeKelf() const {
         return BinFileType::RuntimeKelf == m_BinFileType;
     }
     bool qGenerateKelf() const {
-        return qBinFileSimKelf() || qBinFileRuntimeKelf();
+        return qBinFileRuntimeKelf();
     }
     void rBinFileType(BinFileType typ) {
         m_BinFileType = typ;

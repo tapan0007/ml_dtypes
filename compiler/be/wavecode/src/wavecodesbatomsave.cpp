@@ -146,12 +146,8 @@ WaveCodeSbAtomSave::generateForKelf(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop)
     /*const kcc_int32 numSyncs =*/ findSuccEventsAndChosenEngine(sbAtomSaveWaveop,
                                         chosenEngId, succEventIds);
 
-    if (m_WaveCode.qBinFileSimKelf()) {
-        generateDmaCopySimKelf(sbAtomSaveWaveop, chosenEngId, succEventIds);
-    } else{
-        // TODO: handle debug and off-load SbAtomSaves
-        generateDmaTriggerRuntimeKelf(sbAtomSaveWaveop, chosenEngId, succEventIds);
-    }
+    // TODO: handle debug and off-load SbAtomSaves
+    generateDmaTriggerRuntimeKelf(sbAtomSaveWaveop, chosenEngId, succEventIds);
 }
 
 
@@ -176,18 +172,19 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
     const bool qOut = sbAtomSaveWaveop-> qFinalLayerOfmap();
     std::ostringstream oss;
     oss << sbAtomSaveWaveop->gOrder() << "-" << sbAtomSaveWaveop->gName();
-    kelf::DmaDescription::DmaBlockFromTpb& dmaBlock(kelfDma.startNewDmaBlockFromTpb(
-                                        sbAtomSaveWaveop->gDmaQueue(), chosenEngId,
-                                        qOut, oss.str().c_str()));
+
+    const kcc_int32 blockIdx = kelfDma.startNewDmaBlockFromTpb(sbAtomSaveWaveop->gDmaQueue(), chosenEngId, qOut, oss.str().c_str());
+    kelf::DmaDescription::DmaBlockFromTpb* dmaBlock = kelfDma.gDmaBlockFromTpb(blockIdx);
+
     const std::string refFileName(sbAtomSaveWaveop->gRefFileName());
 
     for (kcc_int32 partIdx = startPart; partIdx < startPart + numPartitions; ++partIdx) {
         const TongaAddress  fileAddress = sbAtomSaveWaveop->gOffsetInFile() + (partIdx * stepSize);
         const TpbAddress    sbAddress = stateBuf.gEntryTpbAddress(partIdx, addressInPart);
-        dmaBlock.addDmaDesc(sbAddress, fileAddress, refFileName, numBytesPerPart);
+        dmaBlock->addDmaDesc(sbAddress, fileAddress, refFileName, numBytesPerPart);
     }
     for (auto eventId : succEventIds) {
-        dmaBlock.addTailEventId(eventId);
+        dmaBlock->addTailEventId(eventId);
     }
     //************************************************************************
     // Incoming events were processed in
@@ -210,10 +207,10 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
     addDmaBarrier(sbAtomSaveWaveop, chosenEngId);
     //************************************************************************
     compisa::DmaTriggerInstr dmaTriggerInstr;
-    dmaTriggerInstr.SetDmaQueueName(dmaBlock.gDmaQueue()->gName().c_str());
+    dmaTriggerInstr.SetDmaQueueName(dmaBlock->gDmaQueue()->gName().c_str());
 
     AssignWithSizeCheck(dmaTriggerInstr.use_raw_count, 0); // get from JSON
-    AssignWithSizeCheck(dmaTriggerInstr.block_id, dmaBlock.gBlockId());
+    AssignWithSizeCheck(dmaTriggerInstr.block_id, dmaBlock->gBlockId());
 
     AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_idx, 0);
     AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
@@ -226,56 +223,12 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
         m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
     }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
-    addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
 }
 
 
 
 
 
-
-//************************************************************************
-void
-WaveCodeSbAtomSave::generateDmaCopySimKelf(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop,
-                    EngineId chosenEngId, const std::vector<events::EventId>& succEventIds)
-{
-    Assert(m_WaveCode.qBinFileSimKelf(), "Must be binary for SIM Kelf");
-    const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
-
-    const kcc_int64 numPartitions   = sbAtomSaveWaveop->gNumPartitions();
-    const kcc_int64 numBytesPerPart = sbAtomSaveWaveop->gLength();
-    const kcc_int64 addressInPart   = sbAtomSaveWaveop->gSbAddress();
-    const kcc_int64 stepSize        = sbAtomSaveWaveop->gPartitionStepBytes();
-    const kcc_int64 startPart       = sbAtomSaveWaveop->gStartAtMidPart() ? arch::Arch::gArch().gNumberPeArrayRows()/2 : 0;
-
-    compisa::SimDmaCopyInstr simDmaCopyInstr;
-
-    const TongaAddress sbStartTongaAddress = stateBuf.gEntryTongaAddress(startPart, addressInPart);
-    const kcc_int64 fileAddress = sbAtomSaveWaveop->gOffsetInFile() + (startPart * stepSize);
-
-    // SB
-    AssignWithSizeCheck(simDmaCopyInstr.src_start_addr, sbStartTongaAddress);
-    AssignWithSizeCheck(simDmaCopyInstr.src_num_elem[0], numBytesPerPart);
-    AssignWithSizeCheck(simDmaCopyInstr.src_step_elem[0], 1);
-    AssignWithSizeCheck(simDmaCopyInstr.src_num_elem[1], numPartitions);
-    AssignWithSizeCheck(simDmaCopyInstr.src_step_elem[1], stepSize);
-
-    // DRAM
-    AssignWithSizeCheck(simDmaCopyInstr.dst_start_addr, fileAddress);
-    AssignWithSizeCheck(simDmaCopyInstr.dst_num_elem[0], numPartitions * numBytesPerPart);
-    AssignWithSizeCheck(simDmaCopyInstr.dst_step_elem[0], 1);
-    AssignWithSizeCheck(simDmaCopyInstr.dst_num_elem[1], 1);
-    AssignWithSizeCheck(simDmaCopyInstr.dst_step_elem[1], 0);
-
-    // Should we assert that size <= 1?
-    if (succEventIds.size() > 0) {
-        AssignWithSizeCheck(simDmaCopyInstr.queue_idx, succEventIds[0]);
-    } else {
-        AssignWithSizeCheck(simDmaCopyInstr.queue_idx, 0);
-    }
-
-    m_WaveCode.writeInstruction(simDmaCopyInstr, chosenEngId);
-}
 
 void
 WaveCodeSbAtomSave::calcOutputSize(const wave::SbAtomSaveWaveOp* sbAtomSaveWaveop)

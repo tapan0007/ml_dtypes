@@ -542,7 +542,9 @@ void WaveCode::writeInstruction<compisa::DmaTriggerInstr>(const compisa::DmaTrig
 template<>
 void WaveCode::writeInstruction<compisa::SimDmaCopyInstr>(const compisa::SimDmaCopyInstr& instruction, EngineId engId) const
 {
+#if 0
     Assert(qBinFileSimKelf(), "SimDmaCopy is available in SimKelf binary only");
+#endif
     instruction.CheckValidity();
     const kcc_int32 instSize = sizeof(instruction);
 

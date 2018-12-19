@@ -21,8 +21,12 @@
 
 
 namespace kcc {
-namespace wave {
 
+namespace dma {
+class DmaQueue;
+}
+
+namespace wave {
 
 class SbAtomLoadWaveOp : public SbAtomWaveOp {
 private:
@@ -78,8 +82,23 @@ public:
         return 0;
     }
 
+    const dma::DmaQueue* gDmaQueue1() const {
+        return m_DmaQueue1;
+    }
+    void rDmaQueue1(const dma::DmaQueue* dmaQueue) {
+        m_DmaQueue1 = dmaQueue;
+    }
+    kcc_int32 gTriggerOrd1() const {
+        return m_TriggerOrd1;
+    }
+    void rTriggerOrd1(kcc_int32 ord) {
+        m_TriggerOrd1 = ord;
+    }
+
 private:
     bool            m_ContainWeights    = false;
+    const dma::DmaQueue* m_DmaQueue1    = nullptr;
+    kcc_int32       m_TriggerOrd1       = -1;
 
     kcc_int32       m_IfmapReplicationNumRows       = -1;
     kcc_int32       m_IfmapReplicationResolution    = -1;
