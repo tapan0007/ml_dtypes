@@ -149,6 +149,10 @@ testConfigMap = {
     " --check_against_ref all_available --input_files input0:0=trivnet_input0:0.npy input1:0=trivnet_input1:0.npy "
     " --diff_options '--tolerance 3.0 1e-5' "],
 
+  # Matmul with the left operand being const
+  "0-matmul_leftconst_h64c256m64": [ "trivnet_matmul_leftconst", "tfloat16-wmin-1-wmax1-imin-1-imax1-h64-c256-m64", "1matmul_leftconst",
+    " --partition none --executors wave all --use_wc_2d_format " + MEv2("Generic"),
+    " --diff_options '--tolerance 3.0 1e-5' "],
 
   "0-rtl-10conv_h16c128m64_relu_wave"  : [ "trivnet_lin",    "tfloat16-l10-b1-h4-r3-s1-c1-m1-relu-wmin-0.39-wmax0.4-imin-0.1-imax0.2", "10cr", MEv2("Generic")],
   "0-rtl-10conv_h32c256m128_relu_wave" : [ "trivnet_lin",    "tfloat16-l10-b1-h4-r3-s1-c1-m1-relu-wmin-0.02-wmax0.4-imin-0.1-imax0.2", "10cr", MEv2("Generic")],

@@ -413,6 +413,11 @@ class NodeConst(Node):
     fileList = []
     npInfo = self.getNpInfo()[0]
     (tpbShape, simFormat, npFileSim) = self.convertShape(npInfo, tensorFormatMap)
+    # FIX_THIS: shorterm hack to get transformer working, tracked by kaena-1126
+    if self.getFanoutEdges(): # to prevent the case of a dangling const node
+      toNode = self.getFanoutEdges()[0].getToNode()
+      if toNode.getOpType() == 'MatMul' and toNode.getFaninEdges()[0].getFromNode() is self:
+        tpbShape, simFormat, npFileSim = self.convertShape(npInfo, tensorFormatMap, self.isConst())
 
     # Spec for future global format tracking
     #  (newShape, newFile) = npTt.translate("NC", npt.FmapsSIM, npt.FmapsopName, npInfo.npShape, npInfo.npFile)

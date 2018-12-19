@@ -173,6 +173,12 @@ class KNode:
                                                 contain_weights = True)
                     self.bias_file_params.layer_name =  prev_node.data['layer_name']
                     self.bias_file_params.load_file()
+                # FIXME: This is a quick hack that tries to determine whether
+                # it is the left operand of a matmul where in this case
+                # middle-end should treat it as fmaps. Tracked by kaena-1126
+                if self.data['layer_type'] == 'MatMul' and i == 0:
+                    prev_node.populate_ofmaps_file_params(const_tensor_load=True)
+                    break
                 del self.prev[i]
                 break
         # get output shape from current layer's data
