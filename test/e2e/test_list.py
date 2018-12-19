@@ -278,6 +278,12 @@ testConfigMap = {
   "0-1concat_h35c64m64ni4" : [ "trivnet_concat_variable_inputs",  "tfloat16-b1-h35-r1-s1-c64-m64-ni4-wmin2-wmax2.2-imin3-imax3.2", "1concat", MEv2("Generic")],
   "0-1concat_h35c63m127ni5" : [ "trivnet_concat_variable_inputs",  "tfloat16-b1-h35-r1-s1-c63-m127-ni5-wmin2-wmax2.2-imin3-imax3.2", "1concat", MEv2("Generic")],
 
+  "0-1_concat_multi" : [ "trivnet_concat_multi_inputs", 
+          "tfloat16-b1-h32-r1-s1-c256-m1-wmin2-wmax2.2-imin3-imax3.2 tfloat16-b1-h32-r1-s1-c64-m1-wmin-1-wmax1.2-imin-2-imax2.2", 
+          "1concat", 
+          " --images linspace1 linspace1 " + MEv2("Generic"), 
+          "--input_files input0:0=trivnet_input0:0.npy input1:0=trivnet_input1:0.npy "],
+
   "0-1concat_h16c63m127ni5_sem_qemu" : [
     "trivnet_concat_variable_inputs",
     "tfloat16-b1-h16-r1-s1-c63-m127-ni5-wmin2-wmax2.2-imin3-imax3.2",

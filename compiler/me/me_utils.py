@@ -1069,10 +1069,10 @@ class FileMapper():
                                 ):
         live_mapped_file_params.sort(key = lambda x : x.mapped_params.start_addr, reverse=False)
         num_live_tensors = len(live_mapped_file_params)
-        item_sz = live_mapped_file_params[0].item_sz
         # get list of free segments (start, length)
         list_of_seg = []
         for i in range(num_live_tensors):
+            item_sz = live_mapped_file_params[i].item_sz
             mapped_cur = live_mapped_file_params[i].mapped_params
             end_of_cur = mapped_cur.start_addr + mapped_cur.region_sz
             if (self.args.debug > 3):
@@ -1092,6 +1092,8 @@ class FileMapper():
                         mapped_cur.start_addr, mapped_cur.region_sz,
                         mapped_nxt.start_addr, mapped_nxt.region_sz):
                     list_of_seg.append((align_addr_8B(end_of_cur), mapped_nxt.start_addr - end_of_cur))
+        if list_of_seg == []:
+            list_of_seg.append((min_region_start, self.sb_partition_sz - min_region_start))
         #for i in list_of_seg:
         #    print("free (start, len) = (%d, %d), next start = %d"%(i[0], i[1], i[0]+i[1]))
         # sort list of free segments            

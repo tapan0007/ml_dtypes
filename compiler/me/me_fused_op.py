@@ -691,50 +691,33 @@ class FusedOp(list):
             # IFMAPs regions                    
             # Input/residue uses upper portion of the shared space
             is_graph_input = self.first_op.is_input or ifmaps_file_params.produce_op.data['layer_type'] == 'ConstLoad'
-            if is_graph_input and ifmaps_file_params.mapped_params is None:
-                if start_addr + ifmaps_region_sz >= tpb.statebuffer.file_mapper.sb_partition_sz:                    
-                    start_addr = bias_region_sz
-                ifmaps_region_start_addr = start_addr
-                ifmaps_region_sz = ifmaps_file_params.tot_partition_usage_sz_padded
-                if ifmaps_region_sz > (tpb.statebuffer.file_mapper.sb_partition_sz/4):
-                    if self.first_op.data["layer_type"] == "AvgPool" or self.first_op.data["layer_type"] == "Pool":
-                        if self.first_op.pool_window.x > 1:
-                            raise RuntimeError("Cannot support yet pooling with window size > 1 if IFMAP size (%d) takes more than quarter of SB partition. This requires wrapping around the region, causing discontinuity at the end of region. Feature required: breaking pool at the discontinuity."%(ifmaps_region_sz))
-                    # cap region size to be 4 chunks
-                    ifmaps_region_sz = 4 * ifmaps_file_params.chunk_sz_padded * ifmaps_file_params.fmap_channels_folds
-                #assert(ifmaps_file_params.mapped_params == None)
-                map_file(ifmaps_file_params, ifmaps_region_start_addr, wrap_around=True, region_sz=ifmaps_region_sz)
-                live_mapped_file_params.append(ifmaps_file_params)
-                # obtain the adjusted region size
-                ifmaps_region_sz = ifmaps_file_params.mapped_params.region_sz
-                start_addr       += align_addr_8B(ifmaps_region_sz)
-            else:            
-                assert(ifmaps_file_params.mapped_params != None)
-                ifmaps_region_start_addr = ifmaps_file_params.mapped_params.start_addr
-                ifmaps_region_sz  = ifmaps_file_params.mapped_params.region_sz
-            single_ifmap_start = ifmaps_region_start_addr
-
-            # check residue and map it if it's not mapped yet (case with two inputs to a join)
-            # (if it's mapped, it's likely shared SB space with OFMAP for ResAdd/Multiply)
-            residue_file_params = None
-            if self.has_join and not self.join_op.is_concat:
-                residue_file_params = self.join_op.prev[self.join_op.residue_index].ofmaps_file_params
-                if residue_file_params.mapped_params is None:
-                    residue_region_sz = residue_file_params.tot_partition_usage_sz_padded
-                    if start_addr + residue_region_sz >= tpb.statebuffer.file_mapper.sb_partition_sz:                    
+            for ifp in self.first_op.ifmaps_file_params_concat:
+                if is_graph_input and ifp.mapped_params is None:
+                    if start_addr + ifmaps_region_sz >= tpb.statebuffer.file_mapper.sb_partition_sz:                    
                         start_addr = bias_region_sz
-                    if residue_region_sz > (tpb.statebuffer.file_mapper.sb_partition_sz/4):
+                    ifmaps_region_start_addr = start_addr
+                    ifmaps_region_sz = ifp.tot_partition_usage_sz_padded
+                    if ifmaps_region_sz > (tpb.statebuffer.file_mapper.sb_partition_sz/4):
+                        if self.first_op.data["layer_type"] == "AvgPool" or self.first_op.data["layer_type"] == "Pool":
+                            if self.first_op.pool_window.x > 1:
+                                raise RuntimeError("Cannot support yet pooling with window size > 1 if IFMAP size (%d) takes more than quarter of SB partition. This requires wrapping around the region, causing discontinuity at the end of region. Feature required: breaking pool at the discontinuity."%(ifmaps_region_sz))
                         # cap region size to be 4 chunks
-                        residue_region_sz = 4 * residue_file_params.chunk_sz_padded * residue_file_params.fmap_channels_folds
+                        ifmaps_region_sz = 4 * ifp.chunk_sz_padded * ifp.fmap_channels_folds
+                    #assert(ifp.mapped_params == None)
                     start_addr = tpb.statebuffer.file_mapper.move_addr_to_first_free_section(
-                                          st_addr                 = ofmaps_region_start_addr
-                                        , region_sz               = ofmaps_region_sz
+                                          st_addr                 = ifmaps_region_start_addr
+                                        , region_sz               = ifmaps_region_sz
                                         , min_region_start        = bias_region_sz
                                         , live_mapped_file_params = live_mapped_file_params)
-                    map_file(residue_file_params, start_addr, wrap_around=True, region_sz=residue_region_sz)
-                    live_mapped_file_params.append(residue_file_params)
-                    residue_region_sz = residue_file_params.mapped_params.region_sz
-                    start_addr += align_addr_8B(residue_region_sz)
+                    map_file(ifp, start_addr, wrap_around=True, region_sz=ifmaps_region_sz)
+                    live_mapped_file_params.append(ifp)
+                    # obtain the adjusted region size
+                    start_addr       += align_addr_8B(ifmaps_region_sz)
+                # For overlap checking later, only use region info for the first IFMAP (do we still need this?)
+                if ifp == self.first_op.ifmaps_file_params_concat[0]: 
+                    ifmaps_region_start_addr = ifp.mapped_params.start_addr
+                    ifmaps_region_sz  = ifp.mapped_params.region_sz
+                    single_ifmap_start = ifmaps_region_start_addr
 
             # Weights region, align to 8B
             if self.has_conv:
@@ -770,10 +753,32 @@ class FusedOp(list):
                     weights_file_start_addr = weights_file_params.mapped_params.start_addr
                     # For dynamic weights, weights_file_params points to the ofmap
                     # of a predecessor of this matmul. It should be marked as live-in.
-                    if not (weights_file_params in live_mapped_file_params):
-                        live_mapped_file_params.append(weights_file_params)
-
+                    # JeffH: already taken care off by the above IFMAP loop
+                    #if not (weights_file_params in live_mapped_file_params):
+                    #    live_mapped_file_params.append(weights_file_params)
                 weights_region_start_addr = weights_file_start_addr
+
+            # get residue file params (to check if OFMAP can be mapped to same space as residue)
+            # map it if it's not mapped yet (case with two inputs to a join)
+            residue_file_params = None
+            if self.has_join and not self.join_op.is_concat:
+                residue_file_params = self.join_op.prev[self.join_op.residue_index].ofmaps_file_params
+                if residue_file_params.mapped_params is None:
+                    residue_region_sz = residue_file_params.tot_partition_usage_sz_padded
+                    if start_addr + residue_region_sz >= tpb.statebuffer.file_mapper.sb_partition_sz:                    
+                        start_addr = bias_region_sz
+                    if residue_region_sz > (tpb.statebuffer.file_mapper.sb_partition_sz/4):
+                        residue_region_sz = 4 * residue_file_params.chunk_sz_padded * residue_file_params.fmap_channels_folds
+                    start_addr = tpb.statebuffer.file_mapper.move_addr_to_first_free_section(
+                                          st_addr                 = start_addr 
+                                        , region_sz               = residue_region_sz
+                                        , min_region_start        = bias_region_sz
+                                        , live_mapped_file_params = live_mapped_file_params)
+                    map_file(residue_file_params, start_addr, wrap_around=True, region_sz=residue_region_sz)
+                    live_mapped_file_params.append(residue_file_params)
+                    residue_region_sz = residue_file_params.mapped_params.region_sz
+                    start_addr += align_addr_8B(residue_region_sz)
+
             # OFMAPs region
             if ofmaps_file_params.mapped_params is None:
                 if self.first_op.is_nop:
@@ -1103,7 +1108,7 @@ class FusedOp(list):
             dram_waveop_names = []
             if i==0:
                 for j in dram_weights_waveops:
-                    print("tamke:gen_matmuls:dram_weights_waveops = %s"%j["waveop_name"])
+                    #print("tamke:gen_matmuls:dram_weights_waveops = %s"%j["waveop_name"])
                     dram_waveop_names.append(j["waveop_name"])
             else:
                 # reuse weights loaded with first piece of broken matmul
@@ -1371,7 +1376,7 @@ class FusedOp(list):
             
             for i in dram_ifmaps_waveops: 
                 tpb.waveop_stream.add_linked(i, [], -1)
-
+#
             matmul_waveop = self.gen_matmul_waveop(
                     tpb, 
                     ifmap_pewave, 
@@ -2926,18 +2931,20 @@ class FusedOp(list):
                 list_of_accessors_wr = writers, 
                 list_of_accessors_rd = [[]],
                 waveop_list          = tpb.waveop_stream,
-                dram_waveops         = dram_weights_waveops,
+                dram_waveops         = dram_weights_waveops + dram_ifmaps_waveops,
                 relax_dependencies   = self.args.relax_dependencies,
                 full_dependencies    = self.args.full_dependencies)
         for i in range(len(mms)):
             #print ("mm_i name = %s"%mm_i['waveop_name'])
             if (i == 0):
                 weights = dram_weights_waveops
+                ifmaps = dram_ifmaps_waveops
             else:
                 weights = None
+                ifmaps = None
             if (first or self.args.full_dependencies):
               tpb.waveop_stream.add_linked(
-                  mms[i], weights, psum_bank_id, new_reader_morsels)
+                  mms[i], weights + ifmaps, psum_bank_id, new_reader_morsels)
             else:
               tpb.waveop_stream.add_linked(
                   mms[i], [], psum_bank_id, new_reader_morsels)
