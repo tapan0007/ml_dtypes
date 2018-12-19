@@ -107,7 +107,7 @@ pipeline {
             post {
                 always {
                     sh 'mkdir /artifact/starfish'
-                    sh 'for f in `find $TEST_DIR/starfish -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" `; do cp $f --parents  /artifact/starfish/; done; '
+                    sh 'for f in `find $TEST_DIR/starfish -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" -o -iname "*.csv"`; do cp $f --parents  /artifact/starfish/; done; '
                     archiveArtifacts artifacts:'starfish/**'
                     sh 'cp $TEST_DIR/starfish/RunAllReport.xml $WORKSPACE'
                     junit allowEmptyResults: true, testResults: 'RunAllReport.xml'
