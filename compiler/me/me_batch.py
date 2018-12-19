@@ -37,6 +37,7 @@ class BatchSBDataMap:
         #self.sb_scratch_sz =      [112*112*self.item_sz,     ofmap_sz_56x56x256*2,       28*28*self.item_sz*3,       28*28*self.item_sz*5,       14*14*2*self.item_sz*5,     14*14*2*self.item_sz*9,     7*7*4*self.item_sz*12,        7*7*4*self.item_sz*20 ]
         #self.sb_scratch_sz =      [112*112*self.item_sz,     ofmap_sz_56x56x256*2,       28*28*self.item_sz*2,       28*28*self.item_sz*4,       14*14*2*self.item_sz*4,     14*14*2*self.item_sz*8,     7*7*4*self.item_sz*8,        7*7*4*self.item_sz*16]
         self.sb_scratch_sz =      [112*112*self.item_sz,     56*56*2*self.item_sz*2,      28*28*self.item_sz*2,       28*28*self.item_sz*4,       14*14*2*self.item_sz*4,     14*14*2*self.item_sz*8,     7*7*4*self.item_sz*8,        7*7*4*self.item_sz*16]
+        self.sb_max_Tn =          [1,                        1,                           1,                          1,                          1,                          1,                          1,                           4]
         # (using 56*56 in sb_scratch_sz[1] to accomodate one-layer test that mimics ResNet50 input layer, ie. 3-1conv0_padvalid_wave)
 
         # Set of sizes for each current batch level and "pre-pairup" flag.

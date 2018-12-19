@@ -219,6 +219,12 @@ class KNode:
         self.ofmap_full_rect = Dim2D(self.F, self.E).make_rect()
         # compute batch folding and batching within wave, Tn cannot be greater than batch size N
         self.Tn = PEArray.MAX_WAVE_SIZE // self.EF
+        # kaena-390: For ResNet50 batch 16 manual mem allocation, there's not enough
+        # space to accomodate sub-batched residues with 512 entry PSUM.
+        # For example the final layer requires contiguos space for 8 batch items instead of 4.
+        # So if using 512 entry PSUM, cap Tn to be like 256 entry case.
+        if self.parent.args.nname == "resnet50":
+            self.Tn = 256 // self.EF
         if (self.Tn < 1):
             self.Tn = 1
         elif (self.Tn > self.N):

@@ -578,11 +578,16 @@ if __name__ == "__main__":
     parser.add_argument("--relax_dependencies", action='store_true', help="To prevent running out of events (kaena-403,449), this option when true would relax the dependency requirement (kaena-411)")
     parser.add_argument("--fuse_lrelu", action='store_true', help="Fuse the function max(y, a*y) into Lrelu activation function")
     parser.add_argument("--sb_partition_sz", type=int, default=96*1024-256, help="Size of one SB partition (to reserve space at end of SB for stress test)")
+    parser.add_argument("--psum_512_chunk_4k", action='store_true', help="Set PSUM to 256 and cap chunk size at 2KB (default is 512 PSUM entries and max 4KB chunk size")
     args = parser.parse_args()
 
     print("\nINFO: Middle Sched v2: Running in %s mode"%(args.nname))
     print("\nINFO: Started at time %s" % str(datetime.datetime.now()))
 
+    if args.psum_512_chunk_4k:
+        PEArray.MAX_WAVE_SIZE = 512
+        FileParams.chunk_sz_limit = 4096
+    print("\nINFO: %d PSUM entries and %d max chunk size" % (PEArray.MAX_WAVE_SIZE, FileParams.chunk_sz_limit))
 
     if (args.debug > 5): np.set_printoptions(threshold=np.nan)
 

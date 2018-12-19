@@ -11,6 +11,7 @@ while [[ $# > 0 ]]; do case $1 in
     -x) opts="$opts --enable_replication"; shift;;
     -c) opts="$opts --enable_cleanup"; shift;;
     -s) opts="$opts --save_layer_output"; shift;;
+    -p) opts="$opts --psum_512_chunk_4k"; shift;;
     -q) dbg="--debug 0"; shift;;
     -h) echo "run_mid: Run Middle-End on subgraph (be sure compiler.json exists)
         -d: Launch pdb
@@ -19,6 +20,7 @@ while [[ $# > 0 ]]; do case $1 in
         -c: Enable WaveGraph cleanup
         -s: Save all layers output
         -q: Quiet (debug level 0)
+        -p: 512 PSUM entries and 4KB max chunk size (default is 256 PSUM entries and 2KB max chunk size)
         <num>: Stop and dump results after <num> fused-ops"; 
         exit 0;
         shift;;

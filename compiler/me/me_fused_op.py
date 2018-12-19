@@ -1092,7 +1092,7 @@ class FusedOp(list):
             else:
                 next_break = break_at_y[i+1]
             fmap_y_num = next_break - break_at_y[i]
-            dst_psum_bank_offset = break_at_y[i] * ofmap_pewave.tile.tile_rect.dim2d.x
+            dst_psum_bank_offset = break_at_y[i] * dst_y_step
             dst_psum_bank_offset += ofmap_pewave.subtile_psum_offset
             assert(dst_psum_bank_offset < PEArray.MAX_WAVE_SIZE)
             fmap_sb_address = break_addr[i]
@@ -1683,11 +1683,13 @@ class FusedOp(list):
 
             ofmap_tile.set_tile_data_in_file(psum_temp)
             ofmap_pewave = PEWave(ofmap_tile, 0, 0, 0)
-            if not re.search("Reshape|Squeeze|ExpandDims", layer_type):
-                self.mark_producers_for_subtile_region(
-                        tpb          = tpb, 
-                        fmap_subtile = ofmap_pewave,
-                        waveop       = waveop)
+
+        if not re.search("Reshape|Squeeze|ExpandDims", layer_type):
+            self.mark_producers_for_subtile_region(
+                    tpb          = tpb, 
+                    fmap_subtile = ofmap_pewave,
+                    waveop       = waveop)
+
         return psum_temp
 
     # generate activation instruction and add it to instruction stream
@@ -3087,8 +3089,8 @@ class FusedOp(list):
                             # TODO: to simplify fix regular convolution so that we use cropped tile (like conv transpose)
                             # instead of padded tile
                             ofmap_tile.set_padded_tile_data_in_file(psum_temp)
-                        waveop = tpb.waveop_stream.last_psum_waveop[psum_bank_id]
-                        self.mark_producers_for_subtile_region(tpb, ofmap_tile.make_pewave(), waveop)
+                        #waveop = tpb.waveop_stream.last_psum_waveop[psum_bank_id]
+                        #self.mark_producers_for_subtile_region(tpb, ofmap_tile.make_pewave(), waveop)
                         psum_add = False
 
     # placeholders for quantization related functions
