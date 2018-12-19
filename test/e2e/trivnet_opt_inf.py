@@ -41,7 +41,7 @@ def transformGraphPb(inPb, outPb, inputs, outputs, transforms):
   graphDefNew = TransformGraph(graphDef, inputs,
                                outputs, transforms)
   tf.train.write_graph(graphDefNew, '.', outPb, as_text=False)
-  tf.train.write_graph(graphDefNew, '.', outPb + ".txt", as_text=True)
+  #tf.train.write_graph(graphDefNew, '.', outPb + ".txt", as_text=True)
   
   # Test it
   sess = tf.Session()

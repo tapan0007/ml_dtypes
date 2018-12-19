@@ -76,6 +76,14 @@ testConfigMap = {
       "trivnet_opt_inf", "resnet50_keras/resnet50_fp16_keras_opt2.pb--activation_46/Relu--fc1000/Softmax--float16--1,7,7,2048",
       "resnet50", kccOpts, rtOpts % 'trivnet_activation_49__Relu:0.npy' ],
 
+  # Full resnet50 without softmax
+  "7-rn50_single_sg_nosm_fp16" : [
+      "trivnet_opt_inf", "resnet50_keras/resnet50_fp16_keras_opt2.pb--input_1--fc1000/BiasAdd--float16--1,224,224,3",
+      "resnet50", kccOpts + ' --jf_data_layout native', rtOpts % 'trivnet_input_1:0.npy' ],
+  "7-rn50_single_sg_nosm_fp32" : [
+      "trivnet_opt_inf", "resnet50_keras/resnet50_fp32_keras_opt.pb--input_1--fc1000/BiasAdd--float32--1,224,224,3",
+      "resnet50", kccOpts + ' --jf_data_layout native', rtOpts % 'trivnet_input_1:0.npy' ],
+
 
 }
 
@@ -83,6 +91,7 @@ testConfigMap = {
 # Regression waiver mechanism
 testWaiver = [
   ['4-rn50_res_unit_act49_sm', 'WAIVE_SOFTMAX'],
+  ['7-rn50_single_sg_nosm_fp32', 'WAIVE_ME'],
 ]
 
 noGpuTestWaiver = [

@@ -102,6 +102,7 @@ parser.add_argument('--wavegraph_transform',
                     nargs='+', default=["cleaner","euler","cleaner"])
 parser.add_argument('--level_order_seed', help='Seed for randomization of Kgraph node order in compiler.json for stress testing of downstream flow, default is none which means alphabetic sort', type=int, default=None)
 parser.add_argument('--be_options', help='Additional BE options', nargs='+', default=[])
+parser.add_argument('--jf_data_layout', help=argparse.SUPPRESS, default=None)  # For sealife compatibility
 
 args = parser.parse_args()
 
