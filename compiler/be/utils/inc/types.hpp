@@ -350,6 +350,23 @@ TensorParams::end() const -> iterator
 extern TensorAluOpType gAluOpType(const char* tensorOp);
 extern const char* gAluOpTypeStr(TensorAluOpType opType);
 
+enum class PEPerfOptType {
+    None            = TONGA_ISA_TPB_PE_PERF_OPT_NONE,
+    DoubleRow       = TONGA_ISA_TPB_PE_PERF_OPT_DOUBLE_ROW,
+    DoubleColumn    = TONGA_ISA_TPB_PE_PERF_OPT_DOUBLE_COLUMN,
+    DoublePixel     = TONGA_ISA_TPB_PE_PERF_OPT_DOUBLE_PIXEL,
+};
+
+namespace PEPerfOptTypeStr {
+    constexpr static const char* None           = "none";
+    constexpr static const char* DoubleRow      = "double_row";
+    constexpr static const char* DoubleColumn   = "double_column";
+    constexpr static const char* DoublePixel    = "double_pixel";
+}
+
+extern PEPerfOptType gPEPerfOptType(const char*);
+extern const char* gPEPerfOptTypeStr(PEPerfOptType);
+
 }} // namespace utils, kcc
 
 #endif

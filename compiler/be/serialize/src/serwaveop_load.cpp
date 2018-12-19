@@ -193,9 +193,12 @@ SerWaveOp::loadMatMul(cereal::JSONInputArchive& archive)
 
     KCC_ARCHIVE(IsDynamicWeights);
 
-    if (utils::DataType::qNeedsQuantization(m_InDtype.c_str())) {
+    if (DataType::qNeedsQuantization(m_InDtype.c_str())) {
         KCC_ARCHIVE(QuantOffsetIfmaps);
         KCC_ARCHIVE(QuantOffsetWeights);
+        if (DataTypeId::Uint8 == DataType::dataTypeStr2Id(m_InDtype.c_str())) {
+            KCC_ARCHIVE(PEPerfOptMode);
+        }
     }
 }
 

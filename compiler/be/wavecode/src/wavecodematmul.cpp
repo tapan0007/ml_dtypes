@@ -131,9 +131,12 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
 
     AssignWithSizeCheck(ldweightsInstr.num_active_rows, matmulWaveop->gNumRowPartitions());
 
-    if (kcc::utils::DataTypeId::Uint8 == matmulWaveop->gInDtype().gDataTypeId()) {
-        ldweightsInstr.quant_offset_uint8[0] = static_cast<uint8_t>(matmulWaveop->gQuantOffsetWeights());
-    } else if (kcc::utils::DataTypeId::Uint16 == matmulWaveop->gInDtype().gDataTypeId()) {
+    if (utils::DataTypeId::Uint8 == matmulWaveop->gInDtype().gDataTypeId()) {
+        uint8_t quantOffsetWeights = static_cast<uint8_t>(matmulWaveop->gQuantOffsetWeights());
+        ldweightsInstr.quant_offset_uint8[0] = quantOffsetWeights;
+        ldweightsInstr.quant_offset_uint8[1] = quantOffsetWeights;
+        ldweightsInstr.perf_opt = static_cast<TONGA_ISA_TPB_PE_PERF_OPT_MODE>(matmulWaveop->gPEPerfOptMode());
+    } else if (utils::DataTypeId::Uint16 == matmulWaveop->gInDtype().gDataTypeId()) {
         ldweightsInstr.quant_offset_uint16 = matmulWaveop->gQuantOffsetWeights();
     }
 
@@ -261,9 +264,12 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop, bool SyncPrevWa
     AssignWithSizeCheck(matmulInstr.dst_mem_pattern.num_elem[PatDim_Z], matmulWaveop->gPsumZNum());
     AssignWithSizeCheck(matmulInstr.dst_mem_pattern.step_elem[PatDim_Z], matmulWaveop->gPsumZStep());
 
-    if (kcc::utils::DataTypeId::Uint8 == matmulWaveop->gInDtype().gDataTypeId()) {
-        matmulInstr.quant_offset_uint8[0] = static_cast<uint8_t>(matmulWaveop->gQuantOffsetIfmaps());
-    } else if (kcc::utils::DataTypeId::Uint16 == matmulWaveop->gInDtype().gDataTypeId()) {
+    if (utils::DataTypeId::Uint8 == matmulWaveop->gInDtype().gDataTypeId()) {
+        uint8_t quantOffsetIfmaps = static_cast<uint8_t>(matmulWaveop->gQuantOffsetIfmaps());
+        matmulInstr.quant_offset_uint8[0] = quantOffsetIfmaps;
+        matmulInstr.quant_offset_uint8[1] = quantOffsetIfmaps;
+        matmulInstr.perf_opt = static_cast<TONGA_ISA_TPB_PE_PERF_OPT_MODE>(matmulWaveop->gPEPerfOptMode());
+    } else if (utils::DataTypeId::Uint16 == matmulWaveop->gInDtype().gDataTypeId()) {
         matmulInstr.quant_offset_uint16 = matmulWaveop->gQuantOffsetIfmaps();
     }
 

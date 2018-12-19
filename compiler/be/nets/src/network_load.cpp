@@ -369,9 +369,12 @@ Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(IfmapReplicationResolution);
     KCC_UNSERIALIZE(IfmapReplicationShiftAmnt);
 
-    if (utils::DataType::qNeedsQuantization(PARAMS.m_InDtypeId)) {
+    if (DataType::qNeedsQuantization(PARAMS.m_InDtypeId)) {
         KCC_UNSERIALIZE(QuantOffsetIfmaps);
         KCC_UNSERIALIZE(QuantOffsetWeights);
+        if (DataTypeId::Uint8 == PARAMS.m_InDtypeId) {
+            PARAMS.m_PEPerfOptMode = gPEPerfOptType(serWaveOp.m_PEPerfOptMode.c_str());
+        }
     }
 
     KCC_UNSERIALIZE(IsDynamicWeights);

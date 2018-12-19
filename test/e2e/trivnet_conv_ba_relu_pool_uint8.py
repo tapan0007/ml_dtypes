@@ -8,7 +8,8 @@ from trivnet_common import conf
 
 
 def conv_ba_relu(input_uint8, min_input, max_input, 
-    filter_shape, min_filter, max_filter, stride, filter_uint8_np=None,
+    filter_shape, min_filter, max_filter, stride,
+    filter_uint8_np=None, padding=None,
     has_ba=False, min_bias=None, max_bias=None, bias_float32_np=None,
     has_relu=False, pool_type=None, pool_ksize=None, pool_stride=None,
     quantize_back=False, min_requantize=None, max_requantize=None):
@@ -17,12 +18,17 @@ def conv_ba_relu(input_uint8, min_input, max_input,
             size=filter_shape).astype(np.float32)
         filter_uint8_np = quantize_np(filter_float32_np,
             range_min=min_filter, range_max=max_filter)
+    if padding is None:
+        padding = 'SAME'
+    # if filter is 1x1, always convert to VALID to avoid stride 2 inconsistency
+    if filter_uint8_np.shape[0] * filter_uint8_np.shape[1] == 1:
+        padding = 'VALID'
     filter_uint8 = tf.constant(filter_uint8_np, dtype=tf.quint8, name='filter')
     conv_int32, _, _ = tf.nn.quantized_conv2d(
         input_uint8, filter_uint8,
         min_input=min_input, max_input=max_input,
         min_filter=min_filter, max_filter=max_filter,
-        strides=[1, stride, stride, 1], padding='SAME', out_type=tf.qint32,
+        strides=[1, stride, stride, 1], padding=padding, out_type=tf.qint32,
         name='quantized_conv2d')
     min_output_int32, max_output_int32 = min_max_output_int32(
         range_input=max_input-min_input, range_filter=max_filter-min_filter)
@@ -91,6 +97,7 @@ if __name__ == '__main__':
             min_filter=conf.WMIN, max_filter=conf.WMAX, stride=conf.S,
             has_relu=('HASRELU' in conf.__dict__))
         kwargs['has_ba'] = 'HASBA' in conf.__dict__
+        kwargs['padding'] = conf.padType
         if kwargs['has_ba']:
             kwargs['min_bias'] = conf.AMIN
             kwargs['max_bias'] = conf.AMAX

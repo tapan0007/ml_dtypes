@@ -1123,7 +1123,25 @@ class FusedOp(list):
                         dram_waveop_names.append(name)
 
             waveop_name = self.first_op.data['layer_name']+"/MatMul_"+ofmap_pewave.id_string+"__"+str(i)
-            if (self.args.debug > 2): print("DBG %s: MatMul wave %s subwave %d weights_sb_address %d, fmap_sb_address %d, fmap_y_num %d"%(self.first_op.data['layer_name'], waveop_name, i, weights_sb_address, fmap_sb_address, fmap_y_num))                
+            if (self.args.debug > 2): print("DBG %s: MatMul wave %s subwave %d weights_sb_address %d, fmap_sb_address %d, fmap_y_num %d"%(self.first_op.data['layer_name'], waveop_name, i, weights_sb_address, fmap_sb_address, fmap_y_num))
+
+            # uint8 performance mode adjustments
+            uint8_perf_opt = 'none'
+            if self.args.uint8_performance_mode and in_dtype == 'uint8':
+                mode_possible = set()
+                if self.first_op.data['layer_type'] == 'QuantizedConv':
+                    if self.first_op.stride.x == 1 and self.first_op.filter == Dim2D(1, 1):
+                        # double_pixel is possible if filter is 1x1 and stride == 1
+                        # because ifmap is guaranteed to be contiguous
+                        mode_possible.add('double_pixel')
+                if 'double_pixel' in mode_possible:
+                    num_elem_xy = fmap_x_num * fmap_y_num
+                    raveled_x_num = (num_elem_xy + 1) // 2
+                    fmap_x_step = dst_x_step = 2
+                    fmap_x_num = dst_x_num = raveled_x_num
+                    fmap_y_step = dst_y_step = num_elem_xy
+                    fmap_y_num = 1
+                    uint8_perf_opt = 'double_pixel'
             matmul_waveop.append({ 
                   'is_dynamic_weights'      : has_dynamic_weights,
                   'previous_waveops'        : dram_waveop_names,
@@ -1160,6 +1178,7 @@ class FusedOp(list):
                   'ifmap_replication_shift_amnt' : ifmap_replication_shift_amnt,
                   'quant_offset_ifmaps'     : quant_offset_ifmaps,
                   'quant_offset_weights'    : quant_offset_weights,
+                  'pe_perf_opt_mode'        : uint8_perf_opt,
                 })
             start_tensor_calc = False   # this is only true for the first MatMul, even when there's a break
         return matmul_waveop

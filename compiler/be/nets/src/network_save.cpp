@@ -189,6 +189,9 @@ Network::Save::saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
     if (matmulWaveOp->gInDtype().qNeedsQuantization()) {
         KCC_SERIALIZE(QuantOffsetIfmaps);
         KCC_SERIALIZE(QuantOffsetWeights);
+        if (DataTypeId::Uint8 == DataType::dataTypeStr2Id(serWaveOp.m_InDtype.c_str())) {
+            serWaveOp.m_PEPerfOptMode = gPEPerfOptTypeStr(matmulWaveOp->gPEPerfOptMode());
+        }
     }
 #undef WAVE_OP
 } // Network::Save::saveMatmul

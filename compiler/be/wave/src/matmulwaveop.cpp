@@ -47,6 +47,7 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
     , m_IfmapReplicationShiftAmnt(params.m_IfmapReplicationShiftAmnt)
     , m_QuantOffsetIfmaps(params.m_QuantOffsetIfmaps)
     , m_QuantOffsetWeights(params.m_QuantOffsetWeights)
+    , m_PEPerfOptMode(params.m_PEPerfOptMode)
     , m_IsDynamicWeights(params.m_IsDynamicWeights)
 {
     assert(params.verify());
@@ -190,6 +191,35 @@ MatMulWaveOp::Params::verify() const
     }
     if (m_WeightsSbAddress < -1) {
         return false;
+    }
+    if (DataTypeId::Uint8 == m_InDtypeId) {
+        switch (m_PEPerfOptMode) {
+            case PEPerfOptType::None:
+                break;
+            case PEPerfOptType::DoubleRow:
+                if (m_FmapXStep < 2) {
+                    // double_row: matmul src_x_step must be at least 2
+                    // TODO: we need to check ldweight src_x_step as well
+                    // but right now it is hard coded
+                    return false;
+                }
+                break;
+            case PEPerfOptType::DoubleColumn:
+                if (m_PsumXStep < 2) {
+                    // double_column: dst_x_step must be at least 2
+                    return false;
+                }
+                break;
+            case PEPerfOptType::DoublePixel:
+                if (m_FmapXStep < 2 || m_PsumXStep < 2) {
+                    // double_pixel: both matmul src_x_step and dst_x_step
+                    // must be at least 2
+                    return false;
+                }
+                break;
+            default:
+                return false;
+        }
     }
     return true;
 }

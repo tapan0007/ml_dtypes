@@ -579,6 +579,10 @@ if __name__ == "__main__":
     parser.add_argument("--fuse_lrelu", action='store_true', help="Fuse the function max(y, a*y) into Lrelu activation function")
     parser.add_argument("--sb_partition_sz", type=int, default=96*1024-256, help="Size of one SB partition (to reserve space at end of SB for stress test)")
     parser.add_argument("--psum_512_chunk_4k", action='store_true', help="Set PSUM to 256 and cap chunk size at 2KB (default is 512 PSUM entries and max 4KB chunk size")
+    parser.add_argument("--uint8_performance_mode", action='store_true',
+        help="uint8 matmul performance mode. Instruction level modes "
+        "'double_row', 'double_column', or 'double_pixel' are automatically "
+        "chosen per situation of each matmul instruction ")
     args = parser.parse_args()
 
     print("\nINFO: Middle Sched v2: Running in %s mode"%(args.nname))

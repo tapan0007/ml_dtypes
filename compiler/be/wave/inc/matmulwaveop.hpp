@@ -166,6 +166,9 @@ public:
     kcc_uint16 gQuantOffsetWeights() const {
         return m_QuantOffsetWeights;
     }
+    PEPerfOptType gPEPerfOptMode() const {
+        return m_PEPerfOptMode;
+    }
 
     bool qIsDynamicWeights() const {
         return m_IsDynamicWeights;
@@ -209,7 +212,9 @@ private:
 
     kcc_uint16      m_QuantOffsetIfmaps     = 0;
     kcc_uint16      m_QuantOffsetWeights    = 0;
-    bool            m_IsDynamicWeights     = false;
+    PEPerfOptType   m_PEPerfOptMode         = PEPerfOptType::None;
+
+    bool            m_IsDynamicWeights      = false;
 }; // class MatMulWaveOp : public WaveOp
 
 
@@ -252,8 +257,9 @@ public:
 
     kcc_uint16      m_QuantOffsetIfmaps     = 0;
     kcc_uint16      m_QuantOffsetWeights    = 0;
+    PEPerfOptType   m_PEPerfOptMode         = PEPerfOptType::None;
 
-    bool            m_IsDynamicWeights     = false;
+    bool            m_IsDynamicWeights      = false;
 };
 
 }}

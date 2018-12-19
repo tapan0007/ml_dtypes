@@ -193,6 +193,7 @@ constexpr static const char* Scale                = "scale";
 
 constexpr static const char* QuantOffsetIfmaps    = "quant_offset_ifmaps";
 constexpr static const char* QuantOffsetWeights   = "quant_offset_weights";
+constexpr static const char* PEPerfOptMode        = "pe_perf_opt_mode";
 
 //constexpr static const char* MulScalar            = "mul_scalar";
 //constexpr static const char* AddScalar            = "add_scalar";
@@ -487,6 +488,7 @@ public:
     // Quantize
     kcc_uint16                  m_QuantOffsetIfmaps             = 0;
     kcc_uint16                  m_QuantOffsetWeights            = 0;
+    std::string                 m_PEPerfOptMode                 = PEPerfOptTypeStr::None;
 
     // Everyone
     kcc_int32                   m_Order                         = -1;

@@ -207,10 +207,44 @@ gAluOpTypeStr(TensorAluOpType opType)
     CASE(Lt)
     CASE(Le)
     default:
-        break;
         Assert(false, "Wrong Tensor Alu Opcode ", static_cast<kcc_int32>(opType));
+        break;
     }
     return TensorAluTypeStr::Le;
+}
+#undef CASE
+
+#define ELSEIF(X)  } else if (0 == strcmp(perfOptCode, PEPerfOptTypeStr::X)) { return PEPerfOptType::X;
+
+PEPerfOptType
+gPEPerfOptType(const char* perfOptCode)
+{
+    if (0 == strcmp(perfOptCode, PEPerfOptTypeStr::None)) {
+        return PEPerfOptType::None;
+    ELSEIF(DoubleRow)
+    ELSEIF(DoubleColumn)
+    ELSEIF(DoublePixel)
+    } else {
+        Assert(false, "Wrong PE Perf Mode Code '", perfOptCode, "'");
+    }
+    return PEPerfOptType::None;
+}
+#undef ELSEIF
+#define CASE(X) case PEPerfOptType::X: return PEPerfOptTypeStr::X; break;
+
+const char*
+gPEPerfOptTypeStr(PEPerfOptType perfOptType)
+{
+    switch (perfOptType) {
+    CASE(None)
+    CASE(DoubleRow)
+    CASE(DoubleColumn)
+    CASE(DoublePixel)
+    default:
+        Assert(false, "Wrong PE Perf Mode Type ", static_cast<kcc_int32>(perfOptType));
+        break;
+    }
+    return PEPerfOptTypeStr::None;
 }
 #undef CASE
 

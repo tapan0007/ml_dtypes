@@ -125,6 +125,7 @@ TEST_ARGS_CHECK = --timeout 900 --test \
 5-rn50_nne_to_act4_wave-no_repl-t1_focus_to-qemu-all_layers \
 0-1conv_uint8_wave \
 0-1conv1ba1relu_b1h1r1s1c1m1_uint8_wave \
+0-1conv_h10r1_uint8_perf_wave \
 
 # Tests that will be run on emulator. These tests are run to check if RTL is fine.
 # Using parallel 1 till we figure out the lock issue
