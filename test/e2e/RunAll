@@ -831,16 +831,29 @@ class Ktests:
         # re.compile('allclose comparison failed'),
         re.compile('Allclose .+ result is FAIL'),
         re.compile(' File ".+", line \d+, in .*'),
+        re.compile('Error:\s\S| raise |AssertionError|Traceback'),
         ]
+      addLineRe = errRe[1]  # Special regexp for which we'll add next line
       if os.path.isfile(logFile):
         with open(logFile) as f:
+          addNextLine = False
           for l in f:
-            for text, mapVal in txt2map.items():
-              if text in l:
-                stage2pass.update(mapVal)
-            for regexp in errRe:
-              if re.search(regexp, l):
-                errText += l
+            if addNextLine:
+              errText += l
+              addNextLine = False
+            else:
+              for text, mapVal in txt2map.items():
+                if text in l:
+                  stage2pass.update(mapVal)
+              for regexp in errRe:
+                if re.search(regexp, l):
+                  errText += l
+                  if regexp == addLineRe:
+                    addNextLine = True
+      # Simplify the error text
+      errText = re.sub(r'(IndexError: index )\d+( is out of bounds for axis )\d+( with size )\d+', r'\1\2\3', errText)
+      errText = re.sub(r'(.*No such file or directory:).*', r'\1', errText)
+      errText = re.sub(r'(Allclose gold )\S+ vs new \S+( result is FAIL.+)', r'\1\2', errText)
       return stage2pass, errText
     
     fieldNames = ['TestName', 'TestStatus', 'JF', 'HH', 'HhSim', 'SF', 'WC1', 'WC2','SG', 'KCC', 'RT', 'ErrorCode', 'ErrorText']
