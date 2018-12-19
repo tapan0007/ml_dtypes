@@ -124,34 +124,6 @@ pipeline{
         }
         stage('test_emu') {
             stages {
-                stage('inst-sweep test') {
-                    steps {
-                        catchError {
-                            sh '''
-                            [ -z "$RUNNC_ARGS" ] || (cd $TEST_DIR/test_emu_sweep && export KAENA_ZEBU_SERVER=$ZEBU_SERVER && export KRT_INST_SWEEP_TEST_DIR=$KRT_BLD_DIR/tests/inst-sweep/ && export KRT_INST_SWEEP_OUTPUT_DIR=$TEST_DIR/test_emu_sweep && pytest $KAENA_RT_PATH/tests/inst-sweep/inst-sweep.py --junitxml=pytestResult.xml 2>&1 | tee log-pytest.txt)
-                            '''
-                        }
-                    }
-                    post {
-                        always {
-                            catchError {
-                               sh '''
-                               [ -z "$RUNNC_ARGS" ] || ([ -f $TEST_DIR/test_emu_sweep/pytestResult.xml ] && /bin/cp $TEST_DIR/test_emu_sweep/pytestResult.xml $WORKSPACE/.)
-                               '''
-                               junit allowEmptyResults: true, testResults: 'pytestResult.xml'
-                               sh 'mkdir /artifact/test_emu_sweep'
-                               sh 'find $TEST_DIR/test_emu_sweep -print0 | tar -czvf /artifact/test_emu_sweep/logs.tgz -T -'
-                               sh 'chmod -R a+wX /artifact/'
-                               archiveArtifacts artifacts:'test_emu_sweep/logs.tgz'
-                            }
-                        }
-                        failure {
-                            catchError {
-                                sh 'find $TEST_DIR/test_emu_sweep -type f -name "*.vdi" -delete'
-                            }
-                        }
-                    }
-                }
                 stage('non_compiler_test') {
                     steps {
                         catchError {
@@ -176,6 +148,34 @@ pipeline{
                         failure {
                             catchError {
                                 sh 'find $TEST_DIR/test_emu_non_compiler -type f -name "*.vdi" -delete'
+                            }
+                        }
+                    }
+                }
+                stage('inst-sweep test') {
+                    steps {
+                        catchError {
+                            sh '''
+                            [ -z "$RUNNC_ARGS" ] || (cd $TEST_DIR/test_emu_sweep && export KAENA_ZEBU_SERVER=$ZEBU_SERVER && export KRT_INST_SWEEP_TEST_DIR=$KRT_BLD_DIR/tests/inst-sweep/ && export KRT_INST_SWEEP_OUTPUT_DIR=$TEST_DIR/test_emu_sweep && pytest $KAENA_RT_PATH/tests/inst-sweep/inst-sweep.py --junitxml=pytestResult.xml 2>&1 | tee log-pytest.txt)
+                            '''
+                        }
+                    }
+                    post {
+                        always {
+                            catchError {
+                               sh '''
+                               [ -z "$RUNNC_ARGS" ] || ([ -f $TEST_DIR/test_emu_sweep/pytestResult.xml ] && /bin/cp $TEST_DIR/test_emu_sweep/pytestResult.xml $WORKSPACE/.)
+                               '''
+                               junit allowEmptyResults: true, testResults: 'pytestResult.xml'
+                               sh 'mkdir /artifact/test_emu_sweep'
+                               sh 'find $TEST_DIR/test_emu_sweep -print0 | tar -czvf /artifact/test_emu_sweep/logs.tgz -T -'
+                               sh 'chmod -R a+wX /artifact/'
+                               archiveArtifacts artifacts:'test_emu_sweep/logs.tgz'
+                            }
+                        }
+                        failure {
+                            catchError {
+                                sh 'find $TEST_DIR/test_emu_sweep -type f -name "*.vdi" -delete'
                             }
                         }
                     }
