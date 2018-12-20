@@ -50,7 +50,7 @@ pipeline{
                 sh 'cp /home/jenkins/.ssh/id_rsa /root/.ssh/id_rsa'
                 sh 'chmod 600 /root/.ssh/siopt-vpc.pem'
                 sh 'chmod 600 /root/.ssh/id_rsa'
-                sh 'rm -rf $TEST_DIR && mkdir -p $TEST_DIR/test_qemu_non_compiler'
+                sh 'rm -rf $TEST_DIR && mkdir -p $TEST_DIR/test_qemu_non_compiler && mkdir -p $TEST_DIR/test_inst_sweep'
                 sh '''
                 [ -f "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" ] && /bin/cp "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" /tmp/ubuntu-18.04-24G_pytest.qcow2
                 '''
@@ -137,6 +137,28 @@ pipeline{
                         }
                         failure {
                             sh 'find $TEST_DIR/test_qemu_non_compiler -type f -name "*.vdi" -delete'
+                        }
+                    }
+                }
+                stage('inst_sweep') {
+                    steps {
+                        sh '''
+                        cd $TEST_DIR/test_inst_sweep && export KRT_INST_SWEEP_TEST_DIR=$KRT_BLD_DIR/tests/inst-sweep/ && export KRT_INST_SWEEP_OUTPUT_DIR=$TEST_DIR/test_inst_sweep && pytest $KAENA_RT_PATH/tests/inst-sweep/inst-sweep.py --junitxml=pytestResult.xml 2>&1 | tee log-pytest.txt
+                        '''
+                    }
+                    post {
+                        always {
+                           sh '''
+                           ([ -f $TEST_DIR/test_inst_sweep/pytestResult.xml ] && /bin/cp $TEST_DIR/test_inst_sweep/pytestResult.xml $WORKSPACE/.)
+                           '''
+                           junit allowEmptyResults: true, testResults: 'pytestResult.xml'
+                           sh 'mkdir /artifact/test_inst_sweep'
+                           sh 'find $TEST_DIR/test_inst_sweep -print0 | tar -czvf /artifact/test_inst_sweep/logs.tgz -T -'
+                           sh 'chmod -R a+wX /artifact/'
+                           archiveArtifacts artifacts:'test_inst_sweep/logs.tgz'
+                        }
+                        failure {
+                            sh 'find $TEST_DIR/test_inst_sweep -type f -name "*.vdi" -delete'
                         }
                     }
                 }
