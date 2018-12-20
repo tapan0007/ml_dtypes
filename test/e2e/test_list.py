@@ -1042,6 +1042,7 @@ testConfigMap = {
   ### AmoebaNet tests
 
   # AvgPool in AmeobaNet
+  "0-1avgpool_wave_h65c1m1k1d2_valid"  : [ "trivnet_pool", "tfloat16-b1-h65-r1-s1-c1-m1-VALID-AvgPool-k1-d2-wmin-0.1-wmax0.2-imin1-imax1", "1pool", MEv2("Generic")],
   "0-1avgpool_wave_h149c1m1k1d2_valid"  : [ "trivnet_pool", "tfloat16-b1-h149-r1-s1-c1-m1-VALID-AvgPool-k1-d2-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1pool", MEv2("Generic")],
   "7-amoebanet_fp16_host" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --partition from predictions --executors host all --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
   "7-amoebanet_fp16_pool" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_stem_1/AvgPool_1 --partition from cell_stem_1/Relu %s --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp32 --size 299' --images %s" % (MEv2("Generic"), rnDogJpg), "--input_files %s" % (rnDogJpg)],
@@ -1113,6 +1114,16 @@ testConfigMap = {
     " --executors host 0 2 wave 1 --scheduler qemu_wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race --parallel_streams --partition from_multi Add,MatMul,MatMul_1,Mul,Mul_1 Softmax ",
     "--input_files prev:0=$KAENA_EXT_PATH/apps/tf/wavernn/prev_samp.npy cond:0=$KAENA_EXT_PATH/apps/tf/wavernn/cond_membed.npy init_state:0=$KAENA_EXT_PATH/apps/tf/wavernn/init_state.npy "
       ],
+
+  #Test for Merged embedding with Input gates
+  "2-wavernn_tf_ts0_w1_h02_membed_cb_dbg"     : [
+    #"tf_pb", "wavernn/wavernn_tf_ts1_membed_opt_fp16.pb","wavernn",
+    "tf_s3", "s3://kaena-nn-models", "wavernn_ts1_membed_opt_1078.pb",
+    "--input_node prev cond init_state --depth -1 --focus_to sub --show_op_name_in_kgraph "
+    "--images $KAENA_EXT_PATH/apps/tf/wavernn/prev_samp.npy $KAENA_EXT_PATH/apps/tf/wavernn/cond_membed.npy $KAENA_EXT_PATH/apps/tf/wavernn/init_state.npy "
+    " --executors host 0 2 wave 2 --scheduler qemu_wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race --parallel_streams --partition from_multi add_1 ",
+    "--input_files prev:0=$KAENA_EXT_PATH/apps/tf/wavernn/prev_samp.npy cond:0=$KAENA_EXT_PATH/apps/tf/wavernn/cond_membed.npy init_state:0=$KAENA_EXT_PATH/apps/tf/wavernn/init_state.npy "
+      ], 
 
   # transformer tests
 

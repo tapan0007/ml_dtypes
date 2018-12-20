@@ -205,10 +205,11 @@ constexpr static const char* Op0                  = "op0";
 constexpr static const char* Op1                  = "op1";
 constexpr static const char* ImmVal0              = "imm_val0";
 constexpr static const char* ImmVal1              = "imm_val1";
+constexpr static const char* Reverse0             = "reverse0";
+constexpr static const char* Reverse1             = "reverse1";
 constexpr static const char* ImmPtr0              = "imm_ptr0";
 constexpr static const char* ImmPtr1              = "imm_ptr1";
 constexpr static const char* IsDynamicWeights     = "is_dynamic_weights";
-
 
 constexpr static const char* PairLoadWaveOp    = "pair_load";
 constexpr static const char* PrevCopyWaveOp    = "prev_copy";
@@ -480,6 +481,8 @@ public:
     std::string                 m_Op;
     std::string                 m_Op0;
     std::string                 m_Op1;
+    bool                        m_Reverse0;
+    bool                        m_Reverse1;
     kcc_float32                 m_ImmVal0;
     kcc_float32                 m_ImmVal1;
     TpbAddress                  m_ImmPtr0;

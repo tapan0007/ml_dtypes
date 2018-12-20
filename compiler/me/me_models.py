@@ -179,19 +179,22 @@ class PEArray:
 """
 class Pool:
 
-    def resadd(self, array_a, array_b):
+    def resadd(self, array_a, array_b, reverse=False):
         result = copy.copy(array_a)
         num_chan = array_b.shape[1]
         result[:, 0:num_chan] += array_b
         return result
 
-    def sub(self, array_a, array_b):
+    def sub(self, array_a, array_b, reverse=False):
         result = copy.copy(array_a)
         num_chan = array_b.shape[1]
-        result[:, 0:num_chan] -= array_b
+        if reverse:
+            result[:, 0:num_chan]  = array_b - result[:, 0:num_chan]
+        else:
+            result[:, 0:num_chan] -= array_b    
         return result
 
-    def multiply(self, array_a, array_b):
+    def multiply(self, array_a, array_b, reverse=False):
         result = copy.copy(array_a)
         num_chan = array_b.shape[1]
         result[:, 0:num_chan] *= array_b
@@ -248,8 +251,7 @@ class Pool:
                 elif (type == "AvgPool"):                    
                     pool_result[j*ofmap_tile_sz : (j+1)*ofmap_tile_sz, i] = pool_result_temp.mean(axis=(2,3)).reshape(-1)
                 else:                    
-                    print("ERROR: unknown type %s Pool.pool"%type)
-                    exit(-1)
+                    raise RuntimeError("Unknown type %s Pool.pool"%type)
         return pool_result
 
     def pool2(self, type, in_array, stride, pool_window, Tn, ifmap_tilex_sz, ifmap_tiley_sz, ofmap_tilex_sz, ofmap_tiley_sz):
@@ -268,8 +270,7 @@ class Pool:
                 elif (type == "AvgPool"):                    
                     pool_result[j, i] = pool_result_temp.mean(axis=(2,3))
                 else:                    
-                    print("ERROR: unknown type %s Pool.pool"%type)
-                    exit(-1)
+                    raise RuntimeError("Unknown type %s Pool.pool"%type)
         return pool_result
 
     def reciprocate(self, in_array, num_active_channels):
@@ -280,15 +281,22 @@ class Pool:
     def scale(self, in_array, scale_value):
         return in_array*scale_value
 
-    def tensor_scalar_op(self, op_type, in_array, scalar):
+    def tensor_scalar_op(self, op_type, in_array, scalar, reverse=False):
         if op_type == 'Add':
             return in_array + scalar
+        elif op_type == 'Sub':
+            if reverse:
+                return scalar - in_array
+            else:
+                return in_array - scalar
         elif op_type == 'Multiply':
             return in_array * scalar
         elif op_type == 'Maximum':
             return np.maximum(in_array, scalar)
         elif op_type == 'Minimum':
             return np.minimum(in_array, scalar)
+        else:
+            raise RuntimeError("Unrecognized tensor_scalar_op %s"%op_type)
 
 
 """Bias-Add and Activate properties and methods

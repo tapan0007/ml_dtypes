@@ -27,6 +27,7 @@ TensorScalarWaveOp::TensorScalarWaveOp(
 
     for (auto i = 0; i < 2; ++i) {
         m_AluOp[i] = params.m_AluOp[i];
+        m_Reverse[i] = params.m_Reverse[i];
         m_ImmVal[i] = params.m_ImmVal[i];
     }
 

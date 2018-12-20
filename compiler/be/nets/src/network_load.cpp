@@ -610,6 +610,8 @@ Network::Load::loadTensorScalar(const serialize::SerWaveOp& serWaveOp)
     PARAMS.m_AluOp[1]  = utils::gAluOpType(serWaveOp.m_Op1.c_str());
     PARAMS.m_ImmVal[0]  = serWaveOp.m_ImmVal0;
     PARAMS.m_ImmVal[1]  = serWaveOp.m_ImmVal1;
+    PARAMS.m_Reverse[0]  = serWaveOp.m_Reverse0;
+    PARAMS.m_Reverse[1]  = serWaveOp.m_Reverse1;
 
     auto waveOp = new wave::TensorScalarWaveOp(PARAMS, prevWaveOps);
     Assert(waveOp->gName() == PARAMS.m_WaveOpName, "Wrong waveop name ", waveOp->gName());

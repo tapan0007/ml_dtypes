@@ -1254,7 +1254,8 @@ class NodeSimple2(Node):
           layerDataBase[0]["axis"] = np.asscalar(val.ravel()[0])
           layerDataBase[0]["#comment"] = "Insert new dimension of size 1 in the axis specified by \"axis\" field."
         else:
-          layerDataBase[0]["add_scalar"] = np.asscalar(val.ravel()[0])
+          layerDataBase[0]["scalar_val"] = np.asscalar(val.ravel()[0])
+          layerDataBase[0]["reverse_operands"] = op1IsInMainDataFlow
           layerDataBase[0]["#comment"] = "Element-wise operation on one input tensor and scalar."
       else:
         # Collapse the side node to a branch (except when it already is a real constant)
@@ -1393,7 +1394,8 @@ class NodeMultiply(Node):
         if isScalar[i]:
             val = npInfoIF[i].getValues()
             assert val.size == 1
-            layerData['mul_scalar'] = np.asscalar(val.ravel()[0])
+            layerData['scalar_val'] = np.asscalar(val.ravel()[0])
+            layerData["reverse_operands"] = False
         else:
             layerData["previous_layers"].insert(0, fromIfNode[i].getName()),
 

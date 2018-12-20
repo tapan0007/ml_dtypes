@@ -27,6 +27,7 @@ TensorScalarPtrWaveOp::TensorScalarPtrWaveOp(
 
     for (auto i = 0; i < 2; ++i) {
         m_AluOp[i] = params.m_AluOp[i];
+        m_Reverse[i] = params.m_Reverse[i];
         m_ImmPtr[i] = params.m_ImmPtr[i];
     }
 

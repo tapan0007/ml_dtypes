@@ -215,6 +215,8 @@ def gen_dequantize_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_p
         'op1'                     : scalar_op[1],
         'imm_val0'                : scalar_val[0],
         'imm_val1'                : scalar_val[1],
+        'reverse0'                : False,
+        'reverse1'                : False,
         **waveop,
     }
     tpb.waveop_stream.add_linked(instr, dram_waveops, psum_bank_src if src_is_psum else -1)
@@ -296,6 +298,8 @@ def gen_quantize_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_psu
         'op1'                     : scalar_op[1],
         'imm_val0'                : scalar_val[0],
         'imm_val1'                : scalar_val[1],
+        'reverse0'                : False,
+        'reverse1'                : False,
         **waveop,
     }
     tpb.waveop_stream.add_linked(instr, dram_waveops, psum_bank_src if src_is_psum else -1)

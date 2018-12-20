@@ -15,10 +15,12 @@ i0 = tf.placeholder(conf.tfDataType, shape=IF1.shape, name="input")
 i1 = tf.nn.bias_add(i0, w, name=conf.netName + "/i1")
 if conf.joinType == "SUB":
     i2 = i1 - i0
+    i3 = 1 - i2 
 else:    
     i2 = tf.add(i1, i0, name=conf.netName + "/i2")
+    i3 = 1 + i2 
 
-output = tf.identity(i2, name=conf.netName+"/output")
+output = tf.identity(i3, name=conf.netName+"/output")
 
 i0val  = conf.gen_array_rand(conf.IMIN, conf.IMAX, IF1.shape)
 

@@ -94,12 +94,16 @@ public:
     TensorAluOpType gOp(kcc_int32 i) const {
         return gAluOp(i);
     }
+    bool qReverse(kcc_int32 i) const {
+        return m_Reverse[i];
+    }
     TpbAddress gImmPtr(kcc_int32 i) const {
         return m_ImmPtr[i];
     }
 
 private:
     TensorAluOpType m_AluOp[2];   // operation in Pool ALU
+    bool            m_Reverse[2];
     TpbAddress      m_ImmPtr[2];
 
     const DataType& m_InDtype;
@@ -134,6 +138,7 @@ public:
     DataTypeId      m_InDtypeId            = DataTypeId::None;
 
     TensorAluOpType m_AluOp[2];
+    bool            m_Reverse[2];
     TpbAddress      m_ImmPtr[2];
 
     /* 3 dimensions for src/dst to support batching.  If this instruction runs

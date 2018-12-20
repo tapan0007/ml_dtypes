@@ -310,6 +310,8 @@ SerWaveOp::saveTensorScalar(cereal::JSONOutputArchive& archive) const
 
     KCC_ARCHIVE(Op0);
     KCC_ARCHIVE(Op1);
+    KCC_ARCHIVE(Reverse0);
+    KCC_ARCHIVE(Reverse1);
     KCC_ARCHIVE(ImmVal0);
     KCC_ARCHIVE(ImmVal1);
 }
@@ -327,6 +329,8 @@ SerWaveOp::saveTensorScalarPtr(cereal::JSONOutputArchive& archive) const
 
     KCC_ARCHIVE(Op0);
     KCC_ARCHIVE(Op1);
+    KCC_ARCHIVE(Reverse0);
+    KCC_ARCHIVE(Reverse1);
     KCC_ARCHIVE(ImmPtr0);
     KCC_ARCHIVE(ImmPtr1);
 }

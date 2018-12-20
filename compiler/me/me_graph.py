@@ -197,13 +197,13 @@ class KNode:
             #raise RuntimeError("no more input to choose from when trying to decided the main input for layer %s"%(self.data['layer_name']))
             input_layer = self.prev[prev_index].data
             self.ifmaps_file_params = self.prev[prev_index].ofmaps_file_params
-            self.prev[prev_index].ofmaps_file_params.readers_of_shared_fmap.append(self)
             self.N, self.C, self.H, self.W = self.ifmaps_file_params.get_nchw_shape()
             # taemk :
             # Create a separate container for ifmap file params of Concat
             # operation
             self.ifmaps_file_params_concat = []
             for i in range(len(self.prev)):
+                self.prev[i].ofmaps_file_params.readers_of_shared_fmap.append(self)
                 self.prev[i].ofmaps_file_params.consumers.append(self)
                 self.ifmaps_file_params_concat.append(\
                     self.prev[i].ofmaps_file_params)
@@ -956,10 +956,10 @@ class KGraph:
                                 if other_prev_layer in self.node_dict \
                                         and prev_node.prev[0] == self.node_dict[other_prev_layer]:
                                     # Lrelu: check if the other branch comes from fork before Multiply
-                                    mult_scalar = prev_node.data['mul_scalar']
+                                    mult_scalar = prev_node.data['scalar_val']
                                     mult_prev = prev_node.data['previous_layers']
                                     new_node.dissolve_node(prev_node)
-                                    new_node.data['mul_scalar'] = mult_scalar
+                                    new_node.data['scalar_val'] = mult_scalar
                                     new_node.data['previous_layers'] = mult_prev
                                     new_node.data['layer_type'] = 'Lrelu'
                                 else:

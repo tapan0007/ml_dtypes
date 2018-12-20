@@ -811,14 +811,15 @@ class FileParams():
                 else:
                     multiple = self.chunk_sz_limit // ifmap_width_data_len
                     multiple = min(self.file_dims.H, multiple)
-                    if repl_multiple_of_C > 1:
-                        multiple = (multiple // self.stride.x) * self.stride.x
+                    #if repl_multiple_of_C > 1:
+                    multiple = (multiple // self.stride.x) * self.stride.x
                     # eliminate skip atoms by requiring atom size is multiple of tile size 
                     if (input_fmap_full_tiley_sz < multiple):
                         multiple = (multiple//input_fmap_full_tiley_sz) * input_fmap_full_tiley_sz
                     elif (self.fmap_full_tiley_sz < multiple):
                         multiple = (multiple//self.fmap_full_tiley_sz) * self.fmap_full_tiley_sz
                     self.chunk_sz = ifmap_width_data_len * min(self.file_dims.H, multiple)
+                    print(multiple, ifmap_width_data_len, self.chunk_sz)
             if repl_multiple_of_C > 1:
                 # BE performs the DMAs necessary for replication, so need to compress when translating from chunk size to atom size
                 self.repl_chunk2atom_compress_ratio = self.stride.x * self.stride.x
@@ -867,8 +868,13 @@ class FileParams():
         # Only for weights/bias, input IFMAP and final OFMAP.
         # Internal layers will gang-up pairs of chunks (FP16) to satisfy 4B alignment requirement.
         if self.contain_weights or self.final_layer_ofmap or self.share_w_final_layer_ofmap or self.input_layer_ifmap:
-            self.chunk_sz_padded                      = align_addr_NB(self.chunk_sz, 8 * self.repl_chunk2atom_compress_ratio)                
-            self.fmap_data_len_padded                 = align_addr_NB(self.fmap_data_len, 8 * self.repl_chunk2atom_compress_ratio)
+            # weights and replicated IFMAP requires 8B alignment
+            alignment = 8
+            # For non-replicated inputs, ok with 4B alignment (relax for pooling cases)
+            if self.final_layer_ofmap or self.share_w_final_layer_ofmap or (self.input_layer_ifmap and self.repl_chunk2atom_compress_ratio == 1):
+                alignment = 4
+            self.chunk_sz_padded                      = align_addr_NB(self.chunk_sz, alignment * self.repl_chunk2atom_compress_ratio)                
+            self.fmap_data_len_padded                 = align_addr_NB(self.fmap_data_len, alignment * self.repl_chunk2atom_compress_ratio)
         self.batch_item_partition_usage_sz_padded     = self.fmap_data_len_padded * self.fmap_channels_folds
         self.batch_item_partition_usage_elems_padded  = self.fmap_data_len_padded * self.fmap_channels_folds // self.item_sz
         self.tot_partition_usage_sz_padded            = self.batch_item_partition_usage_sz_padded * self.file_dims.N
@@ -1037,6 +1043,7 @@ class FileMapper():
             region_sz: size of region
             min_region_start: if address exceeds SB size, wrap around to this address
             live_mapped_file_params: current list of SB mapped tensor files that should remain (since they are still being used, and we don't want to evict unless we have to) 
+            allow_wrap: if True, allow wrap-around (circular-buffer)
         return:
             st: newly allocated start address
     """
@@ -1045,25 +1052,45 @@ class FileMapper():
                                           , region_sz
                                           , min_region_start
                                           , live_mapped_file_params
+                                          , allow_wrap = False
+                                          , max_num_chunks = -1
+                                          , chunk_sz = 1
                                          ):
-        st = st_addr
-        if st < min_region_start:
-            st = min_region_start
+        wrap = False
         if self.args.debug > 1:
-            print("DBG: checking for overlap, start addr %d size %d, against %d live mapped files"%(st_addr, region_sz, len(live_mapped_file_params)))
+            print("DBG: checking start addr %d size %d, against %d live mapped files (allow wrap %d, max num chunks %d, chunk sz %d)"%(st_addr, region_sz, len(live_mapped_file_params), allow_wrap, max_num_chunks, chunk_sz))
 
         list_of_seg = self.get_list_of_free_sections(min_region_start, live_mapped_file_params)
 
         # find the smallest free segment that fits
         st = -1
+        sz = region_sz
+        largest_seg = list_of_seg[-1]
         for i in list_of_seg:
             if region_sz <= i[1]:
                 st = i[0]
+                largest_seg = i
+                break
+        if allow_wrap and len(list_of_seg) > 0:
+            if (st < 0) or (region_sz > self.sb_partition_sz // 6):
+                # if region_sz too large, and wrap-around is allowed, compute the wrap-around region size
+                max_region_sz = min(largest_seg[1], self.sb_partition_sz // 6)
+                if region_sz > max_region_sz:
+                    multiplier = max_region_sz // chunk_sz
+                    if multiplier > 0:
+                        if max_num_chunks > 0:
+                            multiplier = min(multiplier, max_num_chunks)
+                        wrap = True
+                        sz = multiplier * chunk_sz
+                        for i in list_of_seg:
+                            if sz <= i[1]:
+                                st = i[0]
+                                break
         if st < 0:
             for i in list_of_seg:
                 print("free (start, len) = (%d, %d), next start = %d"%(i[0], i[1], i[0]+i[1]))
-            raise RuntimeError("Couldn't find empty space for start addr %d size %d"%(st_addr, region_sz))
-        return st
+            raise RuntimeError("Couldn't find empty space for start addr %d size %d (allow wrap %d, max num chunks %d, chunk sz %d)"%(st_addr, region_sz, allow_wrap, max_num_chunks, chunk_sz))
+        return (st, wrap, sz)
 
     """Get list of free sections
     """
@@ -1075,10 +1102,11 @@ class FileMapper():
         num_live_tensors = len(live_mapped_file_params)
         # get list of free segments (start, length)
         list_of_seg = []
+        min_region_st_aligned = align_addr_NB(min_region_start, 64)
         for i in range(num_live_tensors):
             item_sz = live_mapped_file_params[i].item_sz
             mapped_cur = live_mapped_file_params[i].mapped_params
-            end_of_cur = mapped_cur.start_addr + mapped_cur.region_sz
+            end_of_cur = align_addr_NB(mapped_cur.start_addr + mapped_cur.region_sz, 64)
             if (self.args.debug > 3):
                 print("%d: (current) start %d size %d (%s)"%(i, mapped_cur.start_addr, mapped_cur.region_sz, live_mapped_file_params[i].file_name))
             if i+1 < num_live_tensors:
@@ -1088,16 +1116,16 @@ class FileMapper():
             else:
                 mapped_nxt = None
             if len(list_of_seg) == 0:
-                list_of_seg.append((align_addr_8B(min_region_start), mapped_cur.start_addr - min_region_start))
+                list_of_seg.append((min_region_st_aligned, mapped_cur.start_addr - min_region_st_aligned))
             if mapped_nxt is None:
-                list_of_seg.append((align_addr_8B(end_of_cur), self.sb_partition_sz - end_of_cur))
+                list_of_seg.append((end_of_cur, self.sb_partition_sz - end_of_cur))
             else:
                 if not self.check_overlap(
                         mapped_cur.start_addr, mapped_cur.region_sz,
                         mapped_nxt.start_addr, mapped_nxt.region_sz):
-                    list_of_seg.append((align_addr_8B(end_of_cur), mapped_nxt.start_addr - end_of_cur))
+                    list_of_seg.append((end_of_cur, mapped_nxt.start_addr - end_of_cur))
         if list_of_seg == []:
-            list_of_seg.append((min_region_start, self.sb_partition_sz - min_region_start))
+            list_of_seg.append((min_region_st_aligned, self.sb_partition_sz - min_region_st_aligned))
         #for i in list_of_seg:
         #    print("free (start, len) = (%d, %d), next start = %d"%(i[0], i[1], i[0]+i[1]))
         # sort list of free segments            

@@ -13,7 +13,7 @@ import numpy as np
 import math
 from me_models import PEArray
 from me_utils import ceildiv
-from me_utils import align_addr_8B
+from me_utils import align_addr_NB
 from me_utils import Coord
 from me_utils import Dim2D
 from me_utils import Rect
@@ -521,7 +521,7 @@ class FusedOp(list):
         #assert(ofmap_file_params.mapped_params != None)
         #file_start_addr = check_overlap(ofmap_file_params, file_start_addr)
         ifmap_ofmap_file_params = self.first_op.ifmaps_file_params_concat + [ofmap_file_params]
-        file_start_addr = tpb.statebuffer.file_mapper.move_addr_to_first_free_section(
+        (file_start_addr, wrap_around, file_sz) = tpb.statebuffer.file_mapper.move_addr_to_first_free_section(
                                   st_addr                 = file_start_addr 
                                 , region_sz               = file_sz
                                 , min_region_start        = bias_region_sz
@@ -529,11 +529,11 @@ class FusedOp(list):
         tpb.statebuffer.file_mapper.map_file(\
                                              file_params\
                                              , file_start_addr\
-                                             , wrap_around=False\
+                                             , wrap_around=wrap_around\
                                              , region_sz=file_sz\
                                             )
         tpb.statebuffer.next_nonbias_file_start = file_start_addr\
-                + align_addr_8B(file_params.tot_partition_usage_sz_padded)
+                + align_addr_NB(file_params.tot_partition_usage_sz_padded, 64)
         return
 
     def print_SB_addr (self, file_params):
@@ -708,28 +708,26 @@ class FusedOp(list):
             # IFMAPs regions                    
             # Input/residue uses upper portion of the shared space
             is_graph_input = self.first_op.is_input or ifmaps_file_params.produce_op.data['layer_type'] == 'ConstLoad'
+            is_pool_type = self.first_op.data["layer_type"] == "AvgPool" or self.first_op.data["layer_type"] == "MaxPool"
             for ifp in self.first_op.ifmaps_file_params_concat:
                 if is_graph_input and ifp.mapped_params is None:
                     if start_addr + ifmaps_region_sz >= tpb.statebuffer.file_mapper.sb_partition_sz:                    
                         start_addr = bias_region_sz
                     ifmaps_region_start_addr = start_addr
                     ifmaps_region_sz = ifp.tot_partition_usage_sz_padded
-                    if ifmaps_region_sz > (tpb.statebuffer.file_mapper.sb_partition_sz/4):
-                        if self.first_op.data["layer_type"] == "AvgPool" or self.first_op.data["layer_type"] == "Pool":
-                            if self.first_op.pool_window.x > 1:
-                                raise RuntimeError("Cannot support yet pooling with window size > 1 if IFMAP size (%d) takes more than quarter of SB partition. This requires wrapping around the region, causing discontinuity at the end of region. Feature required: breaking pool at the discontinuity."%(ifmaps_region_sz))
-                        # cap region size to be 4 chunks
-                        ifmaps_region_sz = 4 * ifp.chunk_sz_padded * ifp.fmap_channels_folds
-                    #assert(ifp.mapped_params == None)
-                    start_addr = tpb.statebuffer.file_mapper.move_addr_to_first_free_section(
+                    (ifmaps_region_start_addr, wrap_around, ifmaps_region_sz) \
+                            = tpb.statebuffer.file_mapper.move_addr_to_first_free_section(
                                           st_addr                 = ifmaps_region_start_addr
                                         , region_sz               = ifmaps_region_sz
                                         , min_region_start        = bias_region_sz
-                                        , live_mapped_file_params = live_mapped_file_params)
-                    map_file(ifp, start_addr, wrap_around=True, region_sz=ifmaps_region_sz)
+                                        , live_mapped_file_params = live_mapped_file_params
+                                        , allow_wrap              = not (is_pool_type and self.first_op.pool_window.x > 1)
+                                        , max_num_chunks          = 4
+                                        , chunk_sz                = ifp.chunk_sz_padded)
+                    map_file(ifp, ifmaps_region_start_addr, wrap_around=wrap_around, region_sz=ifmaps_region_sz)
                     live_mapped_file_params.append(ifp)
                     # obtain the adjusted region size
-                    start_addr       += align_addr_8B(ifmaps_region_sz)
+                    start_addr       = ifmaps_region_start_addr + align_addr_NB(ifmaps_region_sz, 64)
                 # For overlap checking later, only use region info for the first IFMAP (do we still need this?)
                 if ifp == self.first_op.ifmaps_file_params_concat[0]: 
                     ifmaps_region_start_addr = ifp.mapped_params.start_addr
@@ -741,30 +739,19 @@ class FusedOp(list):
                 if weights_file_params.mapped_params is None:
                     wrap_around = False
                     weights_file_start_addr = start_addr
-                    # Ff weights file is too large, make intake buffer a circular buffer.
-                    # Due to channel folding there's high chance of thrashing (high eviction rate) with a factor of 4,
-                    # so use an odd factor say 7.
-                    largest_free_section = tpb.statebuffer.file_mapper.get_list_of_free_sections(
-                                                      min_region_start        = bias_region_sz
-                                                    , live_mapped_file_params = live_mapped_file_params)[-1]
-                    if weights_file_sz > largest_free_section[1]:
-                        multiplier = largest_free_section[1] // weights_file_params.chunk_sz_padded
-                        if multiplier == 0:
-                            raise RuntimeError("Can't fit file of size %d into the largest free section size %d at address %d"%(weights_file_sz, largest_free_section[1], largest_free_section[0]))
-                        weights_file_sz = multiplier * weights_file_params.chunk_sz_padded
-                        weights_file_start_addr = largest_free_section[0]
-                        wrap_around = True
-                        #print("largest_free_section ", largest_free_section, " chunk_sz_x_chan_folds ",  chunk_sz_x_chan_folds,  " chunk_sz_padded ", weights_file_params.chunk_sz_padded, " fmap_channels_folds ", weights_file_params.fmap_channels_folds)
-                    weights_file_start_addr = tpb.statebuffer.file_mapper.move_addr_to_first_free_section(
+                    (weights_file_start_addr, wrap_around, weights_file_sz) \
+                            = tpb.statebuffer.file_mapper.move_addr_to_first_free_section(
                                                       st_addr                 = weights_file_start_addr 
                                                     , region_sz               = weights_file_sz
                                                     , min_region_start        = bias_region_sz
-                                                    , live_mapped_file_params = live_mapped_file_params)
+                                                    , live_mapped_file_params = live_mapped_file_params
+                                                    , allow_wrap              = True
+                                                    , chunk_sz                = weights_file_params.chunk_sz_padded)
                     map_file(weights_file_params, weights_file_start_addr, wrap_around=wrap_around, region_sz=weights_file_sz)
                     live_mapped_file_params.append(weights_file_params)
                     # obtain the adjusted region size
                     weights_region_sz = weights_file_params.mapped_params.region_sz
-                    start_addr = weights_file_start_addr + align_addr_8B(weights_region_sz)
+                    start_addr = weights_file_start_addr + align_addr_NB(weights_region_sz, 64)
                 else:                    
                     # also in case that file is already mapped, keep the mapped values
                     weights_file_start_addr = weights_file_params.mapped_params.start_addr
@@ -786,7 +773,8 @@ class FusedOp(list):
                         start_addr = bias_region_sz
                     if residue_region_sz > (tpb.statebuffer.file_mapper.sb_partition_sz/4):
                         residue_region_sz = 4 * residue_file_params.chunk_sz_padded * residue_file_params.fmap_channels_folds
-                    start_addr = tpb.statebuffer.file_mapper.move_addr_to_first_free_section(
+                    (start_addr, wrap_around, residue_region_sz) \
+                            = tpb.statebuffer.file_mapper.move_addr_to_first_free_section(
                                           st_addr                 = start_addr 
                                         , region_sz               = residue_region_sz
                                         , min_region_start        = bias_region_sz
@@ -794,10 +782,11 @@ class FusedOp(list):
                     map_file(residue_file_params, start_addr, wrap_around=True, region_sz=residue_region_sz)
                     live_mapped_file_params.append(residue_file_params)
                     residue_region_sz = residue_file_params.mapped_params.region_sz
-                    start_addr += align_addr_8B(residue_region_sz)
+                    start_addr += align_addr_NB(residue_region_sz, 64)
 
             # OFMAPs region
             if ofmaps_file_params.mapped_params is None:
+                wrap_around = False
                 if self.first_op.is_nop:
                     if self.first_op.ifmaps_file_params.file_dims.format_str == 'HNWC':
                         assert(self.first_op.slice_offset.x == 0), "Unstacking HNWC: only slicing in H dimension allowed"
@@ -822,23 +811,27 @@ class FusedOp(list):
                 elif self.has_join and len(self.last_op.ofmaps_file_params.writers_of_shared_fmap) > 1 \
                         and len(residue_file_params.readers_of_shared_fmap) == 1 \
                         and not self.join_op.is_input \
+                        and (ofmaps_file_params.chunk_sz_padded == ifmaps_file_params.chunk_sz_padded) \
                         and (residue_file_params != ifmaps_file_params):
                     ofmaps_region_start_addr = residue_file_params.mapped_params.start_addr
                 else:    
                     ofmaps_region_start_addr = start_addr
-                    ofmaps_region_start_addr = tpb.statebuffer.file_mapper.move_addr_to_first_free_section(
+                    (ofmaps_region_start_addr, wrap_around, ofmaps_region_sz) \
+                            = tpb.statebuffer.file_mapper.move_addr_to_first_free_section(
                                   st_addr                 = ofmaps_region_start_addr
                                 , region_sz               = ofmaps_region_sz
                                 , min_region_start        = bias_region_sz
-                                , live_mapped_file_params = live_mapped_file_params)
+                                , live_mapped_file_params = live_mapped_file_params
+                                , allow_wrap              = False
+                                , chunk_sz                = ofmaps_file_params.chunk_sz_padded)
                 map_file(ofmaps_file_params\
                          , ofmaps_region_start_addr\
-                         , wrap_around=True, region_sz=ofmaps_region_sz)
+                         , wrap_around=wrap_around, region_sz=ofmaps_region_sz)
                 live_mapped_file_params.append(ofmaps_file_params)
                 # obtain the adjusted region size
                 ofmaps_region_sz = ofmaps_file_params.mapped_params.region_sz
                 single_ofmap_start = ofmaps_region_start_addr 
-                start_addr = single_ofmap_start + align_addr_8B(ofmaps_region_sz)
+                start_addr = single_ofmap_start + align_addr_NB(ofmaps_region_sz, 64)
                 if single_ofmap_start == single_ifmap_start:
                     #assert(not self.first_op.is_input)
                     # Allow modifying in place for IFMAPs which overlap the same region as OFMAPs
@@ -849,7 +842,7 @@ class FusedOp(list):
                 ofmaps_region_sz = ofmaps_file_params.mapped_params.region_sz
                 single_ofmap_start = ofmaps_region_start_addr
             # Save current start address pointer for next layer
-            tpb.statebuffer.next_nonbias_file_start = ofmaps_region_start_addr + align_addr_8B(ofmaps_region_sz)
+            tpb.statebuffer.next_nonbias_file_start = ofmaps_region_start_addr + align_addr_NB(ofmaps_region_sz, 64)
 
         # Trace printout
         if (self.args.debug > 2 and not tpb.statebuffer.printed_map_trace_header): 
@@ -1626,7 +1619,7 @@ class FusedOp(list):
 
                 alpha = 1.0
                 if layer_type == 'Lrelu':
-                    alpha = self[i].data['mul_scalar']
+                    alpha = self[i].data['scalar_val']
                 scale = self[i].data['scale'] if 'scale' in self[i].data else 1.0
                 psum_temp = tpb.activate.act(op_list[i].data['layer_type'], psum_temp, alpha, scale)
                 dst_is_psum = self[i].dst_is_psum 
@@ -1680,7 +1673,7 @@ class FusedOp(list):
                     act_type = op_list[i+1].data['layer_type']
                     alpha = 1.0
                     if act_type == 'Lrelu':
-                        alpha = op_list[i+1].data['mul_scalar']
+                        alpha = op_list[i+1].data['scalar_val']
                     psum_temp = tpb.activate.act(act_type, psum_temp, alpha)
                     if (i+1 != len(op_list)-1):
                         dst_is_psum = True
@@ -1776,24 +1769,22 @@ class FusedOp(list):
                         list_of_accessors_rd = [[]],
                         waveop_list          = tpb.waveop_stream)
                 attach_predecessors(waveop, prev_waveops)
-            elif re.search("Multiply|ClipByValue|^Add$|Minimum|Maximum", layer_type):
+            elif re.search("Multiply|ClipByValue|^Add$|Minimum|Maximum|^Sub$", layer_type):
                 if layer_type == "ClipByValue":
                     scalar_val = [layer_data['clip_value_min'], layer_data['clip_value_max']]
                     scalar_op = [
                         self.translate_isa_op_name("maximum"),
                         self.translate_isa_op_name("minimum")
                     ]  # clip: max for lower bound, and min for the upper bound
+                    scalar_op_reverse = [False, False]
                     psum_temp = tpb.pool.clipbyvalue(psum_temp, scalar_val[0], scalar_val[1])
-                elif layer_type == 'Add':
-                    assert('add_scalar' in layer_data)
-                    scalar_val = [layer_data['add_scalar'], 0.0]
-                    scalar_op = [layer_data['layer_type'].lower(), "bypass"]
-                    psum_temp = tpb.pool.tensor_scalar_op(layer_type, psum_temp, scalar_val[0])
                 else:
-                    assert('mul_scalar' in layer_data)
-                    scalar_val = [layer_data['mul_scalar'], 0.0]
+                    assert('scalar_val' in layer_data)
+                    assert('reverse_operands' in layer_data)
+                    scalar_val = [layer_data['scalar_val'], 0.0]
                     scalar_op = [layer_data['layer_type'].lower(), "bypass"]
-                    psum_temp = tpb.pool.tensor_scalar_op(layer_type, psum_temp, scalar_val[0])
+                    scalar_op_reverse = [layer_data['reverse_operands'], False]
+                    psum_temp = tpb.pool.tensor_scalar_op(layer_type, psum_temp, scalar_val[0], reverse=scalar_op_reverse[0])
                 if self[i].dst_is_psum:                    
                     tpb.pearray.write_psum(psum_bank_id, 0, psum_temp.shape[0], psum_temp)
                 waveop = self.gen_tensor_scalar_waveop_inline(
@@ -1802,6 +1793,7 @@ class FusedOp(list):
                             op            = self[i],
                             scalar_op     = scalar_op,
                             scalar_val    = scalar_val,
+                            scalar_op_reverse = scalar_op_reverse,
                             ifmap_tile    = ifmap_tile, 
                             ofmap_tile    = ofmap_tile, 
                             psum_bank_id  = psum_bank_id,
@@ -1940,7 +1932,7 @@ class FusedOp(list):
                 act_type = "Identity"
             layer_name = act_op.data['layer_name']
             if act_type == 'Lrelu':
-                alpha = act_op.data['mul_scalar']
+                alpha = act_op.data['scalar_val']
         first_op = biasadd_op if biasadd_op is not None else act_or_biasadd_op
         # Note (HC): cannot use ifmap_tile to determine in_dtype because
         # in quantized cases of fused conv->act we will operate on
@@ -2127,6 +2119,7 @@ class FusedOp(list):
             op, 
             scalar_op,
             scalar_val,
+            scalar_op_reverse,
             ifmap_tile, 
             ofmap_tile, 
             psum_bank_id, 
@@ -2167,6 +2160,8 @@ class FusedOp(list):
               'num_partitions'          : num_partitions,
               'op0'                     : scalar_op[0],
               'op1'                     : scalar_op[1],
+              'reverse0'                : scalar_op_reverse[0],
+              'reverse1'                : scalar_op_reverse[1],
               'imm_val0'                : scalar_val[0],
               'imm_val1'                : scalar_val[1],
             }
@@ -2381,18 +2376,16 @@ class FusedOp(list):
                 tile_data_flatten = tpb.pool.minimum(ifmaps_data_extract, residue_ifmaps)
             else:
                 raise RuntimeError("ERROR: don't know how to handle tensor-tensor op %s for layer %s"%(layer_type, first_op.data['layer_name']))
-        elif re.search("Multiply|ClipByValue|^Add$|Minimum|Maximum", layer_type):
+        elif re.search("Multiply|ClipByValue|^Add$|Minimum|Maximum|^Sub$", layer_type):
             if (layer_type == "ClipByValue"):
                 scalar_val = [first_op.data['clip_value_min'], first_op.data['clip_value_max']]
                 tile_data_flatten = tpb.pool.clipbyvalue(ifmaps_data_extract, scalar_val[0], scalar_val[1])
-            elif layer_type == 'Add':
-                assert('add_scalar' in first_op.data)
-                scalar_val = [first_op.data['add_scalar'], 0.0]
-                tile_data_flatten = tpb.pool.tensor_scalar_op(layer_type, ifmaps_data_extract, scalar_val[0])
-            else: # if layer_type == 'Multiply':
-                assert('mul_scalar' in first_op.data)
-                scalar_val = [first_op.data['mul_scalar'], 0.0]
-                tile_data_flatten = tpb.pool.tensor_scalar_op(layer_type, ifmaps_data_extract, scalar_val[0])
+            else:
+                assert('scalar_val' in first_op.data)
+                assert('reverse_operands' in first_op.data)
+                scalar_val = [first_op.data['scalar_val'], 0.0]
+                scalar_op_reverse = [first_op.data['reverse_operands'], False]
+                tile_data_flatten = tpb.pool.tensor_scalar_op(layer_type, ifmaps_data_extract, scalar_val[0], reverse=scalar_op_reverse[0])
         elif (layer_type == "BiasAdd"):
             bias_chan_start = first_op.bias_file_c_fold_offset * PEArray.NUM_ROWS + ofmap_tile.m_id * PEArray.NUM_COLS
             bias_chan_end = min(bias_chan_start + PEArray.NUM_COLS, first_op.bias_file_c_fold_offset * PEArray.NUM_ROWS + first_op.M)
@@ -2408,7 +2401,7 @@ class FusedOp(list):
         elif re.search(self.act_ops_regex, layer_type):
             alpha = 1.0
             if layer_type == 'Lrelu':
-                alpha = self.first_op.data['mul_scalar']
+                alpha = self.first_op.data['scalar_val']
             tile_data_flatten = tpb.activate.act(layer_type, ifmaps_data_extract, alpha)
         elif (layer_type == "Reciprocal"):
             tile_data_flatten = tpb.pool.reciprocate(ifmaps_data_extract, ifmap_tile.channel_count)
@@ -2721,27 +2714,27 @@ class FusedOp(list):
                             residue_sb_addr     = residue_sb_addr,
                             new_reader_morsels  = new_reader_morsels)
 
-            elif re.search("Multiply|ClipByValue|^Add$|Minimum|Maximum", layer_type):
+            elif re.search("Multiply|ClipByValue|^Add$|Minimum|Maximum|^Sub$", layer_type):
                 if layer_type == "ClipByValue":
                     scalar_val = [first_op.data['clip_value_min'], first_op.data['clip_value_max']]
                     scalar_op = [
                         self.translate_isa_op_name("maximum"),
                         self.translate_isa_op_name("minimum")
                     ]  # clip: max for lower bound, and min for the upper bound
-                elif layer_type == 'Add':
-                    assert('add_scalar' in first_op.data)
-                    scalar_val = [first_op.data['add_scalar'], 0.0]
-                    scalar_op = [first_op.data['layer_type'].lower(), "bypass"]
+                    scalar_op_reverse = [False, False]
                 else:
-                    assert('mul_scalar' in first_op.data)
-                    scalar_val = [first_op.data['mul_scalar'], 0.0]
+                    assert('scalar_val' in first_op.data)
+                    assert('reverse_operands' in first_op.data)
+                    scalar_val = [first_op.data['scalar_val'], 0.0]
                     scalar_op = [first_op.data['layer_type'].lower(), "bypass"]
+                    scalar_op_reverse = [first_op.data['reverse_operands'], False]
                 last_waveop = self.gen_tensor_scalar_waveop_inline(
                             mapper        = tpb.statebuffer.file_mapper, 
                             waveop_stream = tpb.waveop_stream,
                             op            = self[0],
                             scalar_op     = scalar_op,
                             scalar_val    = scalar_val,
+                            scalar_op_reverse = scalar_op_reverse,
                             ifmap_tile    = ifmap_tile, 
                             ofmap_tile    = ofmap_tile, 
                             psum_bank_id  = psum_bank_id,

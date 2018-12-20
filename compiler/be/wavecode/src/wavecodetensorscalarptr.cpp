@@ -47,6 +47,15 @@ WaveCodeTensorScalarPtr::generate(wave::WaveOp* waveOp)
     AssignWithSizeCheck(tensorscalarInstr.imm_ptr[0], tensorscalarWaveop->gImmPtr(0));
     AssignWithSizeCheck(tensorscalarInstr.imm_ptr[1], tensorscalarWaveop->gImmPtr(1));
 
+    TONGA_ISA_TPB_TENSOR_SCALAR_REVERSE_OPERANDS reverse_operands = TONGA_ISA_TPB_TENSOR_SCALAR_REVERSE_OPERANDS_NONE;
+    if (tensorscalarWaveop->qReverse(0) && tensorscalarWaveop->qReverse(1))
+        reverse_operands = TONGA_ISA_TPB_TENSOR_SCALAR_REVERSE_OPERANDS_BOTH;
+    else if (tensorscalarWaveop->qReverse(0))
+        reverse_operands = TONGA_ISA_TPB_TENSOR_SCALAR_REVERSE_OPERANDS_FIRST;
+    else if (tensorscalarWaveop->qReverse(1))
+        reverse_operands = TONGA_ISA_TPB_TENSOR_SCALAR_REVERSE_OPERANDS_SECOND;
+    AssignWithSizeCheck(tensorscalarInstr.reverse_operands, reverse_operands);
+
     const utils::DataType& srcDtype(tensorscalarWaveop->gInDtype());
 
     TONGA_ISA_TPB_MEM_ACCESS_3D& srcPat(tensorscalarInstr.src_mem_pattern);

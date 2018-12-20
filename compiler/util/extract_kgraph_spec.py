@@ -75,6 +75,7 @@ field_descr = {
         'unstack_axis': 'The axis of the unstack operation.',
         'perm': 'A list specifying the mapping from old axis to new axis for each dimension.',
         'add_scalar': 'Scalar for the add operation.',
+        'reverse_operands': 'If true, operation is "Scalar op Tensor". Else, operation is "Tensor op Scalar".',
         'slice_begin': 'Slice begin indices, specified as an array with one value for each dimension.',
         'slice_size': 'Slice size, specified as an array with one value for each dimension.',
         'begin_indices': 'Begin indices for strided-slice operation, specified as an array with one value for each dimension.',

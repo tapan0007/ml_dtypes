@@ -48,6 +48,15 @@ WaveCodeTensorScalar::generate(wave::WaveOp* waveOp)
     tensorscalarInstr.imm_val_float[0] = tensorscalarWaveop->gImmVal(0); // float
     tensorscalarInstr.imm_val_float[1] = tensorscalarWaveop->gImmVal(1); // float
 
+    if (tensorscalarWaveop->qReverse(1) && tensorscalarWaveop->qReverse(0)) 
+        AssignWithSizeCheck(tensorscalarInstr.reverse_operands, TONGA_ISA_TPB_TENSOR_SCALAR_REVERSE_OPERANDS_BOTH);
+    else if (tensorscalarWaveop->qReverse(0))
+        AssignWithSizeCheck(tensorscalarInstr.reverse_operands, TONGA_ISA_TPB_TENSOR_SCALAR_REVERSE_OPERANDS_FIRST);
+    else if (tensorscalarWaveop->qReverse(1))
+        AssignWithSizeCheck(tensorscalarInstr.reverse_operands, TONGA_ISA_TPB_TENSOR_SCALAR_REVERSE_OPERANDS_SECOND);
+    else
+        AssignWithSizeCheck(tensorscalarInstr.reverse_operands, TONGA_ISA_TPB_TENSOR_SCALAR_REVERSE_OPERANDS_NONE);
+
     const utils::DataType& srcDtype(tensorscalarWaveop->gInDtype());
 
     TONGA_ISA_TPB_MEM_ACCESS_3D& srcPat(tensorscalarInstr.src_mem_pattern);

@@ -265,6 +265,12 @@ class TPBSched:
                                 first_op.ofmaps_file_params.input_layer_ifmap = True
                                 first_op.ofmaps_file_params.compute_params(i.stride, args, repl_multiple_of_C = i.repl_multiple_of_C)
                                 print("INFO: Pad and split input FMAPs due to replication, replication multiple %d, input_layer_ifmap %d"%(i.repl_multiple_of_C, first_op.ofmaps_file_params.input_layer_ifmap))
+                    # Pool cannot decompose across chunks currently, so have to keep chunks contiguous (no gap/padding)
+                    elif (i.data['layer_type'] == 'MaxPool' or i.data['layer_type'] == 'AvgPool'):
+                        i.populate_common_params(False)
+                        first_op.populate_ofmaps_file_params()
+                        first_op.ofmaps_file_params.input_layer_ifmap = True
+                        first_op.ofmaps_file_params.compute_params(i.stride, args, repl_multiple_of_C = 1)
             elif first_op.data['layer_type'] == 'ConstLoad': 
                 first_op.result_avail = True
                 # Populate OFMAP params                        
