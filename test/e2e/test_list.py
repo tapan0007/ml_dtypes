@@ -376,6 +376,10 @@ testConfigMap = {
   "1-1conv7_64_wave"   : [ "trivnet_conv1",  "tfloat16-b1-h16-r7-s1-c64-m64-wmin-0.1-wmax0.11-imin-0.2-imax0.21", "1conv", MEv2("Generic")],
   "1-1conv9_64_wave"   : [ "trivnet_conv1",  "tfloat16-b1-h16-r9-s1-c64-m64-wmin-0.1-wmax0.11-imin-0.2-imax0.21", "1conv", MEv2("Generic")],
 
+  # Sealife FC debug conv2d models
+  "0-1conv0c128m64_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c128-m64-wmin-1-wmax1.1-imin-3-imax3.2",   "1conv", MEv2("Generic")],
+  "0-1conv0c2048m1000_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c2048-m1000-wmin-1-wmax1.1-imin-3-imax3.2",   "1conv", MEv2("Generic")],
+
   # reduce_op tests
   "0-reduce_sum_h1c64" : [ "trivnet_reduce_op",  "tfloat16-b1-h1-r1-s1-c64-m1-wmin-0.01-wmax0.011-imin-0.02-imax0.022", "reduce_sum", MEv2("Generic")],
   "0-reduce_sum_h1c256" : [ "trivnet_reduce_op",  "tfloat16-b1-h1-r1-s1-c256-m1-wmin-0.01-wmax0.011-imin-0.02-imax0.022", "reduce_sum", MEv2("Generic")],
