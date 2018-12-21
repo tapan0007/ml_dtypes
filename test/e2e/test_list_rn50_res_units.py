@@ -73,8 +73,12 @@ testConfigMap = {
       "resnet50", kccOpts, rtOpts % 'trivnet_activation_46__Relu:0.npy' ],
 
   "4-rn50_res_unit_act49_sm" : [
-      "trivnet_opt_inf", "resnet50_keras/resnet50_fp16_keras_opt2.pb--activation_46/Relu--fc1000/Softmax--float16--1,7,7,2048",
+      "trivnet_opt_inf", "resnet50_keras/resnet50_fp16_keras_opt2.pb--activation_49/Relu--fc1000/Softmax--float16--1,7,7,2048",
       "resnet50", kccOpts, rtOpts % 'trivnet_activation_49__Relu:0.npy' ],
+
+  "4-rn50_res_unit_act49_nosm" : [
+      "trivnet_opt_inf", "resnet50_keras/resnet50_fp16_keras_opt2.pb--activation_49/Relu--fc1000/BiasAdd--float16--1,7,7,2048",
+      "resnet50", kccOpts + ' --jf_data_layout native', rtOpts % 'trivnet_activation_49__Relu:0.npy' ],
 
   # Full resnet50 without softmax
   "7-rn50_single_sg_nosm_fp16" : [
