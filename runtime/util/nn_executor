@@ -314,7 +314,7 @@ class NnSubgraph:
         # Create PE utilization profile
         testName = os.getcwd().split('/')[-2]
         profileOut = 'tpb_profile-%s.png' % self.sgDir
-        cmd = "%s/compiler/util/tpb_profile --log %s --tpb %s --resolution 2000 --title %s --output_files %s" % (
+        cmd = "%s/compiler/util/tpb_profile --log %s --dma_json dma_trace.json --tpb %s --resolution 2000 --title %s --output_files %s" % (
                 kPath, 'trace_notifications.json', '*_final.bin',
                 testName + '-' + self.sgDir, profileOut)
         print(getInfoDateStr(), " executing %s" % cmd, flush=True)

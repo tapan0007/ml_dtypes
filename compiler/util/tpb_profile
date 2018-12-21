@@ -23,11 +23,12 @@ def getInfoDateStr():
 argStr = " ".join(sys.argv)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--log', help='Inkling debug log file (seenv SIM_DEBUG all; RunAll ...) or notification log in json format', default=None)
+parser.add_argument('--log', help='Inkling debug log file (setenv SIM_DEBUG all; RunAll ...) or notification log in json format', default=None)
+parser.add_argument('--dma_json', help='DMA notifications in json format', default=None)
 parser.add_argument('--tpb', help='Tpb binary program files named ...-pe.tpb, ..-act.tpb', nargs='+', default=[])
 parser.add_argument('--verbose', help='Verbose content such as arrows for events', action='store_true', default=False)
 parser.add_argument('--show', help='Invoke interactive viewer', action='store_true', default=False)
-parser.add_argument('--cycle_range', help='Display only activity within the cycle range, default 0 2e6', type=float, nargs=2, default=[0,2e6])
+parser.add_argument('--cycle_range', help='Display only activity within the cycle range, default 0 2e15', type=float, nargs=2, default=[0,2e15])
 parser.add_argument('--geometry', help='Output size width height', type=int, nargs=2, default=[])
 parser.add_argument('--long', help='Partitions long run into N cycle long blocks and saves png, default 0 (off)', type=float, default=0)
 parser.add_argument('--event_statistics', help='Load profile data and compile event statistics, no visualization is done. Also overrides cycle_range to 0 1e9', action='store_true', default=False)
@@ -75,7 +76,9 @@ class Instr:
     return num
   def getWaveCycles(self):
     cycles = 0;
-    if self.instrType == 'MATMUL' or self.instrType == 'ACTIVATION':
+    if self.instrType == 'DMA_NOTIFY':
+      cycles = 2 # FIX_THIS add real instruction --dma_json 
+    elif self.instrType == 'MATMUL' or self.instrType == 'ACTIVATION':
       cycles = self.getSrcNumElem4D('mem',3)
     elif self.instrType == 'POOL':
       cycles = self.getSrcNumElem4D('mem', 4)
@@ -108,6 +111,7 @@ class Instr:
     "WAIT"       : "gray",
     "CLEAR"      : "aqua",
     # DMA
+    "DMA_NOTIFY" : "green",
     "SIM_MEMCPY" : "green",
     "SIM_RDNPY" : "darkgreen",
     "SIM_WRNPY" : "olive",
@@ -217,7 +221,7 @@ class InklingEvent(object):
     return s
 
 class InklingProfile(object):
-  def __init__(self, logFile, tongaProgram, verbose, cycleRange, show, geometry, resolution):
+  def __init__(self, logFile, dmaJson, tongaProgram, verbose, cycleRange, show, geometry, resolution):
     self.logFile = logFile
     self.tongaProgram = tongaProgram
     self.verbose = verbose
@@ -254,19 +258,42 @@ class InklingProfile(object):
             opcode = instr.getInstrType()
             mode = "unknown"
             event = 0
-            e = InklingEvent(cycle, engine, pcHex, opcode, mode, event)
-            #print("  DEBUG: created inkling event record %s" % e)
-            if self.cycle2event[engine].get(cycle, None) == None:
-              self.events.append(e)
-              self.cycle2event[engine][cycle] = e
-            else:
-              # Duplicate (end of ) instruction, ignore
-              pass
+            if cycle >= self.cycleRange[0] and cycle <= self.cycleRange[1]:
+              e = InklingEvent(cycle, engine, pcHex, opcode, mode, event)
+              #print("  DEBUG: created inkling event record %s" % e)
+              if self.cycle2event[engine].get(cycle, None) == None:
+                self.events.append(e)
+                self.cycle2event[engine][cycle] = e
+              else:
+                # Duplicate (end of ) instruction, ignore
+                pass
           else:
             print("WARNING: the notification file has %s PC %s pointing to a non-existing instruction, entry %s" % (
                     engine, pcHex, entry))
             numBadPc += 1
       print("INFO: the notification file had %d non-existing PC entries" % numBadPc)
+      
+      # Import DMA notifications
+      with open(dmaJson) as fh:
+        jsonData = json.load(fh)
+      for entry in jsonData:
+        pcHex = 0
+        opcode = 0
+        engine = "dma"
+        cycle = entry["event_start"]["timestamp"]['low']
+        event = entry["event_start"]["event_id"]
+        mode = "set" if entry["event_start"]["event_set"] else "clear"
+        if cycle >= self.cycleRange[0] and cycle <= self.cycleRange[1]:
+          e = InklingEvent(cycle, engine, pcHex, opcode, mode, event)
+          if self.cycle2event[engine].get(cycle, None) == None:
+            self.events.append(e)
+            self.cycle2event[engine][cycle] = e
+          else:
+            # Duplicate (end of ) instruction, ignore
+            pass
+      # Sort by start time since DMA notificatins came from a separate file
+      self.events.sort(key=lambda v : v.cycle)
+      
     else:
       # Inkling log
       with open(self.logFile) as fh:
@@ -383,6 +410,10 @@ class InklingProfile(object):
       #if instr.getInstrType() == 'MATMUL': 
       #print("DEBUG: got  instruction %s  engine %s  pc %s" % (str(instr), engine, e.pc))
       
+      # Workaround for json dma notifications
+      if engine =='dma' and instr == None:
+        instr = Instr('DMA_NOTIFY')
+      
       # The --resolution
       doPlot = True
       instrText = "None" if instr == None else instr.getInstrType()
@@ -405,20 +436,26 @@ class InklingProfile(object):
             axEvents.plot([xval+instrCycles, xval+instrCycles], [yval-0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
             if self.verbose:
               axEvents.text(xval+0.1, yval-0.1, "pc=%s\ncycles=%d" % (e.pc, instrCycles), color=color)
+        div = xval - firstCycle
+        if div == 0:
+          div = 1
+        UtilTot1 = 100.0 * opsTot / 128 / 64 / 2 / div
+        opsTot += instr.getOpCount()
         if instr.getInstrType() == 'MATMUL':
           #print('DEBUG: MATMUL')
           peuVal = 100.0*instr.getOPC() / 128 / 64 / 2
           waveCycles = instr.getWaveCycles()
-          div = xval - firstCycle
-          if div == 0:
-            div = 1
-          UtilTot1 = 100.0 * opsTot / 128 / 64 / 2 / div
-          opsTot += instr.getOpCount()
           UtilTot2 = 100.0 * opsTot / 128 / 64 / 2 / (xval - firstCycle + waveCycles)
           if doPlot:
             peCycles  += [xval-0.1,   xval, xval+waveCycles, xval+waveCycles+0.1]
             peUtil    += [0,        peuVal,          peuVal,                   0]
             peUtilTot += [UtilTot1, UtilTot1,      UtilTot2,            UtilTot2]
+        else:
+          if doPlot:
+            # Make sure non-MM activity counts toward cumulative PE utilization 
+            peCycles  += [xval]
+            peUtil    += [None]
+            peUtilTot += [UtilTot1]
       if doPlot:
         axEvents.plot([xval, xval], [yval-0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
       
@@ -458,7 +495,8 @@ class InklingProfile(object):
     
     fig.suptitle(titleStr + '\nMM Ops %.3g G  '
                  'Total Cycles %.3g k (usec)  '
-                 'PE utilization %.3f %%' % (opsTot/1e9, totCycles/1e3, UtilTot2) )
+                 'PE utilization %.3f %%' % (opsTot/1e9, totCycles/1e3, UtilTot2),
+                 backgroundcolor='snow' )
     print()
 
     # Zoom size notification
@@ -590,11 +628,11 @@ tongaProgram = TongaProgram(args.tpb)
 
 
 if args.event_statistics:
-  p = InklingProfile(args.log, tongaProgram, args.verbose, [0, 1e9], args.show, args.geometry, args.resolution)
+  p = InklingProfile(args.log, args.dma_json, tongaProgram, args.verbose, [0, 1e9], args.show, args.geometry, args.resolution)
   p.calcEventIdGraph()
   p.printEventStatistics()
 else:
-  p = InklingProfile(args.log, tongaProgram, args.verbose, args.cycle_range, args.show, args.geometry, args.resolution)
+  p = InklingProfile(args.log, args.dma_json, tongaProgram, args.verbose, args.cycle_range, args.show, args.geometry, args.resolution)
   if args.long > 0:
     totalCycles = p.getNumCycles()
     cycleStep = int(args.long)
@@ -606,7 +644,7 @@ else:
       pid = os.fork()
       #pid = 0
       if pid == 0:
-        pi = InklingProfile(args.log, tongaProgram, args.verbose, [i*int(cycleStep), (i+1)*int(cycleStep)], False, args.geometry, args.resolution)
+        pi = InklingProfile(args.log, args.dma_json, tongaProgram, args.verbose, [i*int(cycleStep), (i+1)*int(cycleStep)], False, args.geometry, args.resolution)
         pi.plotProfile(outPng, args.title)
         sys.exit(0)
       else:

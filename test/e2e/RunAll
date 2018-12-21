@@ -217,16 +217,21 @@ class QoR:
     elapsedTimeSec = -1
     with open(filepath) as data_file:
       trace = json.load(data_file)
-      if len(trace) == 0:
-        return  int(cycles), float(elapsedTimeSec)
+    # Add dma trace
+    dmaJson = filepath.replace('trace_notifications.json', 'dma_trace.json')
+    with open(dmaJson) as data_file:
+      dmaTrace = json.load(data_file)
+    trace += dmaTrace
+    if len(trace) == 0:
+      return  int(cycles), float(elapsedTimeSec)
 
-      min_cycles = trace[0]['tts']
-      max_cycles = trace[0]['tts']
-      for trace_entry in trace:
-        tts = trace_entry['tts']
-        min_cycles = min(min_cycles, tts)
-        max_cycles = max(max_cycles, tts)
-      cycles = max_cycles - min_cycles
+    min_cycles = trace[0]['tts']
+    max_cycles = trace[0]['tts']
+    for trace_entry in trace:
+      tts = trace_entry['tts']
+      min_cycles = min(min_cycles, tts)
+      max_cycles = max(max_cycles, tts)
+    cycles = max_cycles - min_cycles
     return int(cycles), float(elapsedTimeSec)
 
   @staticmethod
