@@ -836,7 +836,7 @@ class Ktests:
         # re.compile('allclose comparison failed'),
         re.compile('Allclose .+ result is FAIL'),
         re.compile(' File ".+", line \d+, in .*'),
-        re.compile('Error:\s\S| raise |AssertionError|Traceback|ERROR: shapes differ'),
+        re.compile('Error:\s\S| raise |AssertionError|Traceback|ERROR: shapes differ|ERROR hhIr.check|ERROR checkNode| FAIL'),
         ]
       addLineRe = errRe[1]  # Special regexp for which we'll add next line
       if os.path.isfile(logFile):
@@ -859,6 +859,9 @@ class Ktests:
       errText = re.sub(r'(IndexError: index )\d+( is out of bounds for axis )\d+( with size )\d+', r'\1\2\3', errText)
       errText = re.sub(r'(.*No such file or directory:).*', r'\1', errText)
       errText = re.sub(r'(Allclose gold )\S+ vs new \S+( result is FAIL.+)', r'\1\2', errText)
+      errText = re.sub(r'(INFO )[ \d:\.-]+( : .+)', r'\1\2', errText)
+      errText = re.sub(r'(INFO: subgraph ).+( status .+)', r'\1\2', errText)
+      errText = re.sub(r'(ERROR checkNode: [^\d]+).+', r'\1', errText)
       return stage2pass, errText
     
     fieldNames = ['TestName', 'TestStatus', 'JF', 'HH', 'HhSim', 'SF', 'WC1', 'WC2','SG', 'KCC', 'RT', 'ErrorCode', 'ErrorText']
@@ -871,6 +874,8 @@ class Ktests:
         localStage2pass, localErrorText = analyzeLogfile(fieldNames, logFile)
         stage2pass.update(localStage2pass)
         errorText += localErrorText
+      # Remove duplicate lines to compress further
+      errorText = '\n'.join(list(collections.OrderedDict.fromkeys(errorText.split('\n'))))
       row = stage2pass
       row['TestName'] = testName
       t = self.getTestByName(testName)
