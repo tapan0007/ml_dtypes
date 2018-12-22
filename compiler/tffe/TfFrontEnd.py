@@ -22,6 +22,7 @@ import KaenaOpGraph as kog
 import KaenaOpQuantize as kog_qu
 from PIL import Image
 import csv
+import math
 
 import sys
 import os
@@ -387,6 +388,14 @@ class TfFe:
           unusedArr = np.ndarray(inputShape)
           img = np.linspace(pair[0], pair[1], num=unusedArr.size, dtype=inputType).reshape(inputShape)
           print("INFO: generated linear input=\n", img)          
+        elif imageFile == "diag1":
+          imgZeros = np.zeros(inputShape, dtype=inputType)
+          imgSize = imgZeros.size
+          diagSize = math.ceil(math.sqrt(imgSize))
+          diagImg = np.zeros([diagSize, diagSize], dtype=inputType)
+          np.fill_diagonal(diagImg, 1)
+          img = np.ravel(diagImg)[0:imgSize].reshape(inputShape)
+          print("INFO: generated linear input=\n", img)
         elif " " in imageFile:
           img = np.fromstring(imageFile, dtype=inputType, sep=" ")
         else:
