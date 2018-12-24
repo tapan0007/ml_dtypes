@@ -43,11 +43,51 @@ WaveCodeMatMul::generate(wave::WaveOp* waveOp)
     auto matmulWaveOp = dynamic_cast<wave::MatMulWaveOp*>(waveOp);
     assert(matmulWaveOp);
 
+    kcc_int32 numSyncedPrevWeights;
+    kcc_int32 numSyncedPrevIfmaps;
+    countSyncedWeithsIfmapPred(matmulWaveOp, numSyncedPrevWeights, numSyncedPrevIfmaps);
+    m_SyncIfmapOnLdWeigthsInstr = (numSyncedPrevWeights < 1);
+
     bool SyncPrevWavesOnMatMulInstr = generateLoadWeights(matmulWaveOp);
     generateMatMul(matmulWaveOp, SyncPrevWavesOnMatMulInstr);
 }
 
+//************************************************************************
+bool
+WaveCodeMatMul::qSyncOnLdWeightsInstr(const wave::WaveEdge* prevEdge) const
+{
+    return m_SyncIfmapOnLdWeigthsInstr || qLoadWeightsWaitsFor(prevEdge);
+}
 
+//************************************************************************
+bool
+WaveCodeMatMul::qSyncOnMatMulInstr(const wave::WaveEdge* prevEdge) const
+{
+    return ! qSyncOnLdWeightsInstr(prevEdge);
+}
+
+//************************************************************************
+void
+WaveCodeMatMul::countSyncedWeithsIfmapPred(
+        wave::MatMulWaveOp* matmulWaveop,
+        kcc_int32& numSyncedPrevWeights,
+        kcc_int32& numSyncedPrevIfmaps)
+{
+    kcc_int32 numWeights = 0;
+    kcc_int32 numIfmaps = 0;
+    for (auto prevWaveEdge : matmulWaveop->gPrevWaveEdges()) {
+        if (! prevWaveEdge->qNeedToImplementSync()) {
+            continue;
+        }
+        if (qLoadWeightsWaitsFor(prevWaveEdge)) {
+            ++numWeights;
+        } else {
+            ++numIfmaps;
+        }
+    }
+    numSyncedPrevWeights = numWeights;
+    numSyncedPrevIfmaps = numIfmaps;
+}
 
 //************************************************************************
 bool
@@ -58,7 +98,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
 
     const EngineId engineId = matmulWaveop->gEngineId();
     if (matmulWaveop->gWeightsSbAddress() < 0 && qParallelStreams()) {
-        // this MatMul reuses weights, but even though weights are not loaded,
+        // this MatMul reuses weights, but even though weights are loaded,
         // wait might need to be implemnted
         std::set<events::EventId> eventIds;
         for (auto prevWaveEdge : matmulWaveop->gPrevWaveEdges()) {
@@ -66,7 +106,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
                 continue;
             }
 
-            if (!qLoadWeightsWaitsFor(prevWaveEdge)) {
+            if (! qSyncOnLdWeightsInstr(prevWaveEdge)) {
                 continue;
             }
             if (prevWaveEdge->qSyncedWithEvent()) {
@@ -151,7 +191,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     bool firstEmbEvt = true;
     // Synchronizations to MatMul predecessors are created on MatMul
     // except for dynamic weights.
-    bool SyncPrevWavesOnMatMulInstr = !matmulWaveop->qIsDynamicWeights(); 
+    const bool SyncPrevWavesOnMatMulInstr = !matmulWaveop->qIsDynamicWeights(); 
 
     if (qParallelStreams()) { // incoming events
         std::set<events::EventId> eventIds;
@@ -164,10 +204,9 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
             // For dynamic weights, LoadWeight instructions should wait for all predecessors
             // of MatMul one of which produces dynamic weights. If we have data dependence information,
             // LoadWeight can wait only for a node producing the weights.
-            if (SyncPrevWavesOnMatMulInstr && !qLoadWeightsWaitsFor(prevWaveEdge)) {
+            if (SyncPrevWavesOnMatMulInstr && ! qSyncOnLdWeightsInstr(prevWaveEdge)) {
                 continue;
             }
-
             if (prevWaveEdge->qSyncedWithEvent()) {
                 const auto evtId = prevWaveEdge->gEventId();
                 Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
@@ -298,7 +337,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop, bool SyncPrevWa
             if (! prevWaveEdge->qNeedToImplementSync()) {
                 continue;
             }
-            if (qLoadWeightsWaitsFor(prevWaveEdge)) {
+            if (! qSyncOnMatMulInstr(prevWaveEdge)) {
                 continue;
             }
 

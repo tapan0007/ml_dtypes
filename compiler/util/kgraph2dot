@@ -77,7 +77,7 @@ class KgraphJson(object):
       for engine in self.engineTypes:
         if engine in eng.upper():
           return engine
-      raise RunTimeError("ERROR: failed to identify engine for waveopt %s" % layer)
+      raise RuntimeError("ERROR: failed to identify engine for waveopt %s" % layer)
   
   def plotLayers(self):
     if not "layers" in self.jsonData:
@@ -162,20 +162,49 @@ class KgraphJson(object):
           if prevNode in validOps:
             edgeAttrs = {}
             edgeAttrs["weight"] = "1"
-            if "previous_event_ids" in layer and len(layer["previous_event_ids"]) > edgeIdx:
-              # events
-              eventId = layer["previous_event_ids"][edgeIdx]
-              if eventId > -1:
-                edgeAttrs["label"] = "E %d" % eventId
-                edgeAttrs["color"] = "blue"
-                edgeAttrs["weight"] = "100"
-                edgeAttrs["minlen"] = "2"
+
+            if "previous_event_ids" in layer:
+              if len(layer["previous_event_ids"]) > edgeIdx:
+                # events
+                eventId = layer["previous_event_ids"][edgeIdx]
+                if eventId > -1:
+                  edgeAttrs["label"] = "E %d" % eventId
+                  edgeAttrs["color"] = "blue"
+                  edgeAttrs["weight"] = "100"
+                  edgeAttrs["minlen"] = "2"
+
+            elif "previous_syncs" in layer:
+              if len(layer["previous_syncs"]) > edgeIdx:
+                # events
+                prevSync1 = layer["previous_syncs"][edgeIdx]
+                prevSync2 = prevSync1["value0"]
+                if prevSync2["sync_type"] == "event":
+                  evtId = prevSync2["event_id"]
+                  # print("sync ev: " + evtId)
+                  evtIdNum = int(evtId)
+                  if evtIdNum > -1:
+                    edgeAttrs["label"] = ("E" + evtId)
+                    edgeAttrs["color"] = "blue"
+                    edgeAttrs["weight"] = "100"
+                    edgeAttrs["minlen"] = "2"
+                elif prevSync2["sync_type"] == "semaphore":
+                  sync = prevSync2["queue"] + ":" + prevSync2["trig_ord"]
+                  # print("sync sem: " + sync)
+                  edgeAttrs["label"] = sync
+                  edgeAttrs["color"] = "blue"
+                  edgeAttrs["weight"] = "100"
+                  edgeAttrs["minlen"] = "2"
+                else:
+                  raise RunTimeError(
+                    "ERROR: sync from node %s to node %s must be %s event or semaphore",
+                    % (layer["waveop_name"], prevNode["waveop_name"]))
+
             dot.edge(prevNode, nodeName, "", edgeAttrs)
             #print(dot.source)          
             edgeIdx += 1
           else:
-            print("WARNING: ignoreing previous waveopt outside of range  " + prevNode)
-      
+            print("WARNING: ignoring previous waveopt outside of range  " + prevNode)
+
       # subgraph
       if self.engineSubgraphs:
         if False: #  Base simple subgraph

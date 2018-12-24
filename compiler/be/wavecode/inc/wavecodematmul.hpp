@@ -37,6 +37,14 @@ private:
     bool generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp);
     void generateMatMul(wave::MatMulWaveOp* matmulWaveOp, bool noSyncNeededOnMatMulInstr);
     bool qLoadWeightsWaitsFor(const wave::WaveEdge* prevEdge) const;
+
+    bool qSyncOnLdWeightsInstr(const wave::WaveEdge* prevEdge) const;
+    bool qSyncOnMatMulInstr(const wave::WaveEdge* prevEdge) const;
+
+    void countSyncedWeithsIfmapPred(wave::MatMulWaveOp* matmulWaveop,
+                kcc_int32& numSyncedPrevWeights, kcc_int32& numSyncedPrevIfmaps);
+private:
+    bool m_SyncIfmapOnLdWeigthsInstr = false;
 };
 
 
