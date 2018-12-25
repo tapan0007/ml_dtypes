@@ -1209,24 +1209,7 @@ class FusedOp(list):
             waveop_name = self.first_op.data['layer_name']+"/MatMul_"+ofmap_pewave.id_string+"__"+str(i)
             if (self.args.debug > 2): print("DBG %s: MatMul wave %s subwave %d weights_sb_address %d, fmap_sb_address %d, fmap_y_num %d"%(self.first_op.data['layer_name'], waveop_name, i, weights_sb_address, fmap_sb_address, fmap_y_num))
 
-            # uint8 performance mode adjustments
-            uint8_perf_opt = 'none'
-            if self.args.uint8_performance_mode and in_dtype == 'uint8':
-                mode_possible = set()
-                if self.first_op.data['layer_type'] == 'QuantizedConv':
-                    if self.first_op.stride.x == 1 and self.first_op.filter == Dim2D(1, 1):
-                        # double_pixel is possible if filter is 1x1 and stride == 1
-                        # because ifmap is guaranteed to be contiguous
-                        mode_possible.add('double_pixel')
-                if 'double_pixel' in mode_possible:
-                    num_elem_xy = fmap_x_num * fmap_y_num
-                    raveled_x_num = (num_elem_xy + 1) // 2
-                    fmap_x_step = dst_x_step = 2
-                    fmap_x_num = dst_x_num = raveled_x_num
-                    fmap_y_step = dst_y_step = num_elem_xy
-                    fmap_y_num = 1
-                    uint8_perf_opt = 'double_pixel'
-            matmul_waveop.append({ 
+            instr = {
                   'is_dynamic_weights'      : has_dynamic_weights,
                   'previous_waveops'        : dram_waveop_names,
                   'waveop_type'             : 'MatMul',
@@ -1262,8 +1245,12 @@ class FusedOp(list):
                   'ifmap_replication_shift_amnt' : ifmap_replication_shift_amnt,
                   'quant_offset_ifmaps'     : quant_offset_ifmaps,
                   'quant_offset_weights'    : quant_offset_weights,
-                  'pe_perf_opt_mode'        : uint8_perf_opt,
-                })
+                  'pe_perf_opt_mode'        : 'none',
+            }
+            # uint8 performance mode adjustments
+            if self.args.uint8_performance_mode and in_dtype == 'uint8':
+                instr = self.mem_pattern_uint8_perf_opt(instr, ifmap_pewave.tile.tile_rect.dim2d)
+            matmul_waveop.append(instr)
             start_tensor_calc = False   # this is only true for the first MatMul, even when there's a break
         return matmul_waveop
 
@@ -3209,6 +3196,7 @@ class FusedOp(list):
                             r_id = 0
                             s_id = 0
                             remaining_filter_elems = self.conv_op.RS
+                            old_num_waveops = len(tpb.waveop_stream)
                             while r_id < self.conv_op.weights_file_params.file_dims.R:
                                 while s_id < self.conv_op.weights_file_params.file_dims.S:
                                     ifmap_pewave = PEWave(ifmap_tile, c_id, r_id, s_id)
@@ -3223,6 +3211,9 @@ class FusedOp(list):
                                     s_id += self.conv_op.repl_multiple_of_C
                                 r_id += s_id//self.conv_op.S
                                 s_id = s_id%self.conv_op.S
+                            if self.args.uint8_performance_mode:
+                                tpb.waveop_stream[old_num_waveops:] = self.reorder_waveops_uint8_perf_opt(tpb.waveop_stream[old_num_waveops:])
+
                         # tile is done                                   
                         # go through the remaining operations, using ofmap_tile as ifmap_tile (TODO: compute new shapes per operation)
                         psum_temp = self.execute_postconv_tile_ops(tpb, ofmap_tile, ofmap_tile, psum_bank_id)
@@ -3249,3 +3240,9 @@ class FusedOp(list):
     def gen_quantize_waveop_inline(self, *args, **kwargs):
         from me_fused_op_quantize import gen_quantize_waveop_inline
         return gen_quantize_waveop_inline(self, *args, **kwargs)
+    def mem_pattern_uint8_perf_opt(self, *args, **kwargs):
+        from me_fused_op_quantize import mem_pattern_uint8_perf_opt
+        return mem_pattern_uint8_perf_opt(self, *args, **kwargs)
+    def reorder_waveops_uint8_perf_opt(self, *args, **kwargs):
+        from me_fused_op_quantize import reorder_waveops_uint8_perf_opt
+        return reorder_waveops_uint8_perf_opt(self, *args, **kwargs)

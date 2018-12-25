@@ -215,6 +215,31 @@ testConfigMap = {
         "trivnet_conv_ba_relu_pool_uint8",
         "tuint8-b1-h3-r2-s1-c1-m1-imin-3-imax4-wmin-1-wmax2-valid",
         "conv_uint8"),
+    "1-1conv_h4r2same_uint8_perf_wave":         options_uint8_perf_strict(
+        "trivnet_conv_ba_relu_pool_uint8",
+        "tuint8-b1-h4-r2-s1-c1-m1-imin-3-imax4-wmin-1-wmax2-same",
+        "conv_uint8"),
+    "1-1conv_h4r2valid_uint8_perf_wave":        options_uint8_perf_strict(
+        "trivnet_conv_ba_relu_pool_uint8",
+        "tuint8-b1-h4-r2-s1-c1-m1-imin-3-imax4-wmin-1-wmax2-valid",
+        "conv_uint8"),
+    "1-1conv_h57r2same_uint8_perf_wave":        options_uint8_perf_strict(
+        "trivnet_conv_ba_relu_pool_uint8",
+        "tuint8-b1-h57-r2-s1-c1-m1-imin-3-imax4-wmin-1-wmax2-same",
+        "conv_uint8"),
+    "1-1conv_h57r2valid_uint8_perf_wave":       options_uint8_perf_strict(
+        "trivnet_conv_ba_relu_pool_uint8",
+        "tuint8-b1-h57-r2-s1-c1-m1-imin-3-imax4-wmin-1-wmax2-valid",
+        "conv_uint8"),
+    "1-1conv_h58r2same_uint8_perf_wave":        options_uint8_perf_strict(
+        "trivnet_conv_ba_relu_pool_uint8",
+        "tuint8-b1-h58-r2-s1-c1-m1-imin-3-imax4-wmin-1-wmax2-same",
+        "conv_uint8"),
+    "1-1conv_h58r2valid_uint8_perf_wave":       options_uint8_perf_strict(
+        "trivnet_conv_ba_relu_pool_uint8",
+        "tuint8-b1-h58-r2-s1-c1-m1-imin-3-imax4-wmin-1-wmax2-valid",
+        "conv_uint8"),
+
     "1-1conv_h4r3same_uint8_perf_wave":         options_uint8_perf_strict(
         "trivnet_conv_ba_relu_pool_uint8",
         "tuint8-b1-h4-r3-s1-c1-m1-imin-3-imax4-wmin-1-wmax2-same",
@@ -230,6 +255,22 @@ testConfigMap = {
     "1-1conv_h5r3valid_uint8_perf_wave":        options_uint8_perf_strict(
         "trivnet_conv_ba_relu_pool_uint8",
         "tuint8-b1-h5-r3-s1-c1-m1-imin-3-imax4-wmin-1-wmax2-valid",
+        "conv_uint8"),
+    "1-1conv_h57r3same_uint8_perf_wave":        options_uint8_perf_strict(
+        "trivnet_conv_ba_relu_pool_uint8",
+        "tuint8-b1-h57-r3-s1-c1-m1-imin-3-imax4-wmin-1-wmax2-same",
+        "conv_uint8"),
+    "1-1conv_h57r3valid_uint8_perf_wave":       options_uint8_perf_strict(
+        "trivnet_conv_ba_relu_pool_uint8",
+        "tuint8-b1-h57-r3-s1-c1-m1-imin-3-imax4-wmin-1-wmax2-valid",
+        "conv_uint8"),
+    "1-1conv_h58r3same_uint8_perf_wave":        options_uint8_perf_strict(
+        "trivnet_conv_ba_relu_pool_uint8",
+        "tuint8-b1-h58-r3-s1-c1-m1-imin-3-imax4-wmin-1-wmax2-same",
+        "conv_uint8"),
+    "1-1conv_h58r3valid_uint8_perf_wave":       options_uint8_perf_strict(
+        "trivnet_conv_ba_relu_pool_uint8",
+        "tuint8-b1-h58-r3-s1-c1-m1-imin-3-imax4-wmin-1-wmax2-valid",
         "conv_uint8"),
 
     "2-rn50_block1_uint8_perf_b1_wave":         options_uint8_perf_loose(
