@@ -196,7 +196,7 @@ class KgraphJson(object):
                   edgeAttrs["minlen"] = "2"
                 else:
                   raise RunTimeError(
-                    "ERROR: sync from node %s to node %s must be %s event or semaphore",
+                    "ERROR: sync from node %s to node %s must be %s event or semaphore"
                     % (layer["waveop_name"], prevNode["waveop_name"]))
 
             dot.edge(prevNode, nodeName, "", edgeAttrs)
