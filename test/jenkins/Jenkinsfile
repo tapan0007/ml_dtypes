@@ -226,7 +226,9 @@ pipeline{
                     steps {
                         timeout(time: 50, unit: 'MINUTES') {
                             sh '''
-                            cd $TEST_DIR/RunToolsPytest && PYTHONPATH=$PYTHONPATH:$KRT_BLD_DIR/krtd/isa pytest $KAENA_PATH/../krt/tools/kasm/tests --junitxml=pytestResult.xml -s > log-pytest.txt 2>&1
+                            cd $TEST_DIR/RunToolsPytest
+                            tar xvf $KRT_BLD_DIR/krt-*.*-*-core.tar.gz
+                            PYTHONPATH=$PYTHONPATH:./bin pytest $KAENA_RT_PATH/tools/kasm/tests --junitxml=pytestResult.xml -s > log-pytest.txt 2>&1
                             '''
                         }
                     }
