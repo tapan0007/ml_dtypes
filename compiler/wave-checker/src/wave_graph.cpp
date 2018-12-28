@@ -13,6 +13,8 @@ WaveOp::WaveOpType WaveOp::ExtractWaveOpTypeEngine(
   else if (!wot.compare("MatMul")) t = MatMul;
   else if (!wot.compare("Pool")) t = Pool;
   else if (!wot.compare("Reciprocal")) t = Pool;
+  else if (!wot.compare("RegLoad")) t = Pool;
+  else if (!wot.compare("RegStore")) t = Pool;
   else if (!wot.compare("ResAdd")) t = ResAdd;
   else if (!wot.compare("Multiply")) t = ResAdd;
   else if (!wot.compare("Sub")) t = ResAdd;
@@ -59,7 +61,6 @@ MemInfo_Params MMOp::extract_sb_params(json& op)
 MemInfo_PSUM_Params MMOp::extract_psum_params(json& op)
 {
   MemInfo_PSUM_Params mp;
-
   mp.enable = true;
   mp.nx = op["dst_x_num"];
   mp.sx = op["dst_x_step"];
@@ -90,6 +91,13 @@ MemInfo_PSUM_Params MMOp::extract_psum_params(json& op)
 MemInfo_Params PoolActOp::extract_sb_in_params(json& op)
 {
   MemInfo_Params mp_in;
+  if (op["waveop_type"] == "RegStore") {
+    // RegStore moves data from internal Reg to SBUF, so no input from SBUF
+    mp_in.enable = false;
+    mp_in.SetZeroSize();
+    mp_in.dtype = op["out_dtype"];
+    return mp_in;
+  }
   bool src_is_psum;
   if (op["src_is_psum"] == nullptr) src_is_psum = false;
   else src_is_psum = op["src_is_psum"];
@@ -122,6 +130,13 @@ MemInfo_Params PoolActOp::extract_sb_in_params(json& op)
 MemInfo_Params PoolActOp::extract_sb_out_params(json& op)
 {
   MemInfo_Params mp_out;
+  if (op["waveop_type"] == "RegLoad") {
+    // RegLoad  moves data from SBUF to internal Reg, so no output to SBUF
+    mp_out.enable = false;
+    mp_out.SetZeroSize();
+    mp_out.dtype = op["in_dtype"];
+    return mp_out;
+  }
   bool dst_is_psum;
   if (op["dst_is_psum"] == nullptr) dst_is_psum = false;
   else dst_is_psum = op["dst_is_psum"];
@@ -154,6 +169,18 @@ MemInfo_Params PoolActOp::extract_sb_out_params(json& op)
 MemInfo_PSUM_Params PoolActOp::extract_psum_in_params(json& op)
 {
   MemInfo_PSUM_Params mp_in;
+  if (op["waveop_type"] == "RegLoad") {
+    // RegLoad/Store  move data from SBUF/internal Reg to internal Reg/SBUF, so no interaction with PSUM
+    mp_in.enable = false;
+    mp_in.SetZeroSize();
+    mp_in.dtype = op["in_dtype"];
+    return mp_in;
+  } else if (op["waveop_type"] == "RegStore") {
+    mp_in.enable = false;
+    mp_in.SetZeroSize();
+    mp_in.dtype = op["out_dtype"];
+    return mp_in;
+  }
   bool src_is_psum;
   if (op["src_is_psum"] == nullptr) src_is_psum = false;
   else src_is_psum = op["src_is_psum"];
@@ -193,6 +220,18 @@ MemInfo_PSUM_Params PoolActOp::extract_psum_in_params(json& op)
 MemInfo_PSUM_Params PoolActOp::extract_psum_out_params(json& op)
 {
   MemInfo_PSUM_Params mp_out;
+  if (op["waveop_type"] == "RegLoad") {
+    // RegLoad/Store  move data from SBUF/internal Reg to internal Reg/SBUF, so no interaction with PSUM
+    mp_out.enable = false;
+    mp_out.SetZeroSize();
+    mp_out.dtype = op["in_dtype"];
+    return mp_out;
+  } else if (op["waveop_type"] == "RegStore") {
+    mp_out.enable = false;
+    mp_out.SetZeroSize();
+    mp_out.dtype = op["out_dtype"];
+    return mp_out;
+  }
   bool dst_is_psum;
   if (op["dst_is_psum"] == nullptr) dst_is_psum = false;
   else dst_is_psum = op["dst_is_psum"];
@@ -234,6 +273,10 @@ tonga_addr PoolActOp::extract_bias_sb_addr(json& op)
 tonga_addr PoolActOp::extract_src_sb_addr(json& op)
 {
   tonga_addr a = 0;
+  if (op["waveop_type"] == "RegStore") {
+    // RegStore moves data from internal Reg to SBUF, so no input from SBUF
+    return a;
+  }
   if (op["src_sb_address"] != nullptr)
     a = op["src_sb_address"].get<tonga_addr>();
   return a;
@@ -242,6 +285,10 @@ tonga_addr PoolActOp::extract_src_sb_addr(json& op)
 tonga_addr PoolActOp::extract_dst_sb_addr(json& op)
 {
   tonga_addr a = 0;
+  if (op["waveop_type"] == "RegLoad") {
+    // RegLoad  moves data from SBUF to internal Reg, so no output to SBUF
+    return a;
+  }
   if (op["dst_sb_address"] != nullptr)
     a = op["dst_sb_address"].get<tonga_addr>();
   return a;
@@ -462,6 +509,8 @@ WaveOp* WaveGraphChecker::ConstructWaveOp(json& op)
   else if (!wave_op_type.compare("Activation") ||
       !wave_op_type.compare("Pool") ||
       !wave_op_type.compare("Reciprocal") ||
+      !wave_op_type.compare("RegLoad") ||
+      !wave_op_type.compare("RegStore") ||
       !wave_op_type.compare("ClipByValue") ||
       !wave_op_type.compare("ScaleAdd")) wo = new PoolActOp(op);
   else if (!wave_op_type.compare("SBAtomLoad") ||
@@ -959,6 +1008,8 @@ void WaveGraphChecker::MakeImplicitEdgesExplicit()
     }
     else if (!wop_type.compare("Pool") || !wop_type.compare("ResAdd")
         || !wop_type.compare("Reciprocal")
+        || !wop_type.compare("RegLoad")
+        || !wop_type.compare("RegStore")
         || !wop_type.compare("TensorTensor")
         || !wop_type.compare("TensorScalar")
         || !wop_type.compare("TensorScalarPtr")

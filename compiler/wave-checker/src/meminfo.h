@@ -92,6 +92,17 @@ struct MemInfo_Params {
                                    , sz(_sz), sw(_sw), dtype(dt)
   {}
   MemInfo_Params() {}
+
+  void SetZeroSize() {
+    nx = ny = nz = nw = 0;
+    sx = sy = sz = sw = 0;
+  }
+  void SetDmaEquiv(num_t len) {
+    nx = len;
+    ny = nz = nw = 0;
+    sx = 1;
+    sy = sz = sw = 0;
+  }
 }; // MemInfo_Params
 struct MemInfo_PSUM_Params : public MemInfo_Params {
   int pbid;
