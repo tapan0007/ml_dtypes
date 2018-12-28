@@ -830,6 +830,15 @@ class FileParams():
                 # BE performs the DMAs necessary for replication, so need to compress when translating from chunk size to atom size
                 self.repl_chunk2atom_compress_ratio = self.stride.x * self.stride.x
 
+        # Hack to get rid of the ifmaps bubble issue that happens when ifmaps
+        # are in uint8 and need to be loaded by multiple SBAtomLoad's.
+        # The fundamental reason is that we use self.get_chunk_len_from_chunk_id
+        # and self.get_file_addr_from_chunk_id to determine length and offset
+        # from self.chunk_sz, while using self.get_sb_addr_from_chunk_id
+        # to determine sb_addr from self.chunk_sz_padded
+        if self.item_sz == 1:
+            self.chunk_sz = min(align_addr_8B(self.chunk_sz), self.chunk_sz_limit)
+
         self.batch_item_partition_usage_sz  = self.fmap_data_len * self.fmap_channels_folds
         self.tot_partition_usage_sz         = self.batch_item_partition_usage_sz * self.file_dims.N
         self.fmap_count                     = min(self.file_dims.orig_C, PEArray.NUM_ROWS)

@@ -301,8 +301,6 @@ testConfigMap = {
 # If the testname matches the regexp then the FAIL status is replaced with
 # with the string
 testWaiver = [
-    ["1-1conv_h55r2same_uint8_wave", "WAIVE_UINT8_MATMUL_FMAP_BUBBLE"],
-    ["1-1conv_h55r2valid_uint8_wave", "WAIVE_UINT8_MATMUL_FMAP_BUBBLE"],
 ]
 
 noGpuTestWaiver = [
