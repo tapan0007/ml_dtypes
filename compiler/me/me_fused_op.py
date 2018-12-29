@@ -121,7 +121,7 @@ class PEWave:
         else:
             raise RuntimeError("Cannot extract a view using empty rectangle ", self.subtile_rect)
 
-    def set_waveop_pattern(self, file_mapper, waveop, prefix, psum_bank_id, sb_address, start_at_mid_part):      
+    def set_waveop_pattern(self, file_mapper, waveop, prefix, psum_bank_id, sb_address, start_at_mid_part, sb_dtype=None):
         prefix2 = prefix.replace("src","in").replace("dst","out")
         x_step = 1
         x_num = self.subtile_rect.dim2d.x
@@ -135,7 +135,7 @@ class PEWave:
             waveop[prefix + "_psum_bank_id"]      = psum_bank_id
             waveop[prefix + "_psum_bank_offset"]  = self.subtile_psum_offset
         else:   # negative psum_bank_id indicates SB
-            dtype  = self.tile.file_params.data_type
+            dtype  = self.tile.file_params.data_type if sb_dtype is None else sb_dtype
             y_step = self.tile.file_params.file_dims.W
             z_step = self.tile.file_params.batch_item_partition_usage_elems_padded if z_num > 1 else 1
             waveop[prefix + "_start_at_mid_part"] = start_at_mid_part
@@ -331,7 +331,7 @@ class FusedOp(list):
     """
     act_ops_regex = "Relu|Softplus|Sigmoid|Tanh|^Exp$|Identity|Lrelu|Prelu|Sqrt"
     bias_ops_regex = "BiasAdd"
-    pool_ops_regex = ".*Pool|Sub|Add|Multiply|ResAdd|Maximum|Minimum|Dequantize"
+    pool_ops_regex = ".*Pool|Sub|Add|Multiply|ResAdd|Maximum|Minimum|QuantizeV2|Dequantize"
     identity_ops_regex = "Reshape|Squeeze|ExpandDims"
     next_is_fusable_regex = bias_ops_regex + "|" + act_ops_regex + "|" + pool_ops_regex # + "|" + identity_ops_regex
     next_is_fusable = {
@@ -2010,12 +2010,19 @@ class FusedOp(list):
         ofmap_subtile = ofmap_tile.make_pewave()
         ifmap_subtile = ifmap_tile.make_pewave()
         ofmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'dst', psum_bank_dst, dst_sb_address, start_at_mid_part)
+        # Note (HC): When ResAdd is fused with a later QuantizeV2 and when
+        # the QuantizeV2 is also the last op in the fused op list, ifmap_subtile
+        # will be coming from the output of QuantizeV2 and the data type is
+        # therefore uint8. However the correct state buffer data type should be
+        # float32. Here we assume that op.ifmaps_file_params.data_type has
+        # the correct state buffer data type.
+        ifmap_sb_dtype = op.ifmaps_file_params.data_type
         if residue_index == 0:
-            ifmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'src_b', psum_bank_src, src_b_sb_address, start_at_mid_part)
-            ifmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'src_a', psum_bank_residue, src_a_sb_address, start_at_mid_part)
+            ifmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'src_b', psum_bank_src, src_b_sb_address, start_at_mid_part, sb_dtype=ifmap_sb_dtype)
+            ifmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'src_a', psum_bank_residue, src_a_sb_address, start_at_mid_part, sb_dtype=ifmap_sb_dtype)
         else:            
-            ifmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'src_a', psum_bank_src, src_a_sb_address, start_at_mid_part)
-            ifmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'src_b', psum_bank_residue, src_b_sb_address, start_at_mid_part)
+            ifmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'src_a', psum_bank_src, src_a_sb_address, start_at_mid_part, sb_dtype=ifmap_sb_dtype)
+            ifmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'src_b', psum_bank_residue, src_b_sb_address, start_at_mid_part, sb_dtype=ifmap_sb_dtype)
         psum_bank_used = -1
         if psum_bank_src >= 0:
             psum_bank_used = psum_bank_src
