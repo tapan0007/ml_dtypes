@@ -289,6 +289,10 @@ class TPBSched:
                 first_op.result_avail = True
                 # Populate OFMAP params                        
                 first_op.populate_ofmaps_file_params(const_tensor_load = True)
+                # ReviewMe: Treat node with ConstLoad as graph input. Otherwise, map_files doesn't create dram load waveops.
+                # It is related to the modify_in_place flag.
+                for i in first_op.next: 
+                    i.is_input = True
             else:       
                 # maintain a linked-list of fused_ops
                 # grab the current batch count from previous fused_ops

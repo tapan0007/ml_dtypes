@@ -478,6 +478,7 @@ class NodeConst(Node):
     layerData = {
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
+      "out_data_type"   : npInfo.dType,
       "ref_file"        : npFileSim,
       "previous_layers" : [],
       "#comment"        : "Constants such as weights or biases"
@@ -1267,6 +1268,7 @@ class NodeSimple2(Node):
         constLayerData = {
           "layer_type" :  "Const",
           "layer_name" :  fromIfNodeSide.getName(),
+          "out_data_type"   : npInfo.dType,
           "ofmap_shape"     : tpbShape1,
           "ofmap_format"    : simFormat1,
           "ref_file"        : npFileSim1,

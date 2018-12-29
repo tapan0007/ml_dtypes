@@ -29,7 +29,6 @@ import os
 sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
 import MiscUtil
 
-
 class TfOp:
   def __init__(self, name, op, tfNode):
     self.name = name

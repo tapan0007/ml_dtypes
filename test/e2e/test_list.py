@@ -67,7 +67,7 @@ mnistSample = "%s/%s" % (kePath, "apps/tf/cnn_mnist/sample_mnist_img_fp16.npy")
 def MEv2(optstr):
     optsdec = {
         "cleanwg"   : "enable_cleanup",          "rn50"      : "nname=resnet50",      "generic"  : "nname=generic",
-        "repl"      : "enable_replication",      "saveall"   : "save_layer_output",   "noverify" : "no_verify", 
+        "repl"      : "enable_replication",      "saveall"   : "save_layer_output",   "noverify" : "no_verify",
         "waivewc"   : "waive_wavegraph_checks",  "largepsum" : "psum_512_chunk_4k",   "transposeofmap": "transpose_ofmap",
         "relaxdep"  : "relax_dependencies",      "fulldep"   : "full_dependencies",
     }
@@ -215,7 +215,7 @@ testConfigMap = {
   "0-1transpose_wave" : [ "trivnet_transpose",  "tfloat16-b1-h64-r1-s1-c2-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", '--use_wc_2d_format ' + MEv2("Generic")],
   "0-1transpose_h64_c128" : [ "trivnet_transpose",  "tfloat16-b1-h64-r1-s1-c128-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", '--use_wc_2d_format ' + MEv2("Generic")],
   "0-1transpose_h64_c1024" : [ "trivnet_transpose",  "tfloat16-b1-h64-r1-s1-c1024-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", '--use_wc_2d_format ' + MEv2("Generic")],
-  
+
 
   "0-1conv0_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", MEv2("Generic")],
   "0-1conv0_fp32_wave" : [ "trivnet_conv1",  "tfloat32-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", MEv2("Generic")],
@@ -284,10 +284,10 @@ testConfigMap = {
   "0-1concat_h35c64m64ni4" : [ "trivnet_concat_variable_inputs",  "tfloat16-b1-h35-r1-s1-c64-m64-ni4-wmin2-wmax2.2-imin3-imax3.2", "1concat", MEv2("Generic")],
   "0-1concat_h35c63m127ni5" : [ "trivnet_concat_variable_inputs",  "tfloat16-b1-h35-r1-s1-c63-m127-ni5-wmin2-wmax2.2-imin3-imax3.2", "1concat", MEv2("Generic")],
 
-  "0-1_concat_multi" : [ "trivnet_concat_multi_inputs", 
-          "tfloat16-b1-h32-r1-s1-c256-m1-wmin2-wmax2.2-imin3-imax3.2 tfloat16-b1-h32-r1-s1-c64-m1-wmin-1-wmax1.2-imin-2-imax2.2", 
-          "1concat", 
-          " --images linspace1 linspace1 " + MEv2("Generic"), 
+  "0-1_concat_multi" : [ "trivnet_concat_multi_inputs",
+          "tfloat16-b1-h32-r1-s1-c256-m1-wmin2-wmax2.2-imin3-imax3.2 tfloat16-b1-h32-r1-s1-c64-m1-wmin-1-wmax1.2-imin-2-imax2.2",
+          "1concat",
+          " --images linspace1 linspace1 " + MEv2("Generic"),
           "--input_files input0:0=trivnet_input0:0.npy input1:0=trivnet_input1:0.npy "],
 
   "0-1concat_h16c63m127ni5_sem_qemu" : [
@@ -1087,12 +1087,12 @@ testConfigMap = {
     "--images $KAENA_EXT_PATH/apps/tf/wavernn/prev_samp.npy $KAENA_EXT_PATH/apps/tf/wavernn/cond_membed.npy $KAENA_EXT_PATH/apps/tf/wavernn/init_state.npy "
     " --executors host 0 2 wave 1 --scheduler qemu_wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race --parallel_streams --partition from_multi Add,MatMul,MatMul_1,Mul,Mul_1 Softmax ",
     "--input_files prev:0=$KAENA_EXT_PATH/apps/tf/wavernn/prev_samp.npy cond:0=$KAENA_EXT_PATH/apps/tf/wavernn/cond_membed.npy init_state:0=$KAENA_EXT_PATH/apps/tf/wavernn/init_state.npy "
-      ], 
+      ],
 
   # transformer tests
 
-  "2-transformer_layer_norm" : [ "trivnet_layer_norm",  
-    "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2",  "layer_norm" , 
+  "2-transformer_layer_norm" : [ "trivnet_layer_norm",
+    "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2",  "layer_norm" ,
     "--partition none "
     "--focus_to 'layer_norm/pre_output' "
     "--executors wave all --images linspace1 linspace1 {} --wavegraph_checks structure data-race".format(MEv2("generic")),
@@ -1107,11 +1107,12 @@ testConfigMap = {
     "--executors wave all --images linspace1  {} --wavegraph_checks structure data-race ".format(MEv2("generic-no_verify")),
     "--check_against_ref all_available --input_files input:0=trivnet_input:0.npy "
   ],
-  
+
   "2-transformer_multihead_attention": [
     "trivnet_mhatt",
-    "tfloat16-wmin-0.01-wmax0.01-imin-0.1-imax0.1-batchsize4-inputlen16-outputlen32-headsize64-numhid512-neginf-10000",
+    #"tfloat16-wmin-0.01-wmax0.01-imin-0.1-imax0.1-batchsize4-inputlen16-outputlen32-headsize64-numhid512-neginf-10000",
     #"tfloat16-wmin-0.01-wmax0.01-imin-0.1-imax0.1-batchsize4-inputlen16-outputlen16-headsize4-numhid16-neginf-100000000",  # small input
+    "tfloat16-wmin-0.01-wmax0.01-imin-0.1-imax0.1-batchsize4-inputlen16-outputlen16-headsize4-numhid16-neginf-100000000",  # small input
     "multihead_attention",
     " --images linspace1 linspace1 linspace1 linspace1 linspace1 linspace1 linspace1 "
     " --use_wc_2d_format --use_hwc_3d_format "
@@ -1128,7 +1129,84 @@ testConfigMap = {
                    "input_bias_br_2:0=trivnet_input_bias_br_2:0.npy "
                    "input_bias_br_3:0=trivnet_input_bias_br_3:0.npy "
                   ],
+
+  #"3-transformer_encoder_layer": [
+  #  "trivnet_transformer",
+  #  "tfloat16-wmin-0.01-wmax0.01-imin-0.1-imax0.1-batchsize4-inputlen16-outputlen16-headsize64-numhid512-neginf-10000-test_encoder_layer",
+  #  #"tfloat16-wmin-0.01-wmax0.01-imin-0.1-imax0.1-batchsize4-inputlen16-outputlen16-headsize4-numhid32-neginf-100000000-test_encoder_layer",  # small input
+  #  "encoder_layer",
+  #  " --partition from 'encoder_layer/output' "
+  #  " --use_wc_2d_format --use_hwc_3d_format "
+  #  "--executors wave 0 host 1 --images linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 {} --wavegraph_checks structure data-race".format(MEv2("generic-noverify")),
+  #  "--check_against_ref all_available "
+  #  "--input_files input:0=trivnet_input:0.npy "
+  #                "input_bias_br_0:0=trivnet_input_bias_br_0:0.npy "
+  #                "input_bias_br_1:0=trivnet_input_bias_br_1:0.npy "
+  #                "input_bias_br_2:0=trivnet_input_bias_br_2:0.npy "
+  #                "input_bias_br_3:0=trivnet_input_bias_br_3:0.npy "
+  #],
   
+  
+  "2-mhatt": [
+    "trivnet_transformer",
+    #"tfloat16-wmin-0.01-wmax0.01-imin-0.1-imax0.1-batchsize4-inputlen16-outputlen32-headsize64-numhid512-neginf-10000",
+    "tfloat16-wmin-0.01-wmax0.01-imin-0.1-imax0.1-batchsize4-inputlen16-outputlen16-headsize4-numhid16-neginf-100000000-test_mhatt",  # small input
+    "multihead_attention",
+    " --images linspace1 linspace1 linspace1 linspace1 linspace1 linspace1 "
+    " --use_wc_2d_format --use_hwc_3d_format "
+    " --partition from multihead_attention/output "
+    " --executors wave 0 host 1 {} --wavegraph_checks structure data-race".format(MEv2("generic-noverify")),
+    " --diff_options '--tolerance 3.0 1e-5' "
+    " --input_files input_x_r:0=trivnet_input_x_r:0.npy "
+                   "input_y_r:0=trivnet_input_y_r:0.npy "
+                   #"v_kernel_t:0=trivnet_v_kernel_t:0.npy "
+                   "input_bias_br_0:0=trivnet_input_bias_br_0:0.npy "
+                   "input_bias_br_1:0=trivnet_input_bias_br_1:0.npy "
+                   "input_bias_br_2:0=trivnet_input_bias_br_2:0.npy "
+                   "input_bias_br_3:0=trivnet_input_bias_br_3:0.npy "
+  ],
+  
+  # Disable until event overflow is resolved.
+  #"5-transformer_encoder_stack": [
+  #  "trivnet_transformer",
+  #  "tfloat16-wmin-0.01-wmax0.01-imin-0.1-imax0.1-batchsize4-inputlen16-outputlen16-headsize64-numhid512-neginf-10000-te  s#t_encoder_stack",
+  #  #"tfloat16-wmin-0.01-wmax0.01-imin-0.1-imax0.1-batchsize4-inputlen16-outputlen16-headsize4-numhid32-neginf-100000000  -#test_encoder_stack",  # small input
+  #  "encoder_stack",
+  #  " --partition from 'encoder_stack/output' "
+  #  " --use_wc_2d_format --use_hwc_3d_format "
+  #  "--executors wave 0 host 1 --images linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 {}   #--wavegraph_checks structure data-race --be_options sync-with-semaphores".format(MEv2("generic-noverify")),
+  #  "--check_against_ref all_available "
+  #  "--input_files input:0=trivnet_input:0.npy "
+  #                "input_bias_br_0:0=trivnet_input_bias_br_0:0.npy "
+  #                "input_bias_br_1:0=trivnet_input_bias_br_1:0.npy "
+  #                "input_bias_br_2:0=trivnet_input_bias_br_2:0.npy "
+  #                "input_bias_br_3:0=trivnet_input_bias_br_3:0.npy "
+  #],
+
+  # Disable until event overflow is resolved.
+  #"2-transformer_decoder_layer": [
+  #  "trivnet_transformer",
+  #  #"tfloat16-wmin-0.01-wmax0.01-imin-0.1-imax0.1-batchsize4-inputlen16-outputlen16-headsize64-numhid512-neginf-10000-test_decoder_layer",
+  #  "tfloat16-wmin-0.01-wmax0.01-imin-0.1-imax0.1-batchsize4-inputlen16-outputlen16-headsize4-numhid32-neginf-100000000-test_decoder_layer",  # small input
+  #  "decoder_layer",
+  #  " --partition from 'decoder_layer/output' "
+  #  " --use_wc_2d_format --use_hwc_3d_format "
+  #  "--executors wave 0 host 1 "
+  #  "--images linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 linspace:0-0.1     #    linspace:0-0.1  "
+  #  "{} --wavegraph_checks structure data-race".format(MEv2("generic-noverify")),
+  #  "--check_against_ref all_available "
+  #  "--input_files input:0=trivnet_input:0.npy "
+  #                "input_from_enc:0=trivnet_input_from_enc:0.npy "
+  #                "input_enc_bias_br_0:0=trivnet_input_enc_bias_br_0:0.npy "
+  #                "input_enc_bias_br_1:0=trivnet_input_enc_bias_br_1:0.npy "
+  #                "input_enc_bias_br_2:0=trivnet_input_enc_bias_br_2:0.npy "
+  #                "input_enc_bias_br_3:0=trivnet_input_enc_bias_br_3:0.npy "
+  #                "input_dec_bias_br_0:0=trivnet_input_dec_bias_br_0:0.npy "
+  #                "input_dec_bias_br_1:0=trivnet_input_dec_bias_br_1:0.npy "
+  #                "input_dec_bias_br_2:0=trivnet_input_dec_bias_br_2:0.npy "
+  #                "input_dec_bias_br_3:0=trivnet_input_dec_bias_br_3:0.npy "
+  #],
+
 }
 
 
@@ -1182,7 +1260,7 @@ for i in [9, 12, 15, 18, 22]:
 for i in [24]:
     testConfigMap["7-parwavenet_10_fp16_tanh_to_add%s_wave"%i] = gen_parwavenet_10_fp16_tanh1_to("add_%s"%i, 1)
 
-# kaena-943: 
+# kaena-943:
 # For tanh_to_add6, Slice_4 kept only 1536 elements from 2000 elements of BiasAdd_13 output (similarly for the others)
 # For tanh_to_add12, only 1536 of 2000 elements of BiasAdd_22 output is kept
 # For tanh_to_add18, only 1536 of 2000 elements of BiasAdd_31 output is kept

@@ -1484,6 +1484,40 @@ class PrepareKGraph:
         for i, pred_name in enumerate(pred_list):
             if pred_name in self.replace_map:
                 pred_list[i] = self.replace_map[pred_name]
+    
+    # Indentify 'Const' tensors that needs loading from DRAM and replace it with 'ConstLoad'
+    def _identify_const_loads(self, layers):
+        const_loads = {}
+        for layer in layers:
+            layer_type = layer['layer_type']
+            if layer_type == 'Const': #and (not layer in const_loads):
+                const_loads[layer['layer_name']] = layer
+                continue
+
+            # BiasAdd has special handling for 'Const' node. We don't want to interfer with it for now.
+            if layer_type == 'BiasAdd':
+                continue
+            # FixMe: we don't want to change 'Const' to 'ConstLoad' for all nodes in order to minimize impact for now.
+            is_allowed_now = layer_type == 'Multiply' or layer_type == 'Add' or layer_type == 'MatMul'
+            if not is_allowed_now:
+                continue
+                
+            pred_list = layer['previous_layers']
+            for i, pred_name in enumerate(pred_list):    
+                if not pred_name in const_loads:
+                    continue
+
+                const_layer = const_loads[pred_name]
+                assert(const_layer['layer_type'] == 'Const')
+ 
+                shape = const_layer['ofmap_shape']
+                if len(shape) != 0:
+                    const_layer['layer_type'] = 'ConstLoad'
+                    new_ref_file = const_layer['ref_file'].replace(".npy", "-constants.npy")
+                    data = np.load(const_layer['ref_file'])
+                    np.save(new_ref_file, data)
+                    const_layer['ref_file'] = new_ref_file
+
 
     def run(self, kgraph_json):
 
@@ -1496,6 +1530,10 @@ class PrepareKGraph:
         if ("layers" in kgraph_json):
             layers = kgraph_json["layers"]
 
+            # Identify constant load
+            self._identify_const_loads(layers)
+
+            # Expand nodes
             for l in layers:
 
                 self._update_predecessor(l)
@@ -1511,6 +1549,7 @@ class PrepareKGraph:
 
             layers.clear()
             layers += self.new_layers_list
+            #kgraph_json['layers'] = layers
 
         with (open('compiler.expanded.json', 'w')) as f:
             s = json.dumps(kgraph_json, indent=2, sort_keys=True)

@@ -71,6 +71,16 @@ def getConfFmap(confStr):
       confStr = confStr.replace(match.group(0), "")
   return(conf, confStr)
 
+# Extract an optional test name which can be used to run a test from multiple tests
+# in a test file. This is useful if you want to put related tests in a file.
+def getTestName(confStr):
+    match = re.search('TEST_(([A-Z]|[0-9]|_)+)',confStr)
+    testName = ''
+    if match:
+        testName = match.group(1)
+        confStr = confStr.replace(match.group(0), "")
+    return (testName, confStr)
+
 # Extract text-only config options from the config string
 # h4-PERM-k1  returns "PERM","h4-k1"
 def getPadType(confStr):
@@ -123,6 +133,7 @@ class trivnet_conf():
         # Sample dimStr : b1-h2-r2-s1-c4-m4-wmin-0.1-wmax0.1-imin1-imax5
         dimStr = dimStr.upper() + "-"
         self.fmapValList, dimStr = getConfFmap(dimStr)
+        self.testName, dimStr = getTestName(dimStr)
         self.poolType, self.padType, self.actType, self.joinType, self.usePerm, dimStr = getPadType(dimStr)
 
         if len(sys.argv) > 2:

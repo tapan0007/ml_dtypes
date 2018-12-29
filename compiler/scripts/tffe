@@ -225,6 +225,8 @@ if args.images != None:
     print("\n", getInfoDateStr(), "processing subgraph %s" % sgDir)
     if debugLevel > 1:
       sg.graph.print()
+    if os.path.exists(sgDir):
+      shutil.rmtree(sgDir)
     os.makedirs(sgDir)
     os.chdir(sgDir)
     sg.addSideNodes(kog)
