@@ -635,7 +635,11 @@ class FusedOp(list):
             if ofmaps_region_start_addr >= ifmaps_region_start_addr \
                     and ofmaps_region_start_addr < ifmaps_region_start_addr + ifmaps_region_sz \
                     and not self.first_op.is_nop:
-                if (ofmaps_file_params.file_dims.C > 64) \
+                if self.first_op.data["layer_type"] == "TransposeVector":                                            
+                    ofmaps_region_start_addr = ifmaps_region_start_addr + ifmaps_region_sz
+                    if ofmaps_region_start_addr + ofmaps_region_sz >= tpb.statebuffer.file_mapper.sb_partition_sz:
+                        ofmaps_region_start_addr = tpb.statebuffer.batcher.sb_bias_sz[sb_size_set_index]
+                elif (ofmaps_file_params.file_dims.C > 64) \
                     or (self.conv_op is not None and (self.conv_op.stride.x > 1 or self.conv_op.S > 1)) \
                     or (self.has_pool and self.pool_op.stride.x > 1):
                     if (ofmaps_file_params.batch_item_partition_usage_sz_padded <= ifmaps_file_params.batch_item_partition_usage_sz_padded):
