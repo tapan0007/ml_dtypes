@@ -134,50 +134,50 @@ class NpTrans:
     return(subShape)
   
   @staticmethod
-  def cShapeToNHWC(shape):
-    tmpShape = [1, 1, 1] + shape
+  def cShapeToNHWC(shape, insertVal=1):
+    tmpShape = [insertVal]*3 + shape
     return tmpShape[-4:]
 
   @staticmethod
-  def nwShapeToNHWC(shape):
+  def nwShapeToNHWC(shape, insertVal=1):
     assert len(shape) == 2
-    tmpShape = [shape[0], 1, shape[1], 1]
+    tmpShape = [shape[0], insertVal, shape[1], insertVal]
     return tmpShape
   
   @staticmethod
-  def ncShapeToNHWC(shape):
+  def ncShapeToNHWC(shape, insertVal=1):
     assert len(shape) == 2
-    tmpShape = [shape[0], 1, 1, shape[1]]
+    tmpShape = [shape[0], insertVal, insertVal, shape[1]]
     return tmpShape
 
   @staticmethod
-  def wcShapeToNHWC(shape):
+  def wcShapeToNHWC(shape, insertVal=1):
     assert len(shape) == 2
-    tmpShape = [ 1, 1, shape[0], shape[1]]
+    tmpShape = [insertVal]*2 + [shape[0], shape[1]]
     return tmpShape
   
   @staticmethod
-  def hwcShapeToNHWC(shape):
+  def hwcShapeToNHWC(shape, insertVal=1):
     assert len(shape) == 3
-    tmpShape = [1, shape[0], shape[1], shape[2]]
+    tmpShape = [insertVal, shape[0], shape[1], shape[2]]
     return tmpShape
 
   @staticmethod
-  def nwcShapeToNHWC(shape):
+  def nwcShapeToNHWC(shape, insertVal=1):
     assert len(shape) == 3
-    tmpShape = [shape[0], 1, shape[1], shape[2]]
+    tmpShape = [shape[0], insertVal, shape[1], shape[2]]
     return tmpShape
 
   @staticmethod
-  def hncShapeToHNWC(shape):
+  def hncShapeToHNWC(shape, insertVal=1):
     assert len(shape) == 3
-    tmpShape = [shape[0], shape[1], 1, shape[2]]
+    tmpShape = [shape[0], shape[1], insertVal, shape[2]]
     return tmpShape
 
   @staticmethod
-  def cmShapeToRSCM(shape):
+  def cmShapeToRSCM(shape, insertVal=1):
     assert len(shape) == 2
-    tmpShape = [1, 1, shape[0], shape[1]]
+    tmpShape = [insertVal]*2 + [shape[0], shape[1]]
     return tmpShape
 
   @staticmethod

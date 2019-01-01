@@ -331,6 +331,60 @@ class Node(Object):
                                      npFileSim, simFormat, isConst))
     return (tpbShape, simFormat, npFileSim)                        
        
+  def convertDimParams(self, dimParams, insertVal=1):
+
+    if len(dimParams) == 3:
+      if Config.Graph.useHWCFormat:
+        tfShape4D = npt.hwcShapeToNHWC(dimParams, insertVal)
+        tfFormat = npt.HWC  
+      else:
+        tfShape4D = npt.nwcShapeToNHWC(dimParams, insertVal)
+        tfFormat = npt.NWC
+    elif len(dimParams) == 2:
+      if Config.Graph.useWCFormat:
+        tfShape4D = npt.wcShapeToNHWC(dimParams, insertVal)
+        tfFormat = npt.WC        
+      else:
+        tfShape4D = npt.ncShapeToNHWC(dimParams, insertVal)
+        tfFormat = npt.NC
+    elif len(dimParams) == 1:
+      tfShape4D = npt.cShapeToNHWC(dimParams, insertVal)
+      tfFormat = npt.C
+    elif len(dimParams) == 0:
+      tfShape4D = []
+      tfFormat = ""
+    else:
+      assert len(dimParams) == 4
+      tfShape4D = dimParams
+      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
+
+    # Overwrite format from command line
+    simFormat = ""
+    if self.getName() in Config.Graph.inputNamesToFormat:
+      # overriding is limited to Fmaps now.
+      tfFormat = Config.Graph.inputNamesToFormat[self.getName()]
+      assert(len(tfFormat) == len(dimParams))
+      if tfFormat == npt.NWC:
+        tfShape4D = npt.nwcShapeToNHWC(dimParams, insertVal)
+      elif tfFormat == npt.HNC:
+        tfShape4D = npt.hncShapeToHNWC(dimParams, insertVal)
+      elif tfFormat == npt.NC:
+        tfShape4D = npt.ncShapeToNHWC(dimParams, insertVal)
+      elif tfFormat == npt.NW:
+        tfShape4D = npt.nwShapeToNHWC(dimParams, insertVal)
+      elif tfFormat == npt.C:
+        tfShape4D = npt.cShapeToNHWC(dimParams, insertVal)
+      elif tfFormat == npt.Formats[npt.TF][npt.Fmaps]:
+        tfShape4D = dimParams
+      else:
+        print("ERROR: input format %s is not recognized (must be one of C, NC, NWC, HNC, or NHWC)"%self.inputFormat)
+
+    if simFormat == "":
+        if tfShape4D != []:
+            tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+        else:
+            tpbShape = []
+    return tpbShape
 
   # Describes computational complexity of the operation
   def getOpCount(self, padded=False):
@@ -1592,7 +1646,6 @@ class NodeSlice(Node):
     npInfo = self.getNpInfo()[0]
     bes = {"Begin" : (), "Size" : ()}
     inNodesAndNpInfos = self.getInputNodesAndNpInfo()
-    reorderSliceParams = True
     if len(inNodesAndNpInfos) == 3:
         ((nIn, _), bes["Begin"], bes["Size"]) = inNodesAndNpInfos
         npInfoIndexinBes = 1
@@ -1604,7 +1657,6 @@ class NodeSlice(Node):
         (nIn, _) = inNodesAndNpInfos[0]
         sliceBegin = self.getAttr("slice_begin")
         sliceSize = self.getAttr("slice_size")
-        reorderSliceParams = False
     else:
         assert(False)
 
@@ -1613,49 +1665,9 @@ class NodeSlice(Node):
     if len(npInfo.npShape) == 1:
       return {},[]
 
-    if len(npInfo.npShape) == 4:
-      tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
-      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
-      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
-      if reorderSliceParams:
-        sliceBegin = npt.reorderShape(sliceBegin, npt.TF, npt.SIM, npt.Fmaps)
-        sliceSize = npt.reorderShape(sliceSize, npt.TF, npt.SIM, npt.Fmaps)
-    else:
-      if len(npInfo.npShape) == 3:
-        tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
-        if Config.Graph.useWCFormat:
-          tfFormat = npt.HWC
-          # insert 0 for N axis
-          sliceBegin.insert(0, 0)
-          sliceSize.insert(0, 1)
-        else:
-          widthAxis = 1          
-          tfFormat = npt.NWC
-          sliceBegin.insert(widthAxis, 0)
-          sliceSize.insert(widthAxis, -1)
-      elif len(npInfo.npShape) == 2:
-        if Config.Graph.useWCFormat:
-          tfShape4D = npt.wcShapeToNHWC(npInfo.npShape)
-          widthAxis = 1
-          tfFormat = npt.WC
-          sliceBegin = [0, 0] + sliceBegin
-          sliceSize = [-1, -1] + sliceSize
-        else:
-          tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-          widthAxis = 1
-          tfFormat = npt.NC
-      else:
-        raise RuntimeError("Supported number of dimensions for Slice's output tensor is between 2 and 4; found %d dimensions instead"%(len(npInfo.npShape)))
-
-      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
-      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
-      sliceBegin = npt.reorderShape(sliceBegin, npt.TF, npt.SIM, npt.Fmaps)
-      sliceSize = npt.reorderShape(sliceSize, npt.TF, npt.SIM, npt.Fmaps)
-
-    tensorFormatMap.add(npInfo.tensorName,
-                        TensorFormat(npInfo.tensorName, self.getOpName(),
-                                     npInfo.npFile, tfFormat,
-                                     npFileSim, simFormat, False))
+    sliceBegin = self.convertDimParams(sliceBegin, 0)
+    sliceSize = self.convertDimParams(sliceSize, -1)
+    (tpbShape, simFormat, npFileSim) = self.convertShape(npInfo, tensorFormatMap)
 
     layerData = {
       "ofmap_shape"     : tpbShape,
@@ -2143,7 +2155,7 @@ class Graph(Object):
                                     simInputUnstackAxisInt):
         outputs = unstackNode.getFanouts()
         unstackOutNpInfos = unstackNode.getNpInfo()
-        numOutPins = len(unstackOutNpInfos)
+        numDims = len(unstackOutNpInfos[outIdx].npShape)
 
         outEdges = unstackNode.getFanoutEdgesOfOutput(outIdx)
         assert(len(outEdges) > 0)
@@ -2157,7 +2169,7 @@ class Graph(Object):
 
         sizes = []
         begins = []
-        for i in range(numOutPins):
+        for i in range(numDims):
             if i == simInputUnstackAxisInt:
                 beg = outIdx
                 siz = 1
