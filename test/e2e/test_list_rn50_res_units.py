@@ -24,6 +24,10 @@ testConfigMap = {
       "trivnet_opt_inf", "resnet50_keras/resnet50_fp16_keras_opt2.pb--activation_10/Relu--activation_13/Relu--float16--1,55,55,256",
       "resnet50", kccOpts, rtOpts % 'trivnet_activation_10__Relu:0.npy' ],
 
+  "4-rn50_res_unit_act10_13_fp32" : [
+      "trivnet_opt_inf", "resnet50_keras/resnet50_fp32_keras_opt.pb--activation_10/Relu--activation_13/Relu--float32--1,55,55,256",
+      "resnet50", kccOpts, rtOpts % 'trivnet_activation_10__Relu:0.npy' ],
+
   "4-rn50_res_unit_act13_16" : [
       "trivnet_opt_inf", "resnet50_keras/resnet50_fp16_keras_opt2.pb--activation_13/Relu--activation_16/Relu--float16--1,28,28,512",
       "resnet50", kccOpts, rtOpts % 'trivnet_activation_13__Relu:0.npy' ],
