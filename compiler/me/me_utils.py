@@ -138,20 +138,13 @@ def pad_and_split_file(file_to_split, file_format, num_to_split, pad_west, pad_e
     return (new_file, new_shape)
 
 # Extract list of predecessor waveop names from list of accessors
-def extract_predecessors(list_of_accessors_wr, list_of_accessors_rd, waveop_list, dram_waveops, relax_dependencies, full_dependencies = False):
+def extract_predecessors(list_of_accessors_wr, list_of_accessors_rd, waveop_list):
     predec_list_by_name = []
     list_of_accessors_combined = copy.copy(list_of_accessors_rd)
     list_of_accessors_combined.append(list_of_accessors_wr)
     # extract predecessors from combed list of writers and per-engine readers
     for accessors in list_of_accessors_combined:
         filtered_accessors = accessors
-        if not full_dependencies and accessors != []:
-            # Keep the latest from list of accessors
-            filtered_accessors = [max(accessors)]
-            # IF there are DRAM loads, they would be the latest among all dependencies
-            # (below is required to prevent running out of events)
-            if dram_waveops != []:
-                filtered_accessors = []
         for accessor in filtered_accessors:
             if accessor >= 0 and accessor < len(waveop_list):
                 accessor_waveop = waveop_list[accessor]
@@ -951,14 +944,10 @@ class FileMapper():
         self.dramsaves = dict()
         if args is None:
             self.enable_eviction = False
-            self.full_dependencies = False
-            self.relax_dependencies = False
             self.sb_partition_sz = 96*1024
             self.debug = 0
         else:            
             self.enable_eviction = args.enable_eviction
-            self.full_dependencies = args.full_dependencies
-            self.relax_dependencies = args.relax_dependencies
             self.sb_partition_sz = args.sb_partition_sz
             self.debug = args.debug
         self.args = args
@@ -1375,8 +1364,7 @@ class FileMapper():
             if waveop_id >= 0:
                 for j in range(chunk_begin_sb_addr, chunk_end_sb_addr + file_params.item_sz, file_params.item_sz):
                     sb_addr = j
-                    if is_sb_addr_in_bound(sb_addr, start_sb_addr, end_sb_addr) \
-                            or (file_params.args is not None and file_params.args.relax_dependencies):
+                    if is_sb_addr_in_bound(sb_addr, start_sb_addr, end_sb_addr):
                         #for k in (range(1,2) if start_at_mid_part else range(0,1)):    
                         # TODO: more fine-grain tracking at 64-parition granularity
                         for k in (range(2)):
@@ -1426,10 +1414,7 @@ class FileMapper():
                 prev_waveops = extract_predecessors(
                     list_of_accessors_wr = list_of_writers, 
                     list_of_accessors_rd = list_of_readers,
-                    waveop_list         = waveop_list,
-                    dram_waveops        = [],
-                    relax_dependencies  = False,
-                    full_dependencies      = self.full_dependencies)
+                    waveop_list         = waveop_list)
                 # Perform eviction and read back data from i-th chunk of a file
                 # that is newly written in SB
                 # taemk : 08-27-2018
@@ -1768,7 +1753,6 @@ class FileMapper():
             for sb_addr in range(chunk_begin_sb_addr, chunk_end_sb_addr + file_params.item_sz, file_params.item_sz):
                 if is_sb_addr_in_bound(sb_addr, start_sb_addr, end_sb_addr) \
                         or not file_params.mapped_params.chunk_is_mapped[i]:
-                        #or (file_params.args is not None and file_params.args.relax_dependencies):
                     for k in range(start_at_mid_part+0, end_after_mid_part+1):
                         old_morsel_wr = self.morsels_wr[k][sb_addr]
                         # return last of wniters/readers for dependency
@@ -1793,20 +1777,8 @@ class FileMapper():
                         # Tag the morsel with the morsel reader
                         self.morsels_rd[reader_engine][k][sb_addr] = new_morsel_rd
                         # Keep the old morsel writer unless load is required
-                        # (For now, limiting to wavegraph cleanup flow, which is still WIP and working for Inception but not for ResNet)
-                        if self.full_dependencies:
-                            if load_required:
-                                self.morsels_wr[k][sb_addr] = new_morsel_wr
-                        # For the old flow where we are limiting number of edges to prevent running out of events,
-                        # tag the write side with the same morsel reader: to create implicit edge from reader to next reader
-                        # (obviously, the cleanup flow is better once it is working).
-                        else:
-                            if load_required:
-                                self.morsels_wr[k][sb_addr] = new_morsel_rd
-                            #if reader_engine == EngineEnum.ACT:
-                            #    self.morsels_wr[k][sb_addr] = new_morsel_rd
-                            #elif load_required:
-                            #    self.morsels_wr[k][sb_addr] = new_morsel_wr
+                        if load_required:
+                            self.morsels_wr[k][sb_addr] = new_morsel_wr
                         prev_file_id = file_id
                         prev_chunk_id = chunk_id
             list_of_writers += list_of_writers_per_chunk                
@@ -1851,10 +1823,7 @@ class FileMapper():
                     prev_waveops = extract_predecessors(
                         list_of_accessors_wr = list_of_writers, 
                         list_of_accessors_rd = list_of_readers,
-                        waveop_list          = waveop_list,
-                        dram_waveops         = [],
-                        relax_dependencies   = False,
-                        full_dependencies    = self.full_dependencies)
+                        waveop_list          = waveop_list)
                     list_of_writers = []
                     list_of_readers = [[] for l in range(EngineEnum.COUNT)]
                     attach_predecessors(new_dram_waveop, prev_waveops)

@@ -449,8 +449,8 @@ testConfigMap = {
   "1-1conv_transpose_1d_h32r4s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-l1-b1-h32-r4-s10-c1-m1-wmin-0.1-wmax0.2-imin0-imax0.2", "1conv", MEv2("Generic")],
 
   "2-1conv_transpose_1d_h128r4s8_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-l1-b1-h128-r4-s8-c1-m1-wmin-0.1-wmax0.2-imin-0.1-imax0.2", "1conv", MEv2("Generic")],
-  "2-1conv_transpose_1d_h128r4s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-l1-b1-h128-r4-s8-c1-m1-wmin-0.1-wmax0.2-imin-0.1-imax0.2", "1conv", MEv2("Generic")],
-  "2-1conv_transpose_1d_h128r40s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-l1-b1-h128-r4-s8-c1-m1-wmin-0.1-wmax0.2-imin-0.1-imax0.2", "1conv", MEv2("Generic")],
+  "2-1conv_transpose_1d_h128r4s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-l1-b1-h128-r4-s10-c1-m1-wmin1-wmax1-imin1-imax1", "1conv", MEv2("Generic")],
+  "2-1conv_transpose_1d_h128r40s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-l1-b1-h128-r40-s10-c1-m1-wmin-0.1-wmax0.2-imin-0.1-imax0.2", "1conv", MEv2("Generic")],
   "2-1conv_transpose_1d_h30r20s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-l1-b1-h30-r20-s10-c1-m1-wmin-0.1-wmax0.2-imin-0.1-imax0.2", "1conv", MEv2("Generic")],
   "2-1conv_transpose_1d_h30r40s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-l1-b1-h30-r40-s10-c1-m1-wmin-0.1-wmax0.2-imin-0.1-imax0.2", "1conv", MEv2("Generic")],
 

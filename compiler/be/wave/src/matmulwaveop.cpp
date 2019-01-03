@@ -66,19 +66,10 @@ MatMulWaveOp::verify() const
     if (m_FmapXNum < 1) {
         return false;
     }
-    if (m_FmapXStep == 0 && m_FmapXNum != 1) {
-        return false;
-    }
     if (m_FmapYNum < 1) {
         return false;
     }
-    if (m_FmapYStep == 0 && m_FmapYNum != 1) {
-        return false;
-    }
     if (m_FmapZNum < 1) {
-        return false;
-    }
-    if (m_FmapZStep == 0 && m_FmapZNum != 1) {
         return false;
     }
     if (m_IfmapsSbAddress < 0) {
@@ -141,19 +132,10 @@ MatMulWaveOp::Params::verify() const
     if (m_FmapXNum < 1) {
         return false;
     }
-    if (m_FmapXStep == 0 && m_FmapXNum != 1) {
-        return false;
-    }
     if (m_FmapYNum < 1) {
         return false;
     }
-    if (m_FmapYStep == 0 && m_FmapYNum != 1) {
-        return false;
-    }
     if (m_FmapZNum < 1) {
-        return false;
-    }
-    if (m_FmapZStep == 0 && m_FmapZNum != 1) {
         return false;
     }
     if (m_IfmapsSbAddress < 0) {

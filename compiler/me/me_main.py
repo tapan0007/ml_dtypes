@@ -131,29 +131,9 @@ class WaveopStream(list):
                 #and (engine == EngineEnum.ACT or engine == EngineEnum.POOL): 
             input_list.append(self.last_engine_waveop[engine]['waveop_name'])
 
-        #if args.full_dependencies:
-        #    if self.last_engine_waveop[engine] is not None \
-        #            and (engine == EngineEnum.PEARRAY):
-        #        input_list.append(self.last_engine_waveop[engine]['waveop_name'])
-
-        # Once we implement semaphore or qualified wavegraph-cleaner flow, 
-        # switch to per engine tracking for the other engines
-        # and remove the "main" tracking
-        if psum_bank < 0:
-            # If not using PSUM, include last "main" waveop in dependency
-            if self.last_main_waveop is not None \
-                    and not args.full_dependencies \
-                    and engine != EngineEnum.DMA:
-                input_list.append(self.last_main_waveop['waveop_name'])
-        else:                
-            # Handle PSUM bank dependency
-            if self.last_psum_waveop[psum_bank] is not None:
-                input_list.append(self.last_psum_waveop[psum_bank]['waveop_name'])
-            # If there no PSUM user (initial), or waveop is MatMul, include last "main" waveop in dependency
-            if not args.full_dependencies :
-                if self.last_psum_waveop[psum_bank] is None or engine == EngineEnum.PEARRAY:
-                    if self.last_main_waveop is not None:
-                        input_list.append(self.last_main_waveop['waveop_name'])
+        # Handle PSUM bank dependency
+        if psum_bank >= 0 and self.last_psum_waveop[psum_bank] is not None:
+            input_list.append(self.last_psum_waveop[psum_bank]['waveop_name'])
 
         # Filter out duplicates            
         for i in input_list:                        
@@ -578,8 +558,6 @@ if __name__ == "__main__":
     parser.add_argument("--no_verify", action='store_true', help="Disables FMAPs comparison")
     parser.add_argument("--enable_eviction", action='store_true', help="Enable eviction")
     parser.add_argument("--enable_cleanup", action='store_true', help="Enable wavegraph cleanup for event pressure reduction")
-    parser.add_argument("--full_dependencies", default=True, action='store_true', help="Insert all the dependencies in wavegraph")
-    parser.add_argument("--relax_dependencies", action='store_true', help="To prevent running out of events (kaena-403,449), this option when true would relax the dependency requirement (kaena-411)")
     parser.add_argument("--fuse_lrelu", action='store_true', help="Fuse the function max(y, a*y) into Lrelu activation function")
     parser.add_argument("--sb_partition_sz", type=int, default=96*1024-256, help="Size of one SB partition (to reserve space at end of SB for stress test)")
     parser.add_argument("--psum_512_chunk_4k", action='store_true', help="Set PSUM to 256 and cap chunk size at 2KB (default is 512 PSUM entries and max 4KB chunk size")
