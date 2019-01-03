@@ -468,6 +468,8 @@ testConfigMap = {
   # Full c, m in resnet50 are 512, 2048
   "3-rn50_pool2_wave"  : [ "trivnet_conv_pool", "tfloat16-b1-h7-r1-s1-c128-m64-SAME-AvgPool-k7-d7-PERM-wmin-0.1-wmax0.1-imin-1-imax2", "1conv1pool", MEv2("Generic")],
   "3-1conv1maxpool_k3d2_wave"  : [ "trivnet_conv_pool_conv", "tfloat16-b1-h224-r3-s2-c128-m64-VALID-MaxPool-k3-d2-wmin-0.2-wmax0.3-imin-0.2-imax0.3", "1conv1pool", MEv2("Generic")],
+  "3-1conv1maxpool_k3d2_c1m1_wave"  : [ "trivnet_conv_pool_conv", "tfloat16-b1-h224-r3-s2-c1-m1-VALID-MaxPool-k3-d2-wmin-0.2-wmax0.3-imin-0.2-imax0.3", "1conv1pool", MEv2("Generic")],
+  "3-1conv1maxpool_k3d2_h100r1s1c1m1_wave"  : [ "trivnet_conv_pool_conv", "tfloat16-b1-h100-r1-s1-c1-m1-VALID-MaxPool-k3-d2-wmin-0.2-wmax0.3-imin-0.2-imax0.3", "1conv1pool", MEv2("Generic")],
 
   "3-1conv1relupoolconv_k3d2_wave"  : [ "trivnet_conv_relu_pool_conv", "tfloat16-b1-h4-r1-s1-c1-m1-VALID-MaxPool-k3-d2-wmin-0.2-wmax0.3-imin-0.2-imax0.3", "convrelupool", MEv2("Generic")],
 
