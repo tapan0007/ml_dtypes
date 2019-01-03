@@ -8,6 +8,24 @@ kccOpts = ("--show_op_name_in_kgraph --partition none "
 rtOpts = "--input_files %s --check_against_ref all_available"
 
 testConfigMap = {
+  
+  #### Smaller slices of 4-rn50_res_unit_input_act4 for debugging ####
+  "4-rn50_res_unit_input_act1" : [
+      "trivnet_opt_inf", "resnet50_keras/resnet50_fp16_keras_opt2.pb--input_1--activation_1/Relu--float16--1,224,224,3",
+      "resnet50", kccOpts, rtOpts % 'trivnet_input_1:0.npy'],
+  "4-rn50_res_unit_input_mp" : [
+      "trivnet_opt_inf", "resnet50_keras/resnet50_fp16_keras_opt2.pb--input_1--max_pooling2d_1/MaxPool--float16--1,224,224,3",
+      "resnet50", kccOpts, rtOpts % 'trivnet_input_1:0.npy'],
+  "4-rn50_res_unit_input_resadd2a" : [
+      "trivnet_opt_inf", "resnet50_keras/resnet50_fp16_keras_opt2.pb--input_1--bn2a_branch1/batchnorm_1/add_1--float16--1,224,224,3",
+      "resnet50", kccOpts, rtOpts % 'trivnet_input_1:0.npy'],
+  "4-rn50_res_unit_input_act2" : [
+      "trivnet_opt_inf", "resnet50_keras/resnet50_fp16_keras_opt2.pb--input_1--activation_2/Relu--float16--1,224,224,3",
+      "resnet50", kccOpts, rtOpts % 'trivnet_input_1:0.npy'],
+  "4-rn50_res_unit_input_act3" : [
+      "trivnet_opt_inf", "resnet50_keras/resnet50_fp16_keras_opt2.pb--input_1--activation_3/Relu--float16--1,224,224,3",
+      "resnet50", kccOpts, rtOpts % 'trivnet_input_1:0.npy'],
+  
   "4-rn50_res_unit_input_act4" : [
       "trivnet_opt_inf", "resnet50_keras/resnet50_fp16_keras_opt2.pb--input_1--activation_4/Relu--float16--1,224,224,3",
       "resnet50", kccOpts, rtOpts % 'trivnet_input_1:0.npy'],
