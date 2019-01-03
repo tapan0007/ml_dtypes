@@ -681,7 +681,7 @@ testConfigMap = {
   "7-rn50_nne_fp16_host"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors host all --batch 2 --images %s %s" % (rnPreFp16, rnDogJpg, rnCatJpg), "--input_files %s %s" % (rnDogJpg, rnCatJpg)],
   "7-rn50_nne_fc_wave"          : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from avg_pool/AvgPool --executors wave 0 host 1 %s --images %s " %(rnPreFp16, MEv2("RN50-Repl"), rnDogJpg), "--input_files %s" % rnDogJpg ],
   #"7-rn50_nne_fc_b16_wave"          : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from avg_pool/AvgPool --executors wave 0 host 1  --scheduler wave2 --batch 16 --images %s"%(rnPreFp16, getBatchedJpgs(16)), "--input_files %s" % (getBatchedJpgs(16))],
-  "8-rn50_nne_conv_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition conv --executors host all wave 01 03 04 07 09 12 14 16 19 21 23 26 27 30 32 35 37 39 42 44 46 49 51 53 56 57 60 62 65 67 69 72 74 76 79 81 83 86 88 90 93 95 97 100 101 104 106 109 111 113 116 118 120  --scheduler wave2 --images %s " %(rnPreFp32, rnDogJpg), "--input_files %s" % rnDogJpg ],
+  "8-rn50_nne_conv_fp32_wave"   : [ "tf_pb", "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition conv --executors host all wave 01 03 04 07 09 12 14 16 19 21 23 26 27 30 32 35 37 39 42 44 46 49 51 53 56 57 60 62 65 67 69 72 74 76 79 81 83 86 88 90 93 95 97 100 101 104 106 109 111 113 116 118 120  --scheduler wave2 --images %s " %(rnPreFp32, rnDogJpg), "--input_files %s" % rnDogJpg ],
   "7-rn50_nne_fp32_host"        : [ "tf_pb", "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors host all --batch 2 --images %s" %(rnPreFp32, rnDogCatB2Fp32), "--input_files %s %s" % (rnDogJpg, rnCatJpg)],
 
   # Matmult
@@ -784,7 +784,7 @@ testConfigMap = {
 
   ##########################################
   ## fp32,b32 on Tonga
-  "4-ptb_word_small_sigmoid_wave"   : [ "tf_pb",   "ptb_word_lm/keras_unrolled/sigmoid/model-b32s4h512.pb","lm",
+  "4-ptb_word_small_sigmoid_fp32_wave"   : [ "tf_pb",   "ptb_word_lm/keras_unrolled/sigmoid/model-b32s4h512.pb","lm",
     (" --input_node embedding_1_input_1 --sg_input_format lstm_1_1/transpose HNC lstm_2_1/transpose_1 HNC --depth 3  "
     + " --partition from_multi  lstm_1_1/unstack,lstm_1_1/Tile_1,lstm_1_1/Tile,lstm_1_1/Tile_1  lstm_1_1/stack  lstm_2_1/transpose_1  "
     + " --adjust_node_color lstm_1_1/Tile 0 lstm_1_1/Tile_1 0  "
@@ -828,7 +828,6 @@ testConfigMap = {
     ],
 
 
-
   # LSTM small: 5 color 2-layer small host-tpb-host-tpb-host - waveopt and wave versions
   "4-ptb_word_small_sigmoid_2l_waveopt"  : [
     "tf_pb", "ptb_word_lm/keras_unrolled/sigmoid/model-b32s4h512.pb", "lm",
@@ -844,7 +843,7 @@ testConfigMap = {
 
   ##########################################
   ## fp32,b32,2l on Tonga
-  "4-ptb_word_small_sigmoid_2l_wave"  : [ "tf_pb",   "ptb_word_lm/keras_unrolled/sigmoid/model-b32s4h512.pb","lm",
+  "4-ptb_word_small_sigmoid_2l_fp32_wave"  : [ "tf_pb",   "ptb_word_lm/keras_unrolled/sigmoid/model-b32s4h512.pb","lm",
   (" --show_op_name_in_kgraph --input_node embedding_1_input_1  "
   + " --sg_input_format lstm_1_1/transpose HNC lstm_2_1/transpose HNC  --depth 3  --debug 1    "
   + " --partition from_multi  lstm_1_1/unstack,lstm_1_1/Tile_1,lstm_1_1/Tile,lstm_1_1/Tile_1  lstm_1_1/stack   lstm_2_1/unstack,lstm_2_1/Tile_1,lstm_2_1/Tile,lstm_2_1/Tile_1  lstm_2_1/stack      "
