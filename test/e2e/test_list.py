@@ -207,7 +207,7 @@ testConfigMap = {
   "0-1conv_evict_host" : [ "trivnet_evict",  "tfloat16-b1-h340-r3-s2-c1-m1-d1-wmin-0.1-wmax0.2-imin-0.1-imax0.2", "1conv", "--executors host all --scheduler wave2 --schedule_options ' --nname=generic --enable_eviction' "],
   "0-1conv_evict_wave" : [ "trivnet_evict",  "tfloat16-b1-h340-r3-s2-c1-m1-d1-wmin-0.1-wmax0.2-imin-0.1-imax0.2", "1conv", "--scheduler wave2 --schedule_options ' --nname=generic --enable_eviction' "],
   "0-1reshape_wave" : [ "trivnet_reshape",  "tfloat16-b1-h32-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", MEv2("Generic")],
-  "0-1squeeze_wave" : [ "trivnet_squeeze",  "tfloat16-b1-h32-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", MEv2("Generic")],
+  "0-1squeeze_wave" : [ "trivnet_squeeze",  "tfloat16-b1-h32-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", "--sg_input_format Squeeze NW " + MEv2("Generic")],
   "0-1expanddims_wave" : [ "trivnet_expanddims",  "tfloat16-b1-h32-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", MEv2("Generic")],
   "0-1stridedslice_tanh_sigmoid_wave" : [ "trivnet_stridedslice_tanh_sigmoid",  "tfloat16-b1-h4-r1-s1-c2-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", MEv2("Generic")],
   "0-1stridedslice_wave" : [ "trivnet_stridedslice",  "tfloat16-b1-h4-r1-s1-c2-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", MEv2("Generic")],
@@ -570,8 +570,6 @@ testConfigMap = {
   "9-resnet152_waveopt"       : [ "tf_pb",   "resnet_v2_152/pb/resnet_v2_152_fp32.pb",   "resnet152", "--partition from resnet_v2_152/conv1/convolution resnet_v2_152/postnorm/batchnorm/mul_1 --executors host all waveopt 1  --depth 2 --scheduler wave2 --images %s --wavegraph_checks structure data-race" % rnDogJpg, "--input_files %s" % rnDogJpg],
 
   # Parallel WaveNet (ME only)
-  "3-parwavenet_10_fp16_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", " --focus_to truediv --show_op_name_in_kgraph --input_node sub_1 --depth -1 --partition from truediv --executors host all waveopt 1 --images linspace1", "--input_files trivnet_sub_1:0.npy"],
-  "3-parwavenet_10_10_fp16_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_10_frozen_fp16.pb", "parallel_wavenet", " --input_node Placeholder --depth 2 --partition from truediv --executors waveopt 0 host 1 --images %s"%melSpectra, "--input_files %s" % melSpectra],
 
   "3-parwavenet_10_fp16_ba15_ba16_reshape67_dbg" :
     [ "tf_pb", "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet",
@@ -585,7 +583,7 @@ testConfigMap = {
   "0-4conv_relu_nne" : [ "trivnet_lin",    "tfloat16-l3-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.4-imin-1-imax2", "4conv_nne", "--partition conv --executors wave 1 3 host 0 2 4 --debug 1 " + MEv2("Generic")],
 
   # Resnet
-  "8-rn50_nne_auto"             : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition auto --executors wave all  --scheduler wave2 --images %s --wavegraph_checks structure data-race" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
+  "8-rn50_nne_auto"             : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition auto --executors wave all host 37 38 --scheduler wave2 --schedule_options ' --nname=generic' --images %s --wavegraph_checks structure data-race" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
   #"8-rn50_nne_fp32_meauto"      : [ "tf_pb", "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition meauto --executors wave all host 17  --scheduler wave2 --images %s" %(rnPreFp32, rnDogJpg), "--input_files %s" % rnDogJpg ],
   "8-rn50_nne_fp16_meauto"      : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition meauto --executors wave all host 17  --scheduler wave2 --schedule_options ' --nname=generic' --images %s --waive_wavegraph_checks" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
   #"8-rn50_nne_conv"            : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition conv --executors tcc 2 6 8 13 15 20 22 host 0 --images %s" %(rnPreFp16, rnDogJpg), "linspace1"],
@@ -1305,7 +1303,6 @@ testWaiver = [
     ['0-1conv1maxpool_k3d2_wave',   'WAIVE_WAVESC'],
     ['0-1conv1pool_b5_wave',        'WAIVE_WAVESC'],
     ['0-1conv1pool_b5m3_wave',      'WAIVE_WAVESC'],
-    ['8-inceptionv3_wave_dog_sg00_tpb$', 'WAIVE_INCEPTIONV3'],
     ['0-1conv1maxpool_wave_h17c196k3d1', 'WAIVE_INCEPTIONV3'],
     ['0-1maxpool_wave_h65c1m1k3d1_valid', 'WAIVE_INCEPTIONV3'],
     ['0-1maxpool_wave_h71c1m1k3d2_same', 'WAIVE_INCEPTIONV3'],
@@ -1317,11 +1314,8 @@ testWaiver = [
     ['0-1conv_evict_wave', 'WAIVE_AMOEBA_SBEVICT'], # added by taemin
 
     # Parallel wavenet
-    ['0-1squeeze_wave', 'WAIVE_KAENA634'],
     ['0-1stridedslice_tanh_sigmoid_wave', 'WAIVE_KAENA711'],
     ['0-1stridedslice_wave', 'WAIVE_KAENA711'],
-    #['.*reshape.*', 'WAIVE_KAENA597'],
-    ['3-parwavenet_.*_waveopt$', 'WAIVE_KAENA711'],
 
     #['^0-act_wave$',   'WAIVE-KAENA452'],
 
@@ -1343,20 +1337,8 @@ testWaiver = [
     ['4-ptb_word_small_sigmoid_2l_auto_waveopt',   'WAIVE-L_PART'],
     ['4-ptb_word_small_sigmoid_2l_b64_wave',   'WAIVE-LSTM_ME'],
 
-    # batching
-    #['7-rn50_nne_fp16_waveopt_b\d+$', 'WAIVE_BATCH'],
-    ['7-rn50_nne_fp32_wave$', 'WAIVE_SB_PRESERVE'],
-    ['8-rn50_nne_fp32_meauto$', 'WAIVE_SB_PRESERVE'],
-
     # bugs
     ['7-rn50_nne_fp16_wave-no_repl-all-layers$', 'WAIVE_KAENA734'],
-
-    # Replication
-    ['3-h128r2s1c6m32_wave_repl', 'WAIVE_KAENA817'],
-    ['3-h128r2s1c4m32_wave_repl', 'WAIVE_KAENA817'],
-    ['3-h128r2s1c2m32_wave_repl', 'WAIVE_KAENA817'],
-    ['3-h128r2s1c1m32_wave_repl', 'WAIVE_KAENA817'],
-    ['3-h128r3s1c6m32_wave_repl', 'WAIVE_KAENA817'],
 
     # Resnet 152
     ['^9-resnet152', 'WAIVE_RN152'],

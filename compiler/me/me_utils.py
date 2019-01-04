@@ -1884,7 +1884,8 @@ class FileMapper():
                                     + offset_in_file_batch_item
                 # compute last byte offset to check out of file bound
                 last_byte_offset  = offset_in_file + length - file_params.item_sz
-                last_byte_offset += file_params.fmap_data_len // file_params.repl_chunk2atom_compress_ratio   # jump to the odd half
+                if file_params.repl_chunk2atom_compress_ratio > 1:
+                    last_byte_offset += file_params.fmap_data_len // file_params.repl_chunk2atom_compress_ratio   # jump to the odd half
                 last_byte_offset += ifmap_replication_step_bytes * (ceildiv(fmap_count, ifmap_replication_resolution) - 1)
                 last_byte_offset += file_params.fmap_data_len * ((fmap_count-1)%file_params.file_dims.C)
 

@@ -13,7 +13,7 @@ w1      = conf.gen_variable_tensor(name = conf.netName + "/weight1", initializer
 
 i0      = tf.placeholder(conf.tfDataType, shape = input_shape, name = "input")
 i1      = tf.nn.conv2d(i0, w1, strides, "SAME", name = conf.netName + "/i1")
-i2      = tf.squeeze(i1)
+i2      = tf.squeeze(i1, axis=[1,3])
 output  = tf.identity(i2, name = conf.netName + "/output")
 
 i0val   = conf.gen_array_rand(conf.IMIN, conf.IMAX, input_shape)
