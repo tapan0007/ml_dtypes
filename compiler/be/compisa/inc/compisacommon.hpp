@@ -26,8 +26,23 @@ using TongaTpbEvents     = ::TONGA_ISA_TPB_INST_EVENTS;
 
 
 //****************************************************************
+// !!!!!!!!!
+// This class should NOT have any data members or virtual methods.
+// Otherwise, InstrTempl class (derived from ISA instruction structs INSTR)
+// would not have the same memory layout as INSTR.
+// !!!!!!!!!
+//****************************************************************
+class InstrIfc {
+public:
+    bool qAsynchrnous() const {
+        return false;
+    }
+};
+
+
+//****************************************************************
 template<typename INSTR, TongaTpbOpcode opcode, TongaErrorCode (*Checker)(const INSTR*)>
-class InstrTempl : public INSTR {
+class InstrTempl : public INSTR, public InstrIfc {
 protected:
     using BaseClass = INSTR;
     using Class = InstrTempl;
@@ -64,7 +79,7 @@ InstrTempl<INSTR, opcode, Checker>::CheckValidity() const
 
 //****************************************************************
 template<typename INSTR, TongaErrorCode (*Checker)(const INSTR*)>
-class InstrTempl2 : public INSTR {
+class InstrTempl2 : public INSTR, public InstrIfc {
 private:
     using BaseClass = INSTR;
     using Class = InstrTempl2;

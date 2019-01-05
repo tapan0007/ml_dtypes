@@ -13,6 +13,7 @@
 #include "compisa/inc/compisacast.hpp"
 #include "compisa/inc/compisaclear.hpp"
 #include "compisa/inc/compisacopy.hpp"
+#include "compisa/inc/compisadmatrigger.hpp"
 #include "compisa/inc/compisaldweights.hpp"
 #include "compisa/inc/compisamatmul.hpp"
 #include "compisa/inc/compisamemset.hpp"
@@ -23,6 +24,7 @@
 #include "compisa/inc/compisaregshuffle.hpp"
 #include "compisa/inc/compisaregstore.hpp"
 #include "compisa/inc/compisaset.hpp"
+#include "compisa/inc/compisasimdmacopy.hpp"
 #include "compisa/inc/compisasimmemcpy.hpp"
 #include "compisa/inc/compisasimrdnpy.hpp"
 #include "compisa/inc/compisasimwrnpy.hpp"
@@ -76,6 +78,7 @@ AllInstructions()
     CastInstr               castInstr;
     ClearInstr              clearInstr;
     CopyInstr               copyInstr;
+    DmaTriggerInstr         dmaTriggerInstr;
     LdWeightsInstr          ldweightsInstr;
     MatMulInstr             matmulInstr;
     MemSetInstr             memsetInstr;
@@ -85,7 +88,9 @@ AllInstructions()
     RegLoadInstr            regloadInstr;
     RegShuffleInstr         regshuffleInstr;
     RegStoreInstr           regstoreInstr;
+    SemaphoreInstr          semaphoreInstr;
     SetInstr                setInstr;
+    SimDmaCopyInstr         dmaCopyInstr;
     SimMemCpyInstr          memcpyInstr;
     SimRdNpyInstr           rdnpyInstr;
     SimWrNpyInstr           wrnpyInstr;
