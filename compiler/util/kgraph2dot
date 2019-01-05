@@ -175,29 +175,58 @@ class KgraphJson(object):
 
             elif "previous_syncs" in layer:
               if len(layer["previous_syncs"]) > edgeIdx:
-                # events
-                prevSync1 = layer["previous_syncs"][edgeIdx]
-                prevSync2 = prevSync1["value0"]
-                if prevSync2["sync_type"] == "event":
-                  evtId = prevSync2["event_id"]
-                  # print("sync ev: " + evtId)
-                  evtIdNum = int(evtId)
-                  if evtIdNum > -1:
-                    edgeAttrs["label"] = ("E" + evtId)
-                    edgeAttrs["color"] = "blue"
-                    edgeAttrs["weight"] = "100"
-                    edgeAttrs["minlen"] = "2"
-                elif prevSync2["sync_type"] == "semaphore":
-                  sync = prevSync2["queue"] + ":" + prevSync2["trig_ord"]
-                  # print("sync sem: " + sync)
-                  edgeAttrs["label"] = sync
-                  edgeAttrs["color"] = "blue"
-                  edgeAttrs["weight"] = "100"
-                  edgeAttrs["minlen"] = "2"
-                else:
-                  raise RunTimeError(
-                    "ERROR: sync from node %s to node %s must be %s event or semaphore"
-                    % (layer["waveop_name"], prevNode["waveop_name"]))
+                  prevSync = layer["previous_syncs"][edgeIdx]
+                  prevSyncVal = prevSync["value0"]
+                  if prevSyncVal["sync_type"] == "event":
+                      evtId = prevSyncVal["event_id"]
+                      evtIdNum = int(evtId)
+                      if evtIdNum > -1: ## synced
+                          edgeAttrs["label"] = ("E" + evtId)
+                          edgeAttrs["color"] = "blue"
+                          edgeAttrs["weight"] = "100"
+                          edgeAttrs["minlen"] = "2"
+                  elif prevSyncVal["sync_type"] == "semaphore":
+                      # Semaphores are used to sync DMAs.
+                      # Each queue has one semaphore . The semaphore
+                      # is incremented by 1 when one DMA block is transferred.
+                      # If an engine waits for the Nth DMA block, the semaphore
+                      # instruction will be SemWait k >= N.
+
+                      lab = None
+
+                      ord = int(prevSyncVal["trig_ord"])
+                      if ord >= 0: ## synced
+                          sync = prevSyncVal["queue"] + ":" + str(ord)
+                          lab = sync
+
+                      # For large weights we load 1/2 of data through
+                      # TPB-AXI port 0 via one DMA queue (w0),and the other 1/2
+                      # through TPB-AXI port 1 via another DMA queue (w1).
+                      # For small weights and for in-data we use one queue,
+                      # so Que1 does not exist in JSON's sync (or in C++ code).
+                      # That's why we try for existence of "trig_ord1".
+                      if "trig_ord1" in prevSyncVal:
+                          ord1 = int(prevSyncVal["trig_ord1"])
+                      else:
+                          ord1 = -1
+                      if ord1 >= 0: ## synced
+                          assert("queue1" in prevSyncVal)
+                          sync = prevSyncVal["queue1"] + ":" + str(ord1)
+                          if lab == None:
+                              lab = sync
+                          else:
+                              lab += "\n" + sync
+
+                      if lab != None:
+                          # print("sync sem: " + lab)
+                          edgeAttrs["label"] = lab
+                          edgeAttrs["color"] = "blue"
+                          edgeAttrs["weight"] = "100"
+                          edgeAttrs["minlen"] = "2"
+                  else:
+                      raise RunTimeError(
+                          "ERROR: sync from node %s to node %s must be %s event or semaphore"
+                          % (layer["waveop_name"], prevNode["waveop_name"]))
 
             dot.edge(prevNode, nodeName, "", edgeAttrs)
             #print(dot.source)          
