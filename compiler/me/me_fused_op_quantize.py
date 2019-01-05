@@ -307,10 +307,18 @@ def mem_pattern_uint8_perf_opt(self, instr, ifmap_tile_dim2d):
         src_xy_num = instr['src_x_num'] * instr['src_y_num']
         src_contiguous = (self.conv_op.stride.x == 1 and
             instr['src_x_num'] == ifmap_tile_dim2d.x and
+            instr['src_sb_address'] % 2 == 0 and
+            instr['dst_psum_bank_offset'] % 2 == 0 and
             (src_xy_num % 2 == 0 or instr['src_y_num'] == ifmap_tile_dim2d.y))
         if src_contiguous:
             mode_possible.add('double_pixel_contiguous')
-        if self.conv_op.stride.x == 1 and instr['src_x_num'] % 2 == 0:
+        src_even = (self.conv_op.stride.x == 1 and
+            instr['src_x_num'] % 2 == 0 and
+            instr['src_sb_address'] % 2 == 0 and
+            instr['dst_psum_bank_offset'] % 2 == 0 and
+            instr['src_y_step'] % 2 == 0 and
+            instr['dst_y_step'] % 2 == 0)
+        if src_even:
             mode_possible.add('double_pixel_even')
         if 'double_pixel_contiguous' in mode_possible:
             instr['src_x_step'] = instr['dst_x_step'] = 2
