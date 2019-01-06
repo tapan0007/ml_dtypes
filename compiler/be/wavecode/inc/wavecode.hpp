@@ -51,7 +51,6 @@ class WaveCodeActivation;
 class WaveCodeClipByValue;
 class WaveCodeTensorTensor;
 class WaveCodeTensorScalar;
-class WaveCodeBarrier;
 class WaveCodeNop;
 class WaveCodeTensorTensor;
 class WaveCodeRegLoad;
@@ -201,7 +200,6 @@ private:
     std::unique_ptr<WaveCodeReciprocal>     m_CodeReciprocal;
     std::unique_ptr<WaveCodeActivation>     m_CodeActivation;
     std::unique_ptr<WaveCodeClipByValue>    m_CodeClipByValue;
-    std::unique_ptr<WaveCodeBarrier>        m_CodeBarrier;
     std::unique_ptr<WaveCodeNop>            m_CodeNop;
     std::unique_ptr<WaveCodeTensorTensor>   m_CodeTensorTensor;
     std::unique_ptr<WaveCodeTensorScalar>   m_CodeTensorScalar;

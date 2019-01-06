@@ -1160,12 +1160,6 @@ SerWaveOp::verifyScaleAdd() const
 
 
 bool
-SerWaveOp::verifyBarrier() const
-{
-    return true;
-}
-
-bool
 SerWaveOp::verifyNop() const
 {
     return true;
@@ -1209,8 +1203,6 @@ SerWaveOp::verify() const
         return verifyTensorTensor();
     } else if (m_WaveOpType == wave::WaveOpTypeStr::TensorScalar) {
         return verifyTensorScalar();
-    } else if (m_WaveOpType == wave::WaveOpTypeStr::Barrier) {
-        return verifyBarrier();
     } else if (m_WaveOpType == wave::WaveOpTypeStr::Nop) {
         return verifyNop();
     } else if (m_WaveOpType == wave::WaveOpTypeStr::ScaleAdd) {

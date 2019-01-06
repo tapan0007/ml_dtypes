@@ -38,8 +38,6 @@ public:
                        serialize::SerWaveOp& serWaveOp) const;
     void saveTensorScalar(const wave::TensorScalarWaveOp* tensorScalarWaveOp,
                        serialize::SerWaveOp& serWaveOp) const;
-    void saveBarrier(const wave::BarrierWaveOp* barrierWaveOp,
-                       serialize::SerWaveOp& serWaveOp) const;
     void saveNop(const wave::NopWaveOp* nopWaveOp,
                        serialize::SerWaveOp& serWaveOp) const;
 

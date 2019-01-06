@@ -33,7 +33,6 @@
 #include "wave/inc/clipbyvaluewaveop.hpp"
 #include "wave/inc/tensortensorwaveop.hpp"
 #include "wave/inc/tensorscalarwaveop.hpp"
-#include "wave/inc/barrierwaveop.hpp"
 #include "wave/inc/nopwaveop.hpp"
 #include "serialize/inc/serwaveop.hpp"
 
@@ -137,10 +136,6 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         }
         if (const auto tensorScalarWaveOp = dynamic_cast<const wave::TensorScalarWaveOp*>(waveOp)) {
             m_Save->saveTensorScalar(tensorScalarWaveOp, serWaveOp);
-            continue;
-        }
-        if (const auto barrierWaveOp = dynamic_cast<const wave::BarrierWaveOp*>(waveOp)) {
-            m_Save->saveBarrier(barrierWaveOp, serWaveOp);
             continue;
         }
         if (const auto nopWaveOp = dynamic_cast<const wave::NopWaveOp*>(waveOp)) {
@@ -479,16 +474,6 @@ Network::Save::saveTensorScalar(
 #undef WAVE_OP
 
 
-
-void
-Network::Save::saveBarrier(const wave::BarrierWaveOp* /*barrierWaveOp*/,
-                           serialize::SerWaveOp& serWaveOp) const
-{
-#undef WAVE_OP
-#define WAVE_OP barrierWaveOp
-    serWaveOp.m_WaveOpType = wave::BarrierWaveOp::gTypeStrStatic();
-#undef WAVE_OP
-}
 
 void
 Network::Save::saveNop(const wave::NopWaveOp* nopWaveOp,

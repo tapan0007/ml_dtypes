@@ -12,7 +12,6 @@
 #include "wave/inc/datamovewaveop.hpp"
 #include "wave/inc/sbatomloadwaveop.hpp"
 //#include "wave/inc/sbatomsavewaveop.hpp"
-//#include "wave/inc/barrierwaveop.hpp"
 #include "wave/inc/tpbcopywaveop.hpp"
 #include "wave/inc/nopwaveop.hpp"
 
@@ -88,8 +87,8 @@ EventMgr::completeEventsOnPrevEdges(wave::WaveOp* waveop)
         if (qUseEvent(prevWaveEdge)) {
             const EventId evtId = prevWaveEdge->gEventId();
             const wave::WaveOp* const precWaveop = prevWaveEdge->gFromOp();
-            Assert(!precWaveop->qNopWaveOp(),
-                "Non-nop waveop ", waveop->gName(), " has incomiing nop-waveop ", precWaveop->gName());
+            Assert(! precWaveop->qPartOfBarrier(),
+                "Non-Nop waveop ", waveop->gName(), " has incoming barrier Nop-waveop ", precWaveop->gName());
             m_EventState.mvFromInFlightToCompleted(evtId);
         } else {
             Assert(prevWaveEdge->qSyncedWithSemaphore(), "Need to sync with semaphore not set");
@@ -143,7 +142,7 @@ EventMgr::processWaveop(wave::WaveOp* waveop)
 
         if (prevWaveop->gType() == waveop->gType()) {
             if (! (waveop->qNopWaveOp()) ) {
-                std::cerr << "WARNING: two dependent NOP waveops of the same type("
+                std::cerr << "WARNING: two dependent waveops of the same type("
                     << waveop->gTypeStr() << ") " << prevWaveop->gName() << " --> "
                     << waveop->gName() << "\n";
                 //Assert(false, "A predecessor of non-NOP waveop ", waveop->gTypeStr(),
@@ -180,7 +179,8 @@ EventMgr::mkNopWaveop(wave::WaveOp* prevWaveop, EngineId engId,
         evtId = gEventIdBetweenEngines(prevWaveop->gEngineId(), engId);
 
     }
-    const auto nopWaveop = new wave::NopWaveOp(params, prevWaveops, engId, evtId);
+    const auto nopWaveop = new wave::NopWaveOp(params, prevWaveops, engId, evtId, 
+                                               wave::NopWaveOp::NopType::Barrier);
 
     return nopWaveop;
 }
@@ -234,6 +234,67 @@ EventMgr::insertOneBarrier(kcc_int32 waveopIdx, std::vector<wave::WaveOp*>& newW
 }
 
 /***************************************************************
+***************************************************************/
+void
+EventMgr::linkBarrierNops(std::vector<wave::WaveOp*>& newWaveops)
+{
+    const kcc_int32 numWaveops = newWaveops.size();
+    for (kcc_int32 waveopIdx = 0; waveopIdx < numWaveops; ++waveopIdx) {
+        const auto waveop = newWaveops[waveopIdx];
+        if (! waveop->qPartOfBarrier()) {
+            continue;
+        }
+        const EngineId engId = waveop->gEngineId();
+
+        // PREDECESSOR
+        // is one of pred Waveops on engine already a pred
+        wave::WaveOp* predOnSameEng = nullptr;
+        for (auto predWop : waveop->gPrevWaveops()) {
+            if (predWop->gEngineId() == engId) {
+                predOnSameEng = predWop;
+                break;
+            }
+        }
+        if (! predOnSameEng) {
+            for (kcc_int32 prevIdx = waveopIdx - 1; prevIdx >= 0; --prevIdx) {
+                const auto prevWaveop = newWaveops[prevIdx];
+                if (prevWaveop->gEngineId() != engId) {
+                    continue;
+                }
+                // found 
+                auto edge = new wave::WaveEdge(prevWaveop, waveop);
+                prevWaveop->addSuccWaveEdge(edge);
+                waveop->addPrevWaveEdge(edge);
+                break;
+            }
+        }
+
+
+        //SUCCESSOR
+        wave::WaveOp* succOnSameEng = nullptr;
+        for (auto succWop : waveop->gSuccWaveops()) {
+            if (succWop->gEngineId() == engId) {
+                succOnSameEng = succWop;
+                break;
+            }
+        }
+        if (! succOnSameEng) {
+            for (kcc_int32 succIdx = waveopIdx + 1; succIdx < numWaveops; ++succIdx) {
+                const auto succWaveop = newWaveops[succIdx];
+                if (succWaveop->gEngineId() != engId) {
+                    continue;
+                }
+                // found 
+                auto edge = new wave::WaveEdge(waveop, succWaveop);
+                waveop->addSuccWaveEdge(edge);
+                succWaveop->addPrevWaveEdge(edge);
+                break;
+            }
+        }
+    }
+}
+
+/***************************************************************
  * Events change state from Available -> InFlight -> Completed -> Available
  * 1. Available -> InFlight  This change occurs when the beginning of an
  *    edge is encountered and the event is assigned to the edge.
@@ -275,6 +336,7 @@ EventMgr::insertBarriers()
         verifyWaveop(waveop);
     }
 
+    linkBarrierNops(newWaveops);
     m_Network.replaceWaveops(newWaveops, false);
 }
 
@@ -366,6 +428,8 @@ EventMgr::gEventIdBetweenEngines(EngineId fromId, EngineId toId) const
 void
 EventMgr::processWaveops(bool useSem)
 {
+    m_Network.RewireMultiOutEdgesOfMatMults();
+
     m_UseSemaphore = useSem;
     if (useSem) {
         determineQueuesAndSemaphoreValues();

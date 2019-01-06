@@ -23,6 +23,10 @@
 
 namespace kcc {
 
+namespace utils {
+template <typename T> class Passkey;
+}
+
 namespace nets {
     class Network;
 }
@@ -108,10 +112,10 @@ public:
     virtual bool qTensorScalarPtrWaveOp() const {
         return false;
     }
-    virtual bool qBarrierWaveOp() const {
+    virtual bool qNopWaveOp() const {
         return false;
     }
-    virtual bool qNopWaveOp() const {
+    virtual bool qPartOfBarrier() const {
         return false;
     }
 
@@ -160,17 +164,14 @@ public:
     SuccWaveOps gSuccWaveops() const;
 
 public:
-    void addPrevWaveEdge(WaveEdge* waveEdge) {
-        m_PrevWaveEdges.push_back(waveEdge);
-    }
-
-    void addSuccWaveEdge(WaveEdge* waveEdge) {
-        m_SuccWaveEdges.push_back(waveEdge);
-    }
+    void addPrevWaveEdge(WaveEdge* waveEdge);
+    void addSuccWaveEdge(WaveEdge* waveEdge);
 
     kcc_int32 gNumberPrevWaitEdges() const;
-
     kcc_int32 gNumberSuccWaitEdges() const;
+
+    void DisconnectPrevEdge(Passkey<nets::Network>, WaveEdge* prevEdge);
+    void DisconnectSuccEdge(Passkey<nets::Network>, WaveEdge* succEdge);
 
     kcc_int32 gWaveAtomSize () const {
         return 1024;
@@ -185,20 +186,11 @@ public:
     }
 
 
-    bool qHasInBarrier() const {
-        return m_HasInBarrier;
+    kcc_int32 gLevel() const {
+        return m_Level;
     }
-    void setHasInBarrier() {
-        Assert(! m_HasInBarrier, "Setting in-barrier on waveop that already has in-barrier");
-        m_HasInBarrier = true;
-    }
-
-    bool qHasOutBarrier() const {
-        return m_HasOutBarrier;
-    }
-    void setHasOutBarrier() {
-        Assert(! m_HasOutBarrier, "Setting out-barrier on waveop that already has out-barrier");
-        m_HasOutBarrier = true;
+    void rLevel(kcc_int32 level) {
+        m_Level = level;
     }
 
 protected:
@@ -206,10 +198,9 @@ protected:
     std::vector<WaveEdge*>  m_PrevWaveEdges;
     std::vector<WaveEdge*>  m_SuccWaveEdges;
     FmapDesc                m_OfmapDesc;
-    kcc_int32               m_Order             = -1;
-    bool                    m_HasInBarrier  = false;
-    bool                    m_HasOutBarrier = false;
+    kcc_int32               m_Order         = -1;
     std::string             m_LayerName     = "";
+    kcc_int32               m_Level         = -1;
 }; // class WaveOp
 
 
@@ -239,6 +230,9 @@ public:
     PrevWaveOps() = delete;
     inline iterator begin() const;
     inline iterator end() const;
+    kcc_int32 gCount() const {
+        return m_Waveop->gSuccWaveEdges().size();
+    }
 private:
     const WaveOp* const m_Waveop;
 };
@@ -286,6 +280,9 @@ public:
         : m_Waveop(waveop)
     {}
     SuccWaveOps() = delete;
+    kcc_int32 gCount() const {
+        return m_Waveop->gSuccWaveEdges().size();
+    }
     inline iterator begin() const;
     inline iterator end() const;
 private:

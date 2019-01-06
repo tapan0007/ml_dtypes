@@ -82,15 +82,16 @@ enum class BinFileType {
     RuntimeKelf
 };
 
-enum class EngineId {
+enum class EngineId { // order Pooling,Activation,PeArray by 'busyness'
     None,
-    PeArray,
-    Activation,
     Pooling,
+    Activation,
+    PeArray,
     StreamProc,
     AngelEng,
     AnyEng, // when an instruction can be execed on several engines: WAIT,SET,WRITE
 };
+
 
 //**********************************************************************
 enum class WaveOpType {
@@ -105,7 +106,6 @@ enum class WaveOpType {
     TensorTensor,
     TensorScalar,
     TensorScalarPtr,
-    Barrier,
     Nop,
     ScaleAdd,
     ClipByValue,
@@ -223,9 +223,14 @@ namespace utils {
 
 const std::string& poolType2Str(PoolType poolType);
 PoolType           poolTypeStr2Id(const std::string&);
+
 const std::string& engineId2Str(EngineId engId);
 EngineId engineId2Str(const std::string& str);
+int cmpEngineId(EngineId lhs, EngineId rhs);
+
 const std::string& ActivationFunc2Str(ActivationFunc);
+
+
 
 constexpr kcc_int64 power2(kcc_int64 b) {
     return 1 << (b);

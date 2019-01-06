@@ -20,7 +20,6 @@
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/sbatomloadwaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
-#include "wave/inc/barrierwaveop.hpp"
 
 #include "wavecode/inc/wavecode.hpp"
 #include "wavecode/inc/wavecodematmul.hpp"
@@ -254,9 +253,6 @@ WaveCodeMatMul::qLoadWeightsWaitsFor(const wave::WaveEdge* prevEdge) const
         if (prevSbAtomLoadWaveop->qContainWeights()) {
             return true;
         }
-    }
-    if (dynamic_cast<const wave::BarrierWaveOp*>(prevWaveop)) {
-        return true;
     }
     return false;
 }

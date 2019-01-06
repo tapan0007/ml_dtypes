@@ -1,4 +1,5 @@
 #include "utils/inc/asserter.hpp"
+#include "utils/inc/passkey.hpp"
 
 #include "wave/inc/waveedge.hpp"
 #include "wave/inc/waveop.hpp"
@@ -137,6 +138,9 @@ WaveEdge::qNeedToSync() const
     // the same memory with other weights. Since the first weights are already in DRAM
     // (they were loaded from DRAM), we don't need to save
     //
+    if (prevWaveop->qPartOfBarrier() || succWaveop->qPartOfBarrier()) {
+        return false;
+    }
     if (prevWaveop->qDataMoveWaveOp()) {
         if (succWaveop->qDataMoveWaveOp()) {
             const auto prevDatamove = dynamic_cast<const wave::DataMoveWaveOp*>(prevWaveop);
@@ -147,7 +151,7 @@ WaveEdge::qNeedToSync() const
         }
         return true;
     } else if (prevWaveop->qMatMulWaveOp()) {
-        if (!succWaveop->qMatMulWaveOp() ) {
+        if (!succWaveop->qMatMulWaveOp()) {
             // "MatMul waveop -> MatMul waveop" does not need synchronication,
             // but "MatMul waveop -> SbAtom waveop" does
             return true;
@@ -172,6 +176,37 @@ WaveEdge::qSyncedWithSemaphore() const
     return SyncMethod::WithSemaphore == m_SyncMethod;
 }
 
+/****************************************************************
+****************************************************************/
+void
+WaveEdge::rFromOp(utils::Passkey<WaveOp>, WaveOp* fromOp)
+{
+    m_FromOp = fromOp;
+}
+
+/****************************************************************
+****************************************************************/
+void
+WaveEdge::rToOp(utils::Passkey<WaveOp>, WaveOp* toOp)
+{
+    m_ToOp = toOp;
+}
+
+/****************************************************************
+****************************************************************/
+void
+WaveEdge::zFromOp(utils::Passkey<WaveOp>)
+{
+    m_FromOp = nullptr;
+}
+
+/****************************************************************
+****************************************************************/
+void
+WaveEdge::zToOp(utils::Passkey<WaveOp>)
+{
+    m_ToOp = nullptr;
+}
 
 } // namespace wave
 } // namespace kcc

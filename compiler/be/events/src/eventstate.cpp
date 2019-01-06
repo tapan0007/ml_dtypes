@@ -11,7 +11,6 @@
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/sbatomloadwaveop.hpp"
 //#include "wave/inc/sbatomsavewaveop.hpp"
-//#include "wave/inc/barrierwaveop.hpp"
 #include "wave/inc/nopwaveop.hpp"
 
 #include "nets/inc/network.hpp"

@@ -16,7 +16,6 @@ constexpr const char* const Reciprocal    = "Reciprocal";
 constexpr const char* const RegLoad       = "RegLoad";
 constexpr const char* const RegStore      = "RegStore";
 constexpr const char* const Activation    = "Activation";
-constexpr const char* const Barrier       = "Barrier";
 
 constexpr const char* const ResAdd        = "ResAdd";
 constexpr const char* const Nop           = "Nop";

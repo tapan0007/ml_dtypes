@@ -45,6 +45,10 @@ poolTypeStr2Id(const std::string& str)
     return PoolType::None;
 }
 
+int cmpEngineId(EngineId lhs, EngineId rhs)
+{
+    return static_cast<int>(lhs) - static_cast<int>(rhs);
+}
 
 EngineId
 engineId2Str(const std::string& str)

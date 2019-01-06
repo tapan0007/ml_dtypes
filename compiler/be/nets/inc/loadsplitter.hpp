@@ -39,7 +39,6 @@ namespace wave {
     class TensorWaveOp;
     class TensorTensorWaveOp;
     class TensorScalarWaveOp;
-    class BarrierWaveOp;
     class NopWaveOp;
 }
 

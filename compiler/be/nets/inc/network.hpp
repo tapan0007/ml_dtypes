@@ -42,7 +42,6 @@ namespace wave {
     class TensorWaveOp;
     class TensorTensorWaveOp;
     class TensorScalarWaveOp;
-    class BarrierWaveOp;
     class NopWaveOp;
 }
 
@@ -78,13 +77,11 @@ public:
     void rUseSem(bool useSem);
 
 private:
+    enum : kcc_int32 { LevelDelta = 10 };
     class LoadSaveBase;
     class Load;
     class Save;
 
-
-private:
-    wave::WaveOp*  findWaveOp(const std::string& prevWaveOpName);
 
 public:
     //----------------------------------------------------------------
@@ -152,7 +149,14 @@ public:
     void revertSavedWaveops();
     void ClearEvents();
 
+    void RewireMultiOutEdgesOfMatMults();
+
 private:
+    wave::WaveOp*  findWaveOp(const std::string& prevWaveOpName);
+    void levelizeByLongestPath();
+    wave::NopWaveOp* rewireMultiOutEdgesOfOneMatMul(wave::MatMulWaveOp* matmulWaveop);
+
+
 
 private:
     Network() = delete;

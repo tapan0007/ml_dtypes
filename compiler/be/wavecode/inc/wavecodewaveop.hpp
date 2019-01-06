@@ -290,6 +290,7 @@ bool WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop, INST& instr)
             std::ostringstream oss;
             oss << waveop->gOrder() << "-" <<  waveop->gName();
             if (waveop->gType() == WaveOpType::MatMul && numSuccEdgesToSync > 1) {
+                Assert(false, "MatMul cannot have more than 1 succ anymore: ", waveop->gName());
                 // kaena-531: There's only 1 delay from MM to following event set instr when there are
                 // multiple SETs (multiple dependencies), so to properly trigger a dependent load,
                 // there must be an event from MM to a WAIT followed by the first SETs (no longer embedded)

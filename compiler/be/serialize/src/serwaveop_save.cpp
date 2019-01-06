@@ -93,8 +93,6 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
         saveResAdd(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr::ScaleAdd) {
         saveScaleAdd(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr::Barrier) {
-        saveBarrier(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr::Nop) {
         saveNop(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr::Minimum) {
@@ -435,15 +433,10 @@ SerWaveOp::saveScaleAdd(cereal::JSONOutputArchive& archive) const
 
 //===========================================================================
 void
-SerWaveOp::saveBarrier(cereal::JSONOutputArchive& /*archive*/) const
-{
-}
-
-//===========================================================================
-void
 SerWaveOp::saveNop(cereal::JSONOutputArchive& archive) const
 {
     KCC_ARCHIVE(Engine);
+    // NopType?
 }
 
 

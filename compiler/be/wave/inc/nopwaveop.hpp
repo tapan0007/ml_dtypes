@@ -34,10 +34,16 @@ private:
     using BaseClass = WaveOp;
 public:
     class Params;
+    enum class NopType {
+        Barrier,
+        Broadcast,
+        None,
+    };
 public:
     NopWaveOp(const NopWaveOp::Params& params,
               const std::vector<WaveOp*>& prevWaveOps,
-              EngineId engineId, events::EventId evt);
+              EngineId engineId, events::EventId evt,
+              NopType type);
 public:
     bool verify() const override;
 
@@ -72,8 +78,17 @@ public:
         return 0;
     }
 
+    NopType gNopType() const {
+        return m_NopType;
+    }
+
+    bool qPartOfBarrier() const override {
+        return m_NopType == NopType::Barrier;
+    }
+
 private:
     EngineId m_EngineId = EngineId::None;
+    const NopType m_NopType;
 }; // class NopWaveOp : public WaveOp
 
 

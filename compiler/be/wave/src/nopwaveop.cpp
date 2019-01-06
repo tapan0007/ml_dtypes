@@ -25,17 +25,22 @@ namespace wave {
 
 NopWaveOp::NopWaveOp(const NopWaveOp::Params& params,
                              const std::vector<WaveOp*>& prevWaveOps,
-                             EngineId engineId, events::EventId evtId)
+                             EngineId engineId, events::EventId evtId,
+                             const NopType type)
     : BaseClass(params, prevWaveOps) // will add back edges
     , m_EngineId(engineId)
+    , m_NopType(type)
 {
+    Assert(type == NopType::Barrier || type == NopType::Broadcast,
+           "NopWaveop ", params.m_WaveOpName , " cannont have NopType of None");
     if (prevWaveOps.size() > 0) {
         Assert(prevWaveOps.size() == 1,
             "NopWaveOps can have 0 or 1 previous WaveOps. It has ", prevWaveOps.size());
         Assert(m_PrevWaveEdges.size() == 1,
             "NopWaveOps can have 0 or 1 previous WaveEdges. It has ", prevWaveOps.size());
         wave::WaveEdge* prevWaveEdge = m_PrevWaveEdges[0];
-        prevWaveEdge->rEvent(events::EventSetMode::OnEndWrDst, evtId, events::EventWaitMode::WaitThenClear);
+        prevWaveEdge->rEvent(events::EventSetMode::OnEndWrDst, evtId,
+                             events::EventWaitMode::WaitThenClear);
     }
 }
 

@@ -219,6 +219,7 @@ class KgraphJson(object):
 
                       if lab != None:
                           # print("sync sem: " + lab)
+                          assert(lab != "")
                           edgeAttrs["label"] = lab
                           edgeAttrs["color"] = "blue"
                           edgeAttrs["weight"] = "100"

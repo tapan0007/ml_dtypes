@@ -17,7 +17,6 @@ class SbAtomLoadWaveOp;
 class SbAtomSaveWaveOp;
 class SbAtomWaveOp;
 class DataMoveWaveOp;
-class BarrierWaveOp;
 }
 
 namespace dma {
@@ -177,6 +176,8 @@ private:
     void processWaveop(wave::WaveOp* waveop);
 
     EventId getLocalEventId(const wave::WaveEdge* edge);
+
+    void linkBarrierNops(std::vector<wave::WaveOp*>& newWaveops);
 
     wave::NopWaveOp* mkNopWaveop(wave::WaveOp* prevWaveop, EngineId engId, kcc_int32 waveopIdx);
 

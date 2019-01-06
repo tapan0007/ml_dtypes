@@ -10,16 +10,19 @@
 
 
 
-
-
 #include "utils/inc/types.hpp"
 #include "utils/inc/consts.hpp"
 #include "utils/inc/datatype.hpp"
 #include "utils/inc/fmapdesc.hpp"
+
 #include "events/inc/events.hpp"
 
 
 namespace kcc {
+namespace utils {
+template <typename T> class Passkey;
+}
+
 enum class EventWaitMode;
 enum class EventSetMode;
 
@@ -109,6 +112,12 @@ public:
     void rChosenForSuccSbAtom(bool chosen) {
         m_ChosenForSuccSbAtom = chosen;
     }
+
+public:
+    void rFromOp(utils::Passkey<WaveOp>, WaveOp* fromOp);
+    void rToOp(utils::Passkey<WaveOp>, WaveOp* toOp);
+    void zFromOp(utils::Passkey<WaveOp>);
+    void zToOp(utils::Passkey<WaveOp>);
 
 private:
     void rSyncMethod(SyncMethod method) {

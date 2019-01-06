@@ -297,7 +297,6 @@ private:
     void saveResAdd(cereal::JSONOutputArchive& archive) const;
     void saveScaleAdd(cereal::JSONOutputArchive& archive) const;
     void saveClipByValue(cereal::JSONOutputArchive& archive) const;
-    void saveBarrier(cereal::JSONOutputArchive& archive) const;
     void saveNop(cereal::JSONOutputArchive& archive) const;
     void saveMaximum(cereal::JSONOutputArchive& archive) const;
     void saveMinimum(cereal::JSONOutputArchive& archive) const;
@@ -324,7 +323,6 @@ private:
     bool verifyResAdd() const;
     bool verifyScaleAdd() const;
     bool verifyClipByValue() const;
-    bool verifyBarrier() const;
     bool verifyNop() const;
     bool verifyTensor() const;
     bool verifyTensorTensor() const;
