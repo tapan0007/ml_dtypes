@@ -198,6 +198,8 @@ class trivnet_conf():
         # Grow GPU memory as needed at the cost of fragmentation.
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
+        #config.intra_op_parallelism_threads = 1
+        #config.inter_op_parallelism_threads = 1
         with tf.Session(config=config) as sess:
             sess.run(tf.global_variables_initializer())
             if isinstance(input_data, dict):
