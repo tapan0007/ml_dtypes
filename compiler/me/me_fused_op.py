@@ -682,8 +682,17 @@ class FusedOp(list):
                 elif (weights_file_start_addr + weights_file_sz > weights_region_start_addr + weights_region_sz):
                     weights_file_start_addr = weights_region_start_addr
                 tpb.statebuffer.next_weights_file_start = weights_file_start_addr + weights_file_sz
+                # stagger weight chunks to relax dependency on the first chunk
+                gap_at_region_end = (weights_region_start_addr + weights_region_sz) - (weights_file_start_addr + weights_file_sz)
+                chunk_id_start_offset = -(gap_at_region_end // weights_file_params.chunk_sz_padded)
+                if chunk_id_start_offset > 0:
+                    chunk_id_start_offset = 0
+                elif chunk_id_start_offset < 0 \
+                        and weights_file_start_addr == weights_region_start_addr \
+                        and weights_region_sz >= weights_file_sz:
+                    weights_file_start_addr += weights_region_sz - weights_file_sz
                 # map file to region                
-                map_file(weights_file_params, weights_file_start_addr, wrap_around=False, region_sz=weights_file_sz)
+                map_file(weights_file_params, weights_file_start_addr, wrap_around=False, region_sz=weights_file_sz, chunk_id_start_offset=chunk_id_start_offset)
                 # obtain the adjusted region size
                 weights_region_sz = weights_file_params.mapped_params.region_sz
                 # also in case that file is already mapped, keep the mapped values

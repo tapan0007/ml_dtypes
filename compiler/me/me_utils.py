@@ -882,10 +882,13 @@ class FileParams():
 """ Class to hold map information related to a file
 """
 class MappedParams():
-    def __init__(self, N, start_addr, region_sz, num_region_chunks, num_file_chunks_per_batch_item, end_addr, modify_in_place, readers):
+    def __init__(self, N, start_addr, region_sz, num_region_chunks, num_file_chunks_per_batch_item, end_addr, modify_in_place, readers, chunk_id_start_offset=0):
         self.start_addr = start_addr
         self.region_sz  = region_sz
         self.num_region_chunks = num_region_chunks
+        # Start chunk_id at 0 if chunk_id_start_offset is 0 or less than -num_region_chunks;
+        # chunk_id_start_offset=-1 means start chunk_id at the end of region.
+        self.chunk_id_start = max(0, (num_region_chunks + chunk_id_start_offset) % num_region_chunks)
         self.num_file_chunks_per_batch_item = num_file_chunks_per_batch_item
         self.chunk2waveop_map = {}
         self.chunk_is_mapped = [False for i in range(N*num_file_chunks_per_batch_item)]
@@ -1106,7 +1109,7 @@ class FileMapper():
     # Region_sz is size of region used
     # If region size is less than file size, then wrap-around if wrap_around is True
     # If region size is 0, allow it to expand to file size
-    def map_file(self, file_params, start_addr, wrap_around=True, region_sz=0, modify_in_place=False):       
+    def map_file(self, file_params, start_addr, wrap_around=True, region_sz=0, modify_in_place=False, chunk_id_start_offset=0):       
         if file_params is None:
             raise RuntimeError("File information file_params is None")
         if file_params.dram_data is None:
@@ -1157,7 +1160,7 @@ class FileMapper():
             raise RuntimeError("End address %d falls outside partition size %d. Something wrong during file mapping. Please check map_files function."%(end_addr, self.sb_partition_sz))
         # Save mapped information            
         #print("taemk::FileParams to be consumed = %s"%file_params.file_name)
-        print("INFO: file %s mapped to start_addr %d region_sz %d (orig region_sz %d) num_region_chunks %d wrap_around %d modify_in_place %d"%(file_params.file_name, start_addr, adj_region_sz, region_sz, num_region_chunks, wrap_around, modify_in_place))
+        print("INFO: file %s mapped to start_addr %d region_sz %d (orig region_sz %d) num_region_chunks %d wrap_around %d modify_in_place %d chunk_id_start_offset %d"%(file_params.file_name, start_addr, adj_region_sz, region_sz, num_region_chunks, wrap_around, modify_in_place, chunk_id_start_offset))
         file_params.mapped_params = MappedParams(
                                         N                               = file_params.file_dims.N, 
                                         start_addr                      = start_addr, 
@@ -1166,7 +1169,8 @@ class FileMapper():
                                         num_file_chunks_per_batch_item  = file_params.batch_item_num_chunks, 
                                         end_addr                        = end_addr, 
                                         modify_in_place                 = modify_in_place, 
-                                        readers                         = file_params.consumers)
+                                        readers                         = file_params.consumers,
+                                        chunk_id_start_offset           = chunk_id_start_offset)
         # Save file params in a list
         self.file_params_list[file_params.file_id] = file_params
         return end_addr + file_params.item_sz
@@ -1275,14 +1279,14 @@ class FileMapper():
         assert(addr >= 0)
         #assert(addr < file_params.batch_item_partition_usage_sz)
         chunk_id        = self.get_chunk_id_from_file_addr(file_params, batch_item, addr)
-        atom_id         = chunk_id % file_params.mapped_params.num_region_chunks
+        atom_id         = (chunk_id + file_params.mapped_params.chunk_id_start) % file_params.mapped_params.num_region_chunks
         return atom_id
 
     def get_sb_addr_from_chunk_id (self, file_params, batch_item, chunk_id):
         assert(chunk_id >= 0)
         assert(chunk_id >= batch_item * file_params.batch_item_num_chunks)
         assert(chunk_id < file_params.tot_num_chunks)
-        chunk_id_offset = chunk_id % file_params.mapped_params.num_region_chunks
+        chunk_id_offset = (chunk_id + file_params.mapped_params.chunk_id_start) % file_params.mapped_params.num_region_chunks
         if file_params.file_dims.has_c:
             sb_addr         = chunk_id_offset * file_params.chunk_sz_padded
         else:
