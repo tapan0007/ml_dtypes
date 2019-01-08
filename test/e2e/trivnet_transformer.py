@@ -12,7 +12,7 @@ LAYER_NORM_EPS = 1e-6
 HIDDEN_SIZE = 32
 #HIDDEN_SIZE = conf.NUMHID   
 
-NUM_HIDDEN_LAYERS = 1
+NUM_HIDDEN_LAYERS = 5
 
 batch_input_len = conf.BATCHSIZE * conf.INPUTLEN
 batch_output_len = conf.BATCHSIZE * conf.OUTPUTLEN
@@ -41,12 +41,15 @@ def layer_normalization(inputs):
 
     inputs_sum = tf.reduce_sum(inputs, axis=[-1], keepdims=True, name='sum')
 
-    factor = 1.0 / HIDDEN_SIZE
-    mean = tf.multiply(inputs_sum, factor, name='mean')
+    #factor = 1.0 / HIDDEN_SIZE
+    factor = 1.0 / (num_channels.value*10)
+    #mean = tf.multiply(inputs_sum, factor, name='mean')
+    mean = tf.multiply(inputs_sum, -factor, name='mean')
 
     mean_b = broadcast_c(mean, "b1")
 
-    residuals = tf.subtract(inputs, mean_b, name='residuals')
+    #residuals = tf.subtract(inputs, mean_b, name='residuals')
+    residuals = tf.add(inputs, mean_b, name='residuals')
 
     res_x_res = tf.multiply(residuals, residuals, name = "res_x_res")
 
@@ -210,6 +213,22 @@ def encoder_block(inputs, attention_bias, layer_name_prefix):
         
     return outputs
     
+    
+# Avoid too long scope names since the runtime has a limitation of file name length.
+def encoder_block_at_mhatt_output(inputs, attention_bias, layer_name_prefix):
+    with tf.name_scope('self_att'):
+        #layer_name = 'encoder_stack/layer_%d/self_attention' % idx
+        with tf.name_scope('lm'):
+            inputs_norm = layer_normalization(inputs)
+        #layer_name += '/self_attention'
+        with tf.name_scope('mhatt'):
+            self_att = multihead_attention(inputs_norm, inputs_norm,
+                attention_bias)
+                
+            return self_att
+    
+    
+        
 
 def encoder_stack(inputs, attention_bias):
     # encoder blocks
@@ -255,6 +274,20 @@ def decoder_block(inputs, encoder_outputs, encoder_attention_bias, decoder_atten
         
     return outputs    
     
+
+def decoder_stack(inputs, encoder_outputs, encoder_attention_bias, decoder_attention_bias):
+    # decoder blocks
+    for idx in range(NUM_HIDDEN_LAYERS):
+        #print('l%d' % idx)
+        with tf.name_scope('l%d' % idx):
+            inputs = decoder_block(inputs, encoder_outputs, encoder_attention_bias, decoder_attention_bias, 'dl'+str(idx))
+
+    # layer normalization after decoding layers
+    with tf.name_scope('lm'):
+        decoder_outputs = layer_normalization(inputs)
+
+    return decoder_outputs
+        
    
 # layer_normalization has a high degree of value errors if it is run alone
 # although the number distribution looks okay.
@@ -282,7 +315,9 @@ def test_layer_normalization():
     #i1 = tf.placeholder(conf.tfDataType, shape = input_shape, name = "input_const")
 
     with tf.name_scope('%s' % conf.netName):
-        output = layer_normalization(i0)
+        lm_output = layer_normalization(i0)
+        
+    output = tf.identity(lm_output, name = conf.netName + "/output")        
        
         
     i0val   = conf.gen_array_rand(conf.IMIN, conf.IMAX, input_shape)
@@ -402,8 +437,7 @@ def decoder_test(testName):
         if testName == 'decoder_layer':
             dec_out = decoder_block(dec_input, enc_output, enc_bias_br, dec_bias_br, 0)
         else:
-            pass 
-            #dec_out = encoder_stack(enc_input, b_bias_br)
+            dec_out = decoder_stack(dec_input, enc_output, enc_bias_br, dec_bias_br)
         
     output = tf.identity(dec_out, name = conf.netName + "/output")
         
@@ -437,7 +471,7 @@ print('TEST_NAME: ' + testName)
 if testName == 'encoder_layer' or testName == 'encoder_stack':
     encoder_test(testName)
     
-elif testName == 'decoder_layer':
+elif testName == 'decoder_layer' or testName == 'decoder_stack':
     decoder_test(testName)
 
 elif testName == 'layer_norm':
