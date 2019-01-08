@@ -1292,7 +1292,7 @@ for i in [12, 18]:
     testConfigMap["6-parwavenet_10_fp16_in_to_add%s_wave"%i][TFFE_OPTION_IDX] += " --waive_wavegraph_checks "
 
 # kaena-902: in_to_add15/add18/add24 cases exceed default relative tolerance of 1% when TF changes input order
-for i in [15]:
+for i in [15, 22]:
     testConfigMap["6-parwavenet_10_fp16_in_to_add%s_wave"%i][NNE_OPTION_IDX] += "--diff_options '--tolerance 1.2 1e-5'"
 for i in [18]:
     testConfigMap["6-parwavenet_10_fp16_in_to_add%s_wave"%i][NNE_OPTION_IDX] += "--diff_options '--tolerance 1.8 1e-5'"
