@@ -80,33 +80,6 @@ LoadSplitter::LoadSplitter(Network& network)
 { }
 
 
-#if 0
-//--------------------------------------------------------
-void
-LoadSplitter::addCopyAsPrevWaveop(wave::WaveOp* waveop)
-{
-    for (auto prevWaveop : waveop->gPrevWaveops()) {
-        auto prevLoad = dynamic_cast<wave::SbAtomLoadWaveOp*>(prevWaveop);
-        if (! prevLoad) {
-            continue;
-        }
-
-        wave::TpbCopyWaveOp* prevCopy = prevLoad->gPairCopyWaveOp();
-        if (!prevCopy) {
-            continue;
-        }
-
-        // check prevCopy is not among predecessors already O(N^2)
-        for (auto prevWaveop2 : waveop->gPrevWaveops()) {
-            Assert(prevWaveop2 != prevCopy, "Prev copy ", prevCopy->gName(),
-                "already in set of previous wavops of ", waveop->gName());
-        }
-        auto edge = new wave::WaveEdge(prevCopy, waveop);
-        prevCopy->addSuccWaveEdge(edge);
-        waveop->addPrevWaveEdge(edge);
-    }
-}
-#endif
 
 //--------------------------------------------------------
 wave::SbAtomLoadWaveOp*
@@ -177,47 +150,38 @@ LoadSplitter::SplitReplicatedLoads()
     std::vector<wave::WaveOp*> newWaveops;
 
     for (kcc_int32 widx = 0; widx < numWaveops; ++widx) {
-        bool split = true;
         const auto waveop = waveops[widx];
         auto loadWaveop = dynamic_cast<wave::SbAtomLoadWaveOp*>(waveop);
         if (!loadWaveop || loadWaveop->gIfmapReplicationResolution() <= 0) {
-            // this is not a load or is not replicated
-            split = false;
+            m_Network.replaceWaveops(newWaveops, false);
+            continue;
         }
-        if (split) {
-            if (loadWaveop->qContainWeights()) {
-                split = false;
-            }
+        if (loadWaveop->qContainWeights()) {
+            m_Network.replaceWaveops(newWaveops, false);
+            continue;
         }
 
         wave::SbAtomLoadWaveOp* prevReplicatedLoad = nullptr;
-        if (split) {
-            prevReplicatedLoad = findPrevReplicatedLoad(loadWaveop);
-            if (!prevReplicatedLoad) { // previous load not replicated
-                split = false;
-            }
-        }
-
-        if (split) {
-            if (loadWaveop->gIfmapReplicationResolution() <= 0) { // this load not replicated
-                split = false;
-            }
-        }
-
-
-        if (split) {
-            wave::TpbCopyWaveOp* copyWaveop = splitOneReplicatedLoad(
-                                                prevReplicatedLoad,
-                                                loadWaveop);
-            // copy should go first since waveop (load) will reset address map
-            // Processing of waveops during code generation should be
-            // L0, C1,L1, C2,L2
-            newWaveops.push_back(copyWaveop);
-            newWaveops.push_back(waveop);
+        prevReplicatedLoad = findPrevReplicatedLoad(loadWaveop);
+        if (!prevReplicatedLoad) { // previous load not replicated
+            m_Network.replaceWaveops(newWaveops, false);
             continue;
-        } else {
-            newWaveops.push_back(waveop);
         }
+
+        if (loadWaveop->gIfmapReplicationResolution() <= 0) { // this load not replicated
+            m_Network.replaceWaveops(newWaveops, false);
+            continue;
+        }
+
+
+        wave::TpbCopyWaveOp* copyWaveop = splitOneReplicatedLoad(
+                                            prevReplicatedLoad,
+                                            loadWaveop);
+        // copy should go first since waveop (load) will reset address map
+        // Processing of waveops during code generation should be
+        // L0, C1,L1, C2,L2
+        newWaveops.push_back(copyWaveop);
+        newWaveops.push_back(waveop);
     }
     m_Network.replaceWaveops(newWaveops, false);
 }

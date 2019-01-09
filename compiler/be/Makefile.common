@@ -2,8 +2,13 @@ AR := ar
 COMPILER := g++
 
 ########################################################
-WARNING_OPTS := -ansi -W -Wall -Werror -pedantic -pedantic-errors -Wno-missing-field-initializers -Wparentheses -Wno-enum-compare
+WARNING_OPTS := -ansi -W -Wall -Werror -Wpedantic -pedantic \
+	-pedantic-errors -Wno-missing-field-initializers -Wparentheses \
+	-Wno-enum-compare
+
+#-Wextra 
 ## -Wdangling-else
+# -Wno-enum-compare -Wconversion -Wsign-conversion
 
 ########################################################
 COMMON_OPTS := $(WARNING_OPTS) -g -ggdb -std=c++14
