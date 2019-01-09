@@ -178,7 +178,7 @@ def QuantizeConsts(minRange, maxRange, T):
     quantScale = intRange / maxMinusMin
     dequantScale = maxMinusMin / intRange
     if T in {'uint8', 'uint16', 'uint32', np.uint8, np.uint16, np.uint32}:
-        zeroPoint = np.round(-minRange * quantScale)
+        zeroPoint = int(np.round(-minRange * quantScale))
     elif T in {'int8', 'int16', 'int32', np.int8, np.int16, np.int32}:
         zeroPoint = 0
     else:

@@ -72,7 +72,7 @@ ConvTranspose:
   stride: Stride of convolution or pooling, specified as an array of strides for all
     dimensions. Ex. [1, 1, 1, 10]
 Dequantize:
-  '#comment': Dequantize int32 into float32
+  '#comment': Dequantize uint8 or int32 into float32
   dequant_scale: Multiplier for dequantization operation. Ex. 6.151480194216473e-05
   zero_point: Quantized value that represents unquantized zero. Ex. 0
 Exp:
@@ -111,7 +111,7 @@ Pad:
 QuantizeV2:
   '#comment': Quantize float32 into uint8
   quant_scale: Multiplier for quantization operation. Ex. 127.5
-  zero_point: Quantized value that represents unquantized zero. Ex. 128.0
+  zero_point: Quantized value that represents unquantized zero. Ex. 128
 QuantizedConv:
   '#comment': Quantized two dimensional convolution with explicit padding, uint8 inputs,
     int32 outputs
@@ -132,9 +132,9 @@ QuantizedConv:
   stride: Stride of convolution or pooling, specified as an array of strides for all
     dimensions. Ex. [1, 1, 1, 1]
   zero_point_filter: Quantized value that represents unquantized zero for filter.
-    Ex. 128.0
+    Ex. 128
   zero_point_input: Quantized value that represents unquantized zero for IFMAP. Ex.
-    128.0
+    128
 Reciprocal:
   '#comment': Simple operation with single input tensor and single output tensor
 Relu:

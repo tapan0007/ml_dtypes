@@ -24,6 +24,7 @@ from me_utils import extract_predecessors
 from me_utils import attach_predecessors
 from me_pool import Pool
 from me_concat import Concat
+from me_quantization_utils import mem_pattern_uint8_perf, reorder_waveops_uint8_perf
 
 sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
 from NpUtils import NpUtils as npu
@@ -130,6 +131,18 @@ class PEWave:
         batch_item = self.tile.n_id * self.tile.Tn
         if psum_bank_id >= 0:
             dtype  = "float32"
+            # note (HC): if state buffer dtype is specified, we select
+            # the "smallest" psum dtype in the case of fused op
+            if sb_dtype is None:
+                pass
+            elif sb_dtype in {"float16", "bfloat16", "float32"}:
+                dtype = "float32"
+            elif sb_dtype in {"uint8", "uint16", "int32"}:
+                dtype = "int32"
+            elif sb_dtype in {"int64"}:
+                dtype = "int64"
+            else:
+                raise NotImplementedError('sb_dtype %s is not supported' % sb_dtype)
             y_step = self.subtile_rect.dim2d.x
             z_step = y_step * y_num if z_num > 1 else 1
             waveop[prefix + "_psum_bank_id"]      = psum_bank_id
@@ -920,13 +933,9 @@ class FusedOp(list):
         first_op_type = self.first_op.data['layer_type']
         if (first_op_type == "Conv" or first_op_type == "ConvTranspose" or first_op_type == "MatMul"):
             self.execute_conv_ops(tpb, batch_item)
-        elif first_op_type == "Dequantize":
-            self.execute_dequantize_op(tpb, batch_item)
-        elif first_op_type == "QuantizeV2":
-            self.execute_quantize_op(tpb, batch_item)
         elif first_op_type == "QuantizedConv":
             self.execute_conv_ops(tpb, batch_item)
-        elif (first_op_type == "AvgPool" or first_op_type == "MaxPool" or first_op_type == "ClipByValue"):
+        elif first_op_type in {"AvgPool", "MaxPool", "ClipByValue", "QuantizeV2", "Dequantize"}:
             self.execute_unfused_pool_op(tpb, batch_item)
         elif (first_op_type == "Softmax2"):
             self.execute_softmax2(tpb, batch_item)
@@ -1336,7 +1345,7 @@ class FusedOp(list):
             }
             # uint8 performance mode adjustments
             if self.args.uint8_performance_mode and in_dtype == 'uint8':
-                instr = self.mem_pattern_uint8_perf_opt(instr, ifmap_pewave.tile.tile_rect.dim2d)
+                instr = mem_pattern_uint8_perf(self.conv_op, instr, ifmap_pewave.tile.tile_rect.dim2d)
             matmul_waveop.append(instr)
             start_tensor_calc = False   # this is only true for the first MatMul, even when there's a break
         return matmul_waveop
@@ -1769,7 +1778,7 @@ class FusedOp(list):
                         list_of_accessors_rd = [[]],
                         waveop_list          = tpb.waveop_stream)
                 attach_predecessors(waveop, prev_waveops)
-            elif re.search("Multiply|ClipByValue|^Add$|Minimum|Maximum|^Sub$", layer_type):
+            elif re.search("Multiply|ClipByValue|^Add$|Minimum|Maximum|^Sub$|QuantizeV2|Dequantize", layer_type):
                 if layer_type == "ClipByValue":
                     scalar_val = [layer_data['clip_value_min'], layer_data['clip_value_max']]
                     scalar_op = [
@@ -1778,6 +1787,26 @@ class FusedOp(list):
                     ]  # clip: max for lower bound, and min for the upper bound
                     scalar_op_reverse = [False, False]
                     psum_temp = tpb.pool.clipbyvalue(psum_temp, scalar_val[0], scalar_val[1])
+                elif layer_type == 'QuantizeV2':
+                    assert('quant_scale' in layer_data)
+                    assert('zero_point' in layer_data)
+                    scalar_val = [layer_data['quant_scale'], layer_data['zero_point']]
+                    scalar_op = [
+                        self.translate_isa_op_name("multiply"),
+                        self.translate_isa_op_name("add"),
+                    ]
+                    scalar_op_reverse = [False, False]
+                    psum_temp = tpb.pool.tensor_scalar_op(layer_type, psum_temp, scalar_val)
+                elif layer_type == 'Dequantize':
+                    assert('dequant_scale' in layer_data)
+                    assert('zero_point' in layer_data)
+                    scalar_val = [-layer_data['zero_point'], layer_data['dequant_scale']]
+                    scalar_op = [
+                        self.translate_isa_op_name("add"),
+                        self.translate_isa_op_name("multiply"),
+                    ]
+                    scalar_op_reverse = [False, False]
+                    psum_temp = tpb.pool.tensor_scalar_op(layer_type, psum_temp, scalar_val)
                 else:
                     assert('scalar_val' in layer_data)
                     assert('reverse_operands' in layer_data)
@@ -1821,42 +1850,6 @@ class FusedOp(list):
                 ifmap_subtile = PoolSubtile(ifmap_tile, ifmap_tile.tile_rect, self[i].pool_window)
                 ofmap_subtile = PoolSubtile(ofmap_tile, ofmap_tile.tile_rect, None)
                 waveop = self.gen_fused_pool_waveop_inline(tpb, ifmap_subtile, ofmap_subtile, psum_bank_id, (ofmap_tile.m_id%2) == 1)
-                attach_predecessors(waveop, prev_waveops)
-            elif ('Dequantize' == layer_type):
-                dequant_scale = self[i].data['dequant_scale']
-                zero_point = self[i].data['zero_point']
-                psum_temp = tpb.pool.dequantize(psum_temp, dequant_scale, zero_point)
-                dst_is_psum = self[i].dst_is_psum
-                if dst_is_psum:
-                    tpb.pearray.write_psum(psum_bank_id, 0, psum_temp.shape[0], psum_temp)
-                waveop = self.gen_dequantize_waveop_inline(
-                            tpb              = tpb,
-                            op               = self[i],
-                            ifmap_tile       = ifmap_tile,
-                            ofmap_tile       = ofmap_tile,
-                            src_is_psum      = True,
-                            psum_bank_src    = psum_bank_id,
-                            dst_is_psum      = dst_is_psum,
-                            psum_bank_dst    = psum_bank_id if dst_is_psum else -1,
-                            dram_waveops     = [])
-                attach_predecessors(waveop, prev_waveops)
-            elif ('QuantizeV2' == layer_type):
-                quant_scale = self[i].data['quant_scale']
-                zero_point = self[i].data['zero_point']
-                psum_temp = tpb.pool.quantize_uint8(psum_temp, quant_scale, zero_point)
-                dst_is_psum = self[i].dst_is_psum
-                if dst_is_psum:
-                    tpb.pearray.write_psum(psum_bank_id, 0, psum_temp.shape[0], psum_temp)
-                waveop = self.gen_quantize_waveop_inline(
-                            tpb              = tpb,
-                            op               = self[i],
-                            ifmap_tile       = ifmap_tile,
-                            ofmap_tile       = ofmap_tile,
-                            src_is_psum      = True,
-                            psum_bank_src    = psum_bank_id,
-                            dst_is_psum      = dst_is_psum,
-                            psum_bank_dst    = psum_bank_id if dst_is_psum else -1,
-                            dram_waveops     = [])
                 attach_predecessors(waveop, prev_waveops)
             else:
                 raise RuntimeError("ERROR: %s is currently not yet implemented"%layer_type)
@@ -2168,8 +2161,10 @@ class FusedOp(list):
 
         ifmap_subtile = ifmap_tile.make_pewave()
         ofmap_subtile = ofmap_tile.make_pewave()
-        ifmap_subtile.set_waveop_pattern(mapper, waveop, 'src', src_psum_bank, src_sb_address, start_at_mid_part)
-        ofmap_subtile.set_waveop_pattern(mapper, waveop, 'dst', dst_psum_bank, dst_sb_address, start_at_mid_part)
+        ifmap_subtile.set_waveop_pattern(mapper, waveop, 'src', src_psum_bank, src_sb_address, start_at_mid_part,
+            sb_dtype=op.ifmaps_file_params.data_type)
+        ofmap_subtile.set_waveop_pattern(mapper, waveop, 'dst', dst_psum_bank, dst_sb_address, start_at_mid_part,
+            sb_dtype=op.ofmaps_file_params.data_type)
         waveop_stream.add_linked(waveop, dram_waveops, src_psum_bank, new_reader_morsels)
         return waveop
         
@@ -2376,10 +2371,20 @@ class FusedOp(list):
                 tile_data_flatten = tpb.pool.minimum(ifmaps_data_extract, residue_ifmaps)
             else:
                 raise RuntimeError("ERROR: don't know how to handle tensor-tensor op %s for layer %s"%(layer_type, first_op.data['layer_name']))
-        elif re.search("Multiply|ClipByValue|^Add$|Minimum|Maximum|^Sub$", layer_type):
+        elif re.search("Multiply|ClipByValue|^Add$|Minimum|Maximum|^Sub$|QuantizeV2|Dequantize", layer_type):
             if (layer_type == "ClipByValue"):
                 scalar_val = [first_op.data['clip_value_min'], first_op.data['clip_value_max']]
                 tile_data_flatten = tpb.pool.clipbyvalue(ifmaps_data_extract, scalar_val[0], scalar_val[1])
+            elif layer_type == 'QuantizeV2':
+                assert('quant_scale' in first_op.data)
+                assert('zero_point' in first_op.data)
+                scalar_val = [first_op.data['quant_scale'], first_op.data['zero_point']]
+                tile_data_flatten = tpb.pool.tensor_scalar_op(layer_type, ifmaps_data_extract, scalar_val)
+            elif layer_type == 'Dequantize':
+                assert('dequant_scale' in first_op.data)
+                assert('zero_point' in first_op.data)
+                scalar_val = [-first_op.data['zero_point'], first_op.data['dequant_scale']]
+                tile_data_flatten = tpb.pool.tensor_scalar_op(layer_type, ifmaps_data_extract, scalar_val)
             else:
                 assert('scalar_val' in first_op.data)
                 assert('reverse_operands' in first_op.data)
@@ -2714,13 +2719,31 @@ class FusedOp(list):
                             residue_sb_addr     = residue_sb_addr,
                             new_reader_morsels  = new_reader_morsels)
 
-            elif re.search("Multiply|ClipByValue|^Add$|Minimum|Maximum|^Sub$", layer_type):
+            elif re.search("Multiply|ClipByValue|^Add$|Minimum|Maximum|^Sub$|QuantizeV2|Dequantize", layer_type):
                 if layer_type == "ClipByValue":
                     scalar_val = [first_op.data['clip_value_min'], first_op.data['clip_value_max']]
                     scalar_op = [
                         self.translate_isa_op_name("maximum"),
                         self.translate_isa_op_name("minimum")
                     ]  # clip: max for lower bound, and min for the upper bound
+                    scalar_op_reverse = [False, False]
+                elif layer_type == 'QuantizeV2':
+                    assert('quant_scale' in first_op.data)
+                    assert('zero_point' in first_op.data)
+                    scalar_val = [first_op.data['quant_scale'], first_op.data['zero_point']]
+                    scalar_op = [
+                        self.translate_isa_op_name("multiply"),
+                        self.translate_isa_op_name("add"),
+                    ]
+                    scalar_op_reverse = [False, False]
+                elif layer_type == 'Dequantize':
+                    assert('dequant_scale' in first_op.data)
+                    assert('zero_point' in first_op.data)
+                    scalar_val = [-first_op.data['zero_point'], first_op.data['dequant_scale']]
+                    scalar_op = [
+                        self.translate_isa_op_name("add"),
+                        self.translate_isa_op_name("multiply"),
+                    ]
                     scalar_op_reverse = [False, False]
                 else:
                     assert('scalar_val' in first_op.data)
@@ -3271,7 +3294,7 @@ class FusedOp(list):
                                 r_id += s_id//self.conv_op.S
                                 s_id = s_id%self.conv_op.S
                             if self.args.uint8_performance_mode:
-                                tpb.waveop_stream[old_num_waveops:] = self.reorder_waveops_uint8_perf_opt(tpb.waveop_stream[old_num_waveops:])
+                                tpb.waveop_stream[old_num_waveops:] = reorder_waveops_uint8_perf(self.conv_op, tpb.waveop_stream[old_num_waveops:])
 
                         # tile is done                                   
                         # go through the remaining operations, using ofmap_tile as ifmap_tile (TODO: compute new shapes per operation)
@@ -3285,23 +3308,3 @@ class FusedOp(list):
                         #waveop = tpb.waveop_stream.last_psum_waveop[psum_bank_id]
                         #self.mark_producers_for_subtile_region(tpb, ofmap_tile.make_pewave(), waveop)
                         psum_add = False
-
-    # placeholders for quantization related functions
-    def execute_dequantize_op(self, *args, **kwargs):
-        from me_fused_op_quantize import execute_dequantize_op
-        return execute_dequantize_op(self, *args, **kwargs)
-    def execute_quantize_op(self, *args, **kwargs):
-        from me_fused_op_quantize import execute_quantize_op
-        return execute_quantize_op(self, *args, **kwargs)
-    def gen_dequantize_waveop_inline(self, *args, **kwargs):
-        from me_fused_op_quantize import gen_dequantize_waveop_inline
-        return gen_dequantize_waveop_inline(self, *args, **kwargs)
-    def gen_quantize_waveop_inline(self, *args, **kwargs):
-        from me_fused_op_quantize import gen_quantize_waveop_inline
-        return gen_quantize_waveop_inline(self, *args, **kwargs)
-    def mem_pattern_uint8_perf_opt(self, *args, **kwargs):
-        from me_fused_op_quantize import mem_pattern_uint8_perf_opt
-        return mem_pattern_uint8_perf_opt(self, *args, **kwargs)
-    def reorder_waveops_uint8_perf_opt(self, *args, **kwargs):
-        from me_fused_op_quantize import reorder_waveops_uint8_perf_opt
-        return reorder_waveops_uint8_perf_opt(self, *args, **kwargs)

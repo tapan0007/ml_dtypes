@@ -215,18 +215,6 @@ class Pool:
     def clipbyvalue(self, array_a, min_val, max_val):
         return np.clip(array_a, min_val, max_val)
 
-    """Dequantize uint8 or int32 into float32
-    quantization equation: real_value = scale * (quantized_value - zero_point)
-    """
-    def dequantize(self, quantized_value, dequant_scale, zero_point):
-        return (dequant_scale * (quantized_value - zero_point)).astype(np.float32)
-
-    """Quantize float32 into uint8
-    quantization equation: real_value = scale * (quantized_value - zero_point)
-    """
-    def quantize_uint8(self, real_value, quant_scale, zero_point):
-        return (quant_scale * real_value + zero_point).astype(np.uint8)
-
     def pool(self, type, in_array, stride, pool_window, Tn, ifmap_tilex_sz, ifmap_tiley_sz, ofmap_tilex_sz, ofmap_tiley_sz):
         num_cols = in_array.shape[1]
         # view_as_windows needs in_array to be in the same dimension as window_shape
@@ -295,6 +283,12 @@ class Pool:
             return np.maximum(in_array, scalar)
         elif op_type == 'Minimum':
             return np.minimum(in_array, scalar)
+        elif op_type == 'QuantizeV2':
+            quant_scale, zero_point = scalar
+            return (quant_scale * in_array + zero_point).astype(np.uint8)
+        elif op_type == 'Dequantize':
+            neg_zero_point, dequant_scale = scalar
+            return dequant_scale * (in_array.astype(np.float32) + neg_zero_point)
         else:
             raise RuntimeError("Unrecognized tensor_scalar_op %s"%op_type)
 
