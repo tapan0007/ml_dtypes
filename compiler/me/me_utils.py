@@ -1785,10 +1785,11 @@ class FileMapper():
                             self.morsels_wr[k][sb_addr] = new_morsel_wr
                         prev_file_id = file_id
                         prev_chunk_id = chunk_id
-            list_of_writers += list_of_writers_per_chunk                
-            for l in range(EngineEnum.COUNT):
-                list_of_readers[l] += list_of_readers_per_chunk[l]
-
+            # collect all the dependencies for non-loads
+            if not load_required:
+                list_of_writers += list_of_writers_per_chunk                
+                for l in range(EngineEnum.COUNT):
+                    list_of_readers[l] += list_of_readers_per_chunk[l]
             # if data is not in SB, issue DRAM loads
             if not file_params.mapped_params.chunk_is_mapped[i]:
                 file_params.mapped_params.chunk_is_mapped[i] = True
@@ -1825,11 +1826,9 @@ class FileMapper():
                     else:
                         new_dram_waveop = self.gen_dram_read_waveop(file_params, batch_item, i, [], repl_multiple_of_C)
                     prev_waveops = extract_predecessors(
-                        list_of_accessors_wr = list_of_writers, 
-                        list_of_accessors_rd = list_of_readers,
+                        list_of_accessors_wr = list_of_writers_per_chunk, 
+                        list_of_accessors_rd = list_of_readers_per_chunk,
                         waveop_list          = waveop_list)
-                    list_of_writers = []
-                    list_of_readers = [[] for l in range(EngineEnum.COUNT)]
                     attach_predecessors(new_dram_waveop, prev_waveops)
                     # Record load as writer into SB region
                     new_morsel_wr.accessor_id = waveop_id
