@@ -1,4 +1,3 @@
-### WARNING: num_splits doesn't have a description.
 --- # Top structure is a dictionary with following fields:
 data_type: Data type for the network (float16, bfloat16, uint8, uint16).
 layers: A list of KNodes in the KGraph.
@@ -13,14 +12,15 @@ layer_type: Type of the KNode, see list of Knode types. Ex. Input
 ofmap_format: The shape format of the output tensor. Ex. NCHW
 ofmap_shape: The shape of the output tensor, specified as an array of dimensions.
   Ex. [1, 1, 32, 32]
+out_data_type: Data type of output. Ex. float16
 previous_layers: A list of names for KNodes that feed this KNode (predecessors). Ex.
   []
 ref_file: The name of numpy file containing a operator's output tensor data. Ex. trivnet_input:0_NCHW.npy
 
 --- # The layers with fields that are not in common list:
 Add:
-  '#comment': Element-wise operation on two input tensors
-  add_scalar: Scalar for the add operation. Ex. 3.0
+  '#comment': Element-wise operation on one input tensor and scalar.
+  add_scalar: Scalar for the add operation. Ex. 0.0
 AvgPool:
   '#comment': Two dimensional pool with explicit padding
   kernel_shape: The shape of the weights tensor, specified as an array of dimensions.
@@ -71,6 +71,10 @@ ConvTranspose:
     specify lower and upper padding. Ex. [[0, 0], [0, 0], [0, 0], [15, 15]]
   stride: Stride of convolution or pooling, specified as an array of strides for all
     dimensions. Ex. [1, 1, 1, 10]
+Dequantize:
+  '#comment': Dequantize int32 into float32
+  dequant_scale: Multiplier for dequantization operation. Ex. 6.151480194216473e-05
+  zero_point: Quantized value that represents unquantized zero. Ex. 0
 Exp:
   '#comment': Simple operation with single input tensor and single output tensor
 ExpandDims:
@@ -80,7 +84,7 @@ ExpandDims:
 Input:
   '#comment': Input placeholder
 MatMul:
-  '#comment': Two dimensional matrix multiply
+  '#comment': Two dimensional matrix multiply with two dynamic operands
   kernel_file: Name of the numpy file that contains weights tensor values. Ex. trivnet_fc1000__kernel:0_CRSM.npy
   kernel_format: The shape format of the weights tensor. Ex. CRSM
   kernel_shape: The shape of the weights tensor, specified as an array of dimensions.
@@ -104,6 +108,35 @@ Pad:
   '#comment': Pad FMAP using low/high values from 2 elem array per dimension
   padding: Padding for each dimension, an array of 2-elem arrays, each 2-elem array
     specify lower and upper padding. Ex. [[0, 0], [0, 0], [0, 1], [0, 1]]
+QuantizeV2:
+  '#comment': Quantize float32 into uint8
+  quant_scale: Multiplier for quantization operation. Ex. 127.5
+  zero_point: Quantized value that represents unquantized zero. Ex. 128.0
+QuantizedConv:
+  '#comment': Quantized two dimensional convolution with explicit padding, uint8 inputs,
+    int32 outputs
+  dequant_scale_filter: Multiplier for dequantization of quantized filter values.
+    Ex. 0.00784313725490196
+  dequant_scale_input: Multiplier for dequantization of quantized IFMAP values. Ex.
+    0.00784313725490196
+  kernel_file: Name of the numpy file that contains weights tensor values. Ex. trivnet_conv_ba_relu_pool_uint8__filter:0_CRSM.npy
+  kernel_format: The shape format of the weights tensor. Ex. CRSM
+  kernel_shape: The shape of the weights tensor, specified as an array of dimensions.
+    Ex. [3, 3, 3, 4]
+  max_output: Maximum dequantized value corresponding to the largest quantized output
+    value. Ex. 132102.0313417916
+  min_output: Minimum dequantized value corresponding to the smallest quantized output
+    value. Ex. -132102.0313417916
+  padding: Padding for each dimension, an array of 2-elem arrays, each 2-elem array
+    specify lower and upper padding. Ex. [[0, 0], [0, 0], [1, 1], [1, 1]]
+  stride: Stride of convolution or pooling, specified as an array of strides for all
+    dimensions. Ex. [1, 1, 1, 1]
+  zero_point_filter: Quantized value that represents unquantized zero for filter.
+    Ex. 128.0
+  zero_point_input: Quantized value that represents unquantized zero for IFMAP. Ex.
+    128.0
+Reciprocal:
+  '#comment': Simple operation with single input tensor and single output tensor
 Relu:
   '#comment': Simple operation with single input tensor and single output tensor
 ResAdd:
@@ -111,12 +144,14 @@ ResAdd:
 Reshape:
   '#comment': Reshape implemented as a copy operation (output dims limited to between
     2-4)
+Rsqrt:
+  '#comment': Simple operation with single input tensor and single output tensor
 Sigmoid:
   '#comment': Simple operation with single input tensor and single output tensor
 Slice:
   '#comment': Extract slice along channel dimension
   slice_begin: Slice begin indices, specified as an array with one value for each
-    dimension. Ex. [0, 0, 0, 232]
+    dimension. Ex. [0, 0, 0, 0]
   slice_size: Slice size, specified as an array with one value for each dimension.
     Ex. [-1, -1, -1, 1536]
 Softmax:
@@ -139,7 +174,9 @@ Split:
     of unstack followed by the KNode name. Ex. [[0, 'cell_9/comb_iter_1/right/Relu'],
     [0, 'cell_9/comb_iter_2/left/Relu'], [0, 'cell_9/comb_iter_2/right/Relu'], [0,
     'cell_9/cell_output/concat']]
-  num_splits: PLEASE ADD DESCR Ex. 1
+  num_splits: Number of split outputs. Ex. 1
+Sqrt:
+  '#comment': Simple operation with single input tensor and single output tensor
 Squeeze:
   '#comment': Simple operation with single input tensor and single output tensor
 StridedSlice:
@@ -158,11 +195,15 @@ StridedSlice:
     1, 1, 1]
 Sub:
   '#comment': Element-wise operation on two input tensors
+Sum:
+  '#comment': Reduce tensor along with given axes
+  reduce_axes: Axes to reduce. Specified as an array with size matching number of
+    dimensions. Ex. [0, 1, 0, 0]
 Tanh:
   '#comment': Simple operation with single input tensor and single output tensor
 Transpose:
   '#comment': Transpose implemented as a copy operation (output dims limited to between
     2-4)
   perm: A list specifying the mapping from old axis to new axis for each dimension.
-    Ex. [0, 1, 3, 2]
+    Ex. [1, 0]
 
