@@ -33,6 +33,7 @@
 #include "wave/inc/reciprocalwaveop.hpp"
 #include "wave/inc/regloadwaveop.hpp"
 #include "wave/inc/regstorewaveop.hpp"
+#include "wave/inc/regshufflewaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/clipbyvaluewaveop.hpp"
 #include "wave/inc/tensortensorwaveop.hpp"
@@ -51,6 +52,7 @@
 #include "wavecode/inc/wavecodereciprocal.hpp"
 #include "wavecode/inc/wavecoderegload.hpp"
 #include "wavecode/inc/wavecoderegstore.hpp"
+#include "wavecode/inc/wavecoderegshuffle.hpp"
 #include "wavecode/inc/wavecodeactivation.hpp"
 #include "wavecode/inc/wavecodeclipbyvalue.hpp"
 #include "wavecode/inc/wavecodetensortensor.hpp"
@@ -77,6 +79,7 @@ WaveCode::WaveCode(nets::Network& network, const arch::Arch& arch, bool useSem)
     m_CodeReciprocal        = std::make_unique<WaveCodeReciprocal>(*this);
     m_CodeRegLoad           = std::make_unique<WaveCodeRegLoad>(*this);
     m_CodeRegStore          = std::make_unique<WaveCodeRegStore>(*this);
+    m_CodeRegShuffle        = std::make_unique<WaveCodeRegShuffle>(*this);
     m_CodeActivation        = std::make_unique<WaveCodeActivation>(*this);
     m_CodeClipByValue       = std::make_unique<WaveCodeClipByValue>(*this);
     m_CodeNop               = std::make_unique<WaveCodeNop>(*this);
@@ -226,6 +229,8 @@ WaveCode::getCodeGen(const wave::WaveOp* waveOp)
         return *m_CodeRegLoad;
     } else if (dynamic_cast<const wave::RegStoreWaveOp*>(waveOp)) {
         return *m_CodeRegStore;
+    } else if (dynamic_cast<const wave::RegShuffleWaveOp*>(waveOp)) {
+        return *m_CodeRegShuffle;
     } else if (dynamic_cast<const wave::ActivationWaveOp*>(waveOp)) {
         return *m_CodeActivation;
     } else if (dynamic_cast<const wave::ClipByValueWaveOp*>(waveOp)) {
@@ -347,8 +352,8 @@ WaveCode::calculateEventAddress(EngineId engId, events::EventId eventId) const
 void
 WaveCode::checkForNoSync(const TONGA_ISA_TPB_INST_EVENTS& inst_events) const
 {
-    Assert(events::qEventSetModeValid(inst_events.set_event_mode), "Invalid set event mode");
-    Assert(events::qEventWaitModeValid(inst_events.wait_event_mode), "Invalid wait event mode");
+    Assert(events::qEventSetModeValid(inst_events.set_event_mode), "Invalid set event mode", inst_events.set_event_mode);
+    Assert(events::qEventWaitModeValid(inst_events.wait_event_mode), "Invalid wait event mode", inst_events.wait_event_mode);
 
     if (qParallelStreams()) {
         return;

@@ -19,27 +19,29 @@ public:
     void saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
                     serialize::SerWaveOp& serWaveOp) const;
     void savePool(const wave::PoolWaveOp* poolWaveOp,
-                    serialize::SerWaveOp& serWaveOp) const;
+                  serialize::SerWaveOp& serWaveOp) const;
     void saveReciprocal(const wave::ReciprocalWaveOp* reciprocalWaveOp,
-                    serialize::SerWaveOp& serWaveOp) const;
+                        serialize::SerWaveOp& serWaveOp) const;
     void saveRegLoad(const wave::RegLoadWaveOp* regloadWaveOp,
-                    serialize::SerWaveOp& serWaveOp) const;
+                     serialize::SerWaveOp& serWaveOp) const;
     void saveRegStore(const wave::RegStoreWaveOp* regstoreWaveOp,
-                    serialize::SerWaveOp& serWaveOp) const;
+                      serialize::SerWaveOp& serWaveOp) const;
+    void saveRegShuffle(const wave::RegShuffleWaveOp* regstoreWaveOp,
+                        serialize::SerWaveOp& serWaveOp) const;
     void saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
                     serialize::SerWaveOp& serWaveOp) const;
     void saveTpbCopy(const wave::TpbCopyWaveOp* tpbcopyWaveop,
-                    serialize::SerWaveOp& serWaveOp) const;
+                     serialize::SerWaveOp& serWaveOp) const;
     void saveActivation(const wave::ActivationWaveOp* activationWaveOp,
-                       serialize::SerWaveOp& serWaveOp) const;
+                        serialize::SerWaveOp& serWaveOp) const;
     void saveClipByValue(const wave::ClipByValueWaveOp* clipbyvalueWaveOp,
-                       serialize::SerWaveOp& serWaveOp) const;
+                         serialize::SerWaveOp& serWaveOp) const;
     void saveTensorTensor(const wave::TensorTensorWaveOp* tensorTensorWaveOp,
-                       serialize::SerWaveOp& serWaveOp) const;
+                          serialize::SerWaveOp& serWaveOp) const;
     void saveTensorScalar(const wave::TensorScalarWaveOp* tensorScalarWaveOp,
-                       serialize::SerWaveOp& serWaveOp) const;
+                          serialize::SerWaveOp& serWaveOp) const;
     void saveNop(const wave::NopWaveOp* nopWaveOp,
-                       serialize::SerWaveOp& serWaveOp) const;
+                 serialize::SerWaveOp& serWaveOp) const;
 
 private:
     //====================================================================================

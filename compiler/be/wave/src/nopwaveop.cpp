@@ -39,7 +39,7 @@ NopWaveOp::NopWaveOp(const NopWaveOp::Params& params,
         Assert(m_PrevWaveEdges.size() == 1,
             "NopWaveOps can have 0 or 1 previous WaveEdges. It has ", prevWaveOps.size());
         wave::WaveEdge* prevWaveEdge = m_PrevWaveEdges[0];
-        prevWaveEdge->rEvent(events::EventSetMode::OnEndWrDst, evtId,
+        prevWaveEdge->rEvent(events::EventSetMode::OnEndInstr, evtId,
                              events::EventWaitMode::WaitThenClear);
     }
 }

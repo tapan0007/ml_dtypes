@@ -77,12 +77,6 @@ public:
         return m_SrcStepElem;
     }
 
-    kcc_int32 gReadEventLead() const override {
-        return 0;
-    }
-    kcc_int32 gWriteEventLead() const override {
-        return 0;
-    }
 
     const dma::DmaQueue* gDmaQueue1() const {
         return m_DmaQueue1;

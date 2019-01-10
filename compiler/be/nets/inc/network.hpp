@@ -37,6 +37,7 @@ namespace wave {
     class ReciprocalWaveOp;
     class RegLoadWaveOp;
     class RegStoreWaveOp;
+    class RegShuffleWaveOp;
     class ActivationWaveOp;
     class ClipByValueWaveOp;
     class TensorWaveOp;

@@ -48,6 +48,65 @@ EventMgr::~EventMgr()
     }
 }
 
+//***********************************************************************
+EventSetMode
+EventMgr::gEventSetMode(const wave::WaveOp* waveop, const EventSetMode setMode)
+{
+    static EventSetMode translateTable[kcc_int32(WaveOpType::Count)][4];  // 4 set modes
+    static bool initialized = false;
+
+    if (! initialized) {
+        const kcc_int32 onRd   = static_cast<kcc_int32>(EventSetMode::OnEndRdSrc);
+        const kcc_int32 onWr   = static_cast<kcc_int32>(EventSetMode::OnEndWrDst);
+        const kcc_int32 onDone = static_cast<kcc_int32>(EventSetMode::OnEndInstr);
+        const kcc_int32 dontSet = static_cast<kcc_int32>(EventSetMode::DontSet);
+
+        const kcc_int32 typeCnt = static_cast<kcc_int32>(WaveOpType::Count);
+
+        // Start with 1-1 translation
+        for (kcc_int32 t = 0; t < typeCnt; ++t) {
+            translateTable[t][dontSet]  = EventSetMode::DontSet;
+            translateTable[t][onRd]     = EventSetMode::OnEndRdSrc;
+            translateTable[t][onWr]     = EventSetMode::OnEndWrDst;
+            translateTable[t][onDone]   = EventSetMode::OnEndInstr;
+        }
+        // Exceptions:
+        translateTable[kcc_int32(WaveOpType::Pool)][onDone]             = EventSetMode::OnEndWrDst;
+        translateTable[kcc_int32(WaveOpType::Reciprocal)][onDone]       = EventSetMode::OnEndWrDst;
+        translateTable[kcc_int32(WaveOpType::MatMul)][onDone]           = EventSetMode::OnEndWrDst;
+        translateTable[kcc_int32(WaveOpType::Activation)][onDone]       = EventSetMode::OnEndWrDst;
+        translateTable[kcc_int32(WaveOpType::TensorTensor)][onDone]     = EventSetMode::OnEndWrDst;
+        translateTable[kcc_int32(WaveOpType::TensorScalar)][onDone]     = EventSetMode::OnEndWrDst;
+        translateTable[kcc_int32(WaveOpType::TensorScalarPtr)][onDone]  = EventSetMode::OnEndWrDst;
+        translateTable[kcc_int32(WaveOpType::ScaleAdd)][onDone]         = EventSetMode::OnEndWrDst;
+        translateTable[kcc_int32(WaveOpType::ClipByValue)][onDone]      = EventSetMode::OnEndWrDst;
+
+        translateTable[kcc_int32(WaveOpType::RegLoad)][onDone]          = EventSetMode::OnEndRdSrc;
+        translateTable[kcc_int32(WaveOpType::RegLoad)][onWr]            = EventSetMode::OnEndRdSrc;
+
+        translateTable[kcc_int32(WaveOpType::RegStore)][onDone]         = EventSetMode::OnEndWrDst;
+        translateTable[kcc_int32(WaveOpType::RegStore)][onRd]           = EventSetMode::OnEndWrDst;
+
+        translateTable[kcc_int32(WaveOpType::RegShuffle)][onRd]         = EventSetMode::OnEndInstr;
+        translateTable[kcc_int32(WaveOpType::RegShuffle)][onWr]         = EventSetMode::OnEndInstr;
+        translateTable[kcc_int32(WaveOpType::Nop)][onRd]                = EventSetMode::OnEndInstr;
+        translateTable[kcc_int32(WaveOpType::Nop)][onWr]                = EventSetMode::OnEndInstr;
+
+        // These are really semaphores
+        translateTable[kcc_int32(WaveOpType::Load)][onDone]             = EventSetMode::OnEndWrDst;
+        translateTable[kcc_int32(WaveOpType::Load)][onRd]               = EventSetMode::OnEndWrDst;
+        translateTable[kcc_int32(WaveOpType::Save)][onDone]             = EventSetMode::OnEndWrDst;
+        translateTable[kcc_int32(WaveOpType::Save)][onRd]               = EventSetMode::OnEndWrDst;
+        translateTable[kcc_int32(WaveOpType::TpbCopy)][onDone]          = EventSetMode::OnEndWrDst;
+        translateTable[kcc_int32(WaveOpType::TpbCopy)][onRd]            = EventSetMode::OnEndWrDst;
+    }
+
+    
+    const kcc_int32 typeIdx = static_cast<kcc_int32>(waveop->gType());
+    const kcc_int32 modeIdx = static_cast<kcc_int32>(setMode);
+    return translateTable[typeIdx][modeIdx];
+}
+
 /***********************************************************************
 ***********************************************************************/
 // For each succ edge take one available event and assign it
@@ -65,7 +124,8 @@ EventMgr::assignEventsToNewSuccEdges(wave::WaveOp* waveop)
             const auto evtId = m_EventState.gFirstAvailable();
 
             m_EventState.mvFromAvailableToInFlight(evtId);
-            succWaveEdge->rEvent(EventSetMode::OnEndWrDst, evtId,
+            succWaveEdge->rEvent(gEventSetMode(waveop, EventSetMode::OnEndWrDst),
+                                 evtId,
                                  EventWaitMode::WaitThenClear);
         } else {
             succWaveEdge->DoSyncWithSemaphore();

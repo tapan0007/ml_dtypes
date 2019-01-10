@@ -55,6 +55,7 @@ class WaveCodeNop;
 class WaveCodeTensorTensor;
 class WaveCodeRegLoad;
 class WaveCodeRegStore;
+class WaveCodeRegShuffle;
 
 
 
@@ -205,6 +206,7 @@ private:
     std::unique_ptr<WaveCodeTensorScalar>   m_CodeTensorScalar;
     std::unique_ptr<WaveCodeRegLoad>        m_CodeRegLoad;
     std::unique_ptr<WaveCodeRegStore>       m_CodeRegStore;
+    std::unique_ptr<WaveCodeRegShuffle>       m_CodeRegShuffle;
 
     kcc_int64                               m_CurrentDramAddress;
     std::map<std::string, NpyFileInfo>      m_NpyFile2DramAddress;

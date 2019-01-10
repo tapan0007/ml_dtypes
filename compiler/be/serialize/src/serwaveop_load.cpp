@@ -36,6 +36,8 @@ SerWaveOp::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         loadRegLoad(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr::RegStore) {
         loadRegStore(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::RegShuffle) {
+        loadRegShuffle(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr::MatMul) {
         loadMatMul(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr::Activation) {
@@ -149,6 +151,13 @@ SerWaveOp::loadRegStore(cereal::JSONInputArchive& archive)
     loadDst(archive, Dims::XYZ);
     KCC_ARCHIVE(OutDtype);
     KCC_ARCHIVE(DstIsPsum);
+}
+
+void
+SerWaveOp::loadRegShuffle(cereal::JSONInputArchive& archive)
+{
+    KCC_ARCHIVE(StartReg);
+    KCC_ARCHIVE(InSel);
 }
 
 void

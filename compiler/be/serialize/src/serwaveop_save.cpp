@@ -77,6 +77,8 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
         saveRegLoad(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr::RegStore) {
         saveRegStore(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::RegShuffle) {
+        saveRegShuffle(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr::MatMul) {
         saveMatMul(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr::Activation) {
@@ -193,6 +195,14 @@ SerWaveOp::saveRegStore(cereal::JSONOutputArchive& archive) const
     saveDst(archive, Dims::XYZ);
     KCC_ARCHIVE(NumPartitions);
     KCC_ARCHIVE(ParallelMode);
+}
+
+//===========================================================================
+void
+SerWaveOp::saveRegShuffle(cereal::JSONOutputArchive& archive) const
+{
+    KCC_ARCHIVE(StartReg);
+    KCC_ARCHIVE(InSel);
 }
 
 //===========================================================================

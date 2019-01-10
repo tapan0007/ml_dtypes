@@ -110,12 +110,6 @@ public:
     kcc_int32 gNumPartitions () const {
         return m_NumPartitions;
     }
-    kcc_int32 gReadEventLead() const override {
-        return gNumPartitions();
-    }
-    kcc_int32 gWriteEventLead() const override {
-        return gNumPartitions();
-    }
     const DataType& gOutDtype () const {
         return m_OutDtype;
     }

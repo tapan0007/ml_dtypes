@@ -43,13 +43,6 @@ public:
     EngineId gEngineId() const override {
         return EngineId::Pooling;
     }
-    kcc_int32 gReadEventLead() const override {
-        return gNumPartitions();
-    }
-    kcc_int32 gWriteEventLead() const override {
-        return gNumPartitions();
-    }
-
     kcc_int32 gNumPartitions () const {
         return m_NumPartitions;
     }
@@ -58,8 +51,8 @@ public:
     }
 
 private:
-    kcc_int32                   m_NumPartitions = -1;
     bool                        m_ParallelMode  = true;
+    kcc_int32                   m_NumPartitions = -1;
 }; // class RegWaveOp : public WaveOp
 
 

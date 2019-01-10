@@ -242,6 +242,7 @@ Stargazer::Main(int argc, char* argv[])
         } else if (arg == "--real-dma") {
             realDma = true;
         } else if (arg == "--number-tpb-events") {
+            Assert(i+1 < argc, "Option '--number-tpb-events' has no arguments");
             numTpbEvents = atoi(argv[i+1]);
             ++i;
         } else if (arg == "--sync-with-semaphores" || arg == "-s") {
@@ -257,6 +258,7 @@ Stargazer::Main(int argc, char* argv[])
                 std::cerr << "NN file name already specified" << "\n";
                 exit(1);
             }
+            Assert(i+1 < argc, "Option '--wavegraph' has no arguments");
             JsonInFileName = argv[i+1];
             i += 1;
         } else {
@@ -289,14 +291,11 @@ Stargazer::Main(int argc, char* argv[])
 
     // Does not matter which DataType because entry index is 0.
     const utils::DataTypeFloat32 dtypeFloat32;
-    if (true) {
-        if (false) {
+    if (false) {
         std::cout << "PSUM buffer, bank 0, entry 0: TPB address =  "
                 << psumBuf.gEntryTpbAddress(0, 0, dtypeFloat32) << "'\n";
         std::cout << "PSUM buffer, bank 1, entry 0: TPB address =  "
                 << psumBuf.gEntryTpbAddress(1, 0, dtypeFloat32) << "'\n";
-        }
-
     }
 
 

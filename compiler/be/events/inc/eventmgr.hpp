@@ -171,6 +171,9 @@ private:
                && eventId <= EventId_LastNonReserved();
     }
 
+    static EventSetMode gEventSetMode(const wave::WaveOp* waveop,
+                                      EventSetMode setMode);
+
 private:
     void processMatMult(wave::MatMulWaveOp* matmulWaveop);
     void processWaveop(wave::WaveOp* waveop);

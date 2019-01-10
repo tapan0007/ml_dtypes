@@ -24,6 +24,7 @@
 #include "wave/inc/reciprocalwaveop.hpp"
 #include "wave/inc/regloadwaveop.hpp"
 #include "wave/inc/regstorewaveop.hpp"
+#include "wave/inc/regshufflewaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/clipbyvaluewaveop.hpp"
 #include "wave/inc/tensortensorwaveop.hpp"
@@ -87,6 +88,8 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 waveOp = m_Load->loadRegLoad(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::RegStoreWaveOp::gTypeStrStatic()) {
                 waveOp = m_Load->loadRegStore(serWaveOp);
+            } else if (serWaveOp.m_WaveOpType == wave::RegShuffleWaveOp::gTypeStrStatic()) {
+                waveOp = m_Load->loadRegShuffle(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::MatMulWaveOp::gTypeStrStatic()) {
                 waveOp = m_Load->loadMatMul(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::ActivationWaveOp::gTypeStrStatic()) {
@@ -309,6 +312,27 @@ Network::Load::loadRegStore(const serialize::SerWaveOp& serWaveOp)
 
     auto waveOp = new wave::RegStoreWaveOp(regstoreParams, prevWaveOps);
     Assert(waveOp->gName() == regstoreParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
+    return waveOp;
+#undef PARAMS
+}
+
+wave::RegShuffleWaveOp*
+Network::Load::loadRegShuffle(const serialize::SerWaveOp& serWaveOp)
+{
+#undef PARAMS
+#define PARAMS regshuffleParams
+    std::vector<wave::WaveOp*> prevWaveOps;
+    wave::RegShuffleWaveOp::Params regshuffleParams;
+    fillWaveOpParams(serWaveOp, prevWaveOps, PARAMS);
+
+
+    KCC_UNSERIALIZE(StartReg);
+    for (kcc_uint32 i = 0; i < serWaveOp.m_InSel.size(); ++i) {
+        PARAMS.m_InSel[i] = serWaveOp.m_InSel[i];
+    }
+
+    auto waveOp = new wave::RegShuffleWaveOp(regshuffleParams, prevWaveOps);
+    Assert(waveOp->gName() == regshuffleParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
     return waveOp;
 #undef PARAMS
 }

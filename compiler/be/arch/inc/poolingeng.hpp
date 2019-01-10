@@ -19,6 +19,9 @@ public:
         return m_Width;
     }
 
+    static kcc_int32 gNumChannels();
+
+
 private:
     const kcc_int32 m_Width;
 };

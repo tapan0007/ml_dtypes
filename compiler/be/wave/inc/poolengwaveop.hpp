@@ -49,12 +49,6 @@ public:
     EngineId gEngineId() const override {
         return EngineId::Pooling;
     }
-    kcc_int32 gReadEventLead() const override {
-        return gNumPartitions();
-    }
-    kcc_int32 gWriteEventLead() const override {
-        return gNumPartitions();
-    }
 
 protected:
     bool verify() const;

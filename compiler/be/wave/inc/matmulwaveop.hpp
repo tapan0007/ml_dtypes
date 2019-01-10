@@ -137,12 +137,6 @@ public:
     kcc_int32 gNumRowPartitions () const {
         return m_NumRowPartitions;
     }
-    kcc_int32 gReadEventLead() const override {
-        return gNumRowPartitions();
-    }
-    kcc_int32 gWriteEventLead() const override {
-        return gNumColumnPartitions();
-    }
 
     const DataType& gInDtype () const {
         return m_InDtype;

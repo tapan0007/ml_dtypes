@@ -23,6 +23,7 @@ public:
     wave::ReciprocalWaveOp* loadReciprocal(const serialize::SerWaveOp& serWaveOp);
     wave::RegLoadWaveOp* loadRegLoad(const serialize::SerWaveOp& serWaveOp);
     wave::RegStoreWaveOp* loadRegStore(const serialize::SerWaveOp& serWaveOp);
+    wave::RegShuffleWaveOp* loadRegShuffle(const serialize::SerWaveOp& serWaveOp);
     wave::MatMulWaveOp* loadMatMul(const serialize::SerWaveOp& serWaveOp);
     wave::ActivationWaveOp* loadActivation(const serialize::SerWaveOp& serWaveOp);
     wave::ClipByValueWaveOp* loadClipByValue(const serialize::SerWaveOp& serWaveOp);

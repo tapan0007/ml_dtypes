@@ -101,6 +101,7 @@ enum class WaveOpType {
     Reciprocal,
     RegLoad,
     RegStore,
+    RegShuffle,
     MatMul,
     Activation,
     TensorTensor,
@@ -110,6 +111,9 @@ enum class WaveOpType {
     ScaleAdd,
     ClipByValue,
     TpbCopy,
+
+    // Must be last
+    Count
 };
 
 #undef CONST

@@ -101,12 +101,6 @@ public:
         return m_Offset;
     }
 
-    kcc_int32 gReadEventLead() const override {
-        return 0;
-    }
-    kcc_int32 gWriteEventLead() const override {
-        return 0;
-    }
 
 private:
     const DataType&             m_InDtype;

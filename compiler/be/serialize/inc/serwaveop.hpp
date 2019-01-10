@@ -207,6 +207,10 @@ constexpr static const char* ImmPtr0              = "imm_ptr0";
 constexpr static const char* ImmPtr1              = "imm_ptr1";
 constexpr static const char* IsDynamicWeights     = "is_dynamic_weights";
 
+constexpr static const char* InSel                = "in_sel";
+constexpr static const char* StartReg             = "start_reg";
+
+
 constexpr static const char* PairLoadWaveOp    = "pair_load";
 constexpr static const char* PrevCopyWaveOp    = "prev_copy";
 constexpr static const char* PairCopyWaveOp    = "pair_copy";
@@ -267,6 +271,7 @@ private:
     void loadReciprocal(cereal::JSONInputArchive& archive);
     void loadRegLoad(cereal::JSONInputArchive& archive);
     void loadRegStore(cereal::JSONInputArchive& archive);
+    void loadRegShuffle(cereal::JSONInputArchive& archive);
     void loadMatMul(cereal::JSONInputArchive& archive);
     void loadActivation(cereal::JSONInputArchive& archive);
 
@@ -288,6 +293,7 @@ private:
     void saveTpbCopy(cereal::JSONOutputArchive& archive) const;
     void saveReciprocal(cereal::JSONOutputArchive& archive) const;
     void saveRegLoad(cereal::JSONOutputArchive& archive) const;
+    void saveRegShuffle(cereal::JSONOutputArchive& archive) const;
     void saveRegStore(cereal::JSONOutputArchive& archive) const;
     void saveMatMul(cereal::JSONOutputArchive& archive) const;
     void saveActivation(cereal::JSONOutputArchive& archive) const;
@@ -316,6 +322,7 @@ private:
     bool verifyReciprocal() const;
     bool verifyRegLoad() const;
     bool verifyRegStore() const;
+    bool verifyRegShuffle() const;
     bool verifyActivation() const;
     bool verifyResAdd() const;
     bool verifyScaleAdd() const;
@@ -333,6 +340,8 @@ public:
     std::string                 m_LayerName         = "";
     std::vector<std::string>    m_PreviousWaveOps;
     std::vector<Sync>           m_PreviousSyncs;
+    kcc_int32                   m_StartReg          = -1;
+    std::vector<kcc_int32>      m_InSel;
 
     std::string                 m_Engine;
 
@@ -381,10 +390,10 @@ public:
     // waveop name
     // waveop type
     kcc_int64                   m_WeightsSbAddress      = -2;
-    bool                        m_IsDynamicWeights     = false;
+    bool                        m_IsDynamicWeights      = false;
 
     // Pool
-    kcc_int64                   m_DstSbAddress      = -1;
+    kcc_int64                   m_DstSbAddress          = -1;
     bool                        m_DstStartAtMidPart = false;
     kcc_int32                   m_DstXNum           = -1;
     kcc_int32                   m_DstXStep          = -1;
@@ -569,7 +578,6 @@ private:
         SemSync   m_SemSync;
     };
 }; // SerWaveOp::Sync
-
 
 
 //===================================================

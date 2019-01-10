@@ -71,12 +71,6 @@ public:
 
     const std::string& gLayerName() const override;
 
-    kcc_int32 gReadEventLead() const override {
-        return 0;
-    }
-    kcc_int32 gWriteEventLead() const override {
-        return 0;
-    }
 
     NopType gNopType() const {
         return m_NopType;

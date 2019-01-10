@@ -97,6 +97,9 @@ public:
     virtual bool qRegStoreWaveOp() const {
         return false;
     }
+    virtual bool qRegShuffleWaveOp() const {
+        return false;
+    }
     virtual bool qScaleAddWaveOp() const {
         return false;
     }
@@ -136,10 +139,6 @@ public:
 
     virtual WaveOpType gType() const = 0;
 
-    // The number of clock cycles between event-set-on-read / event-set-on-write
-    // and the final write by the waveop
-    virtual kcc_int32 gReadEventLead() const = 0;
-    virtual kcc_int32 gWriteEventLead() const = 0;
 
     //----------------------------------------------------------------
     const std::string& gName() const {

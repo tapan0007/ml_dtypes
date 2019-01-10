@@ -29,6 +29,7 @@
 #include "wave/inc/reciprocalwaveop.hpp"
 #include "wave/inc/regloadwaveop.hpp"
 #include "wave/inc/regstorewaveop.hpp"
+#include "wave/inc/regshufflewaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/clipbyvaluewaveop.hpp"
 #include "wave/inc/tensortensorwaveop.hpp"
@@ -120,6 +121,10 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         }
         if (const auto regstoreWaveOp = dynamic_cast<wave::RegStoreWaveOp*>(waveOp)) {
             m_Save->saveRegStore(regstoreWaveOp, serWaveOp);
+            continue;
+        }
+        if (const auto regshuffleWaveOp = dynamic_cast<wave::RegShuffleWaveOp*>(waveOp)) {
+            m_Save->saveRegShuffle(regshuffleWaveOp, serWaveOp);
             continue;
         }
         if (const auto activationWaveOp = dynamic_cast<const wave::ActivationWaveOp*>(waveOp)) {
@@ -281,6 +286,23 @@ Network::Save::saveRegStore(const wave::RegStoreWaveOp* regstoreWaveOp,
     Assert(! WAVE_OP->qDstIsPsum(), "RegStore must store in SBUF");
     saveDstSbuf(WAVE_OP, serWaveOp, Dims::XYZ);
 
+#undef WAVE_OP
+}
+
+
+void
+Network::Save::saveRegShuffle(const wave::RegShuffleWaveOp* regshuffleWaveOp,
+                    serialize::SerWaveOp& serWaveOp) const
+{
+#undef WAVE_OP
+#define WAVE_OP regshuffleWaveOp
+    serWaveOp.m_WaveOpType = wave::RegShuffleWaveOp::gTypeStrStatic();
+
+    KCC_SERIALIZE(StartReg);
+    std::array<kcc_int32, wave::RegShuffleWaveOp::MaxNumRegs> inSel;
+    for (kcc_uint32 i = 0; i < inSel.size(); ++i) {
+        inSel[i] = WAVE_OP->gInSel(i);
+    }
 #undef WAVE_OP
 }
 

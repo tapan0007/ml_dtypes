@@ -46,7 +46,7 @@ EventChannel::clear()
 }
 
 
-bool qEventSetModeValid(kcc_int32 mode)
+bool qEventWaitModeValid(kcc_int32 mode)
 {
     switch (mode) {
     case TONGA_ISA_TPB_MODE_WAIT_NONE:
@@ -58,10 +58,10 @@ bool qEventSetModeValid(kcc_int32 mode)
     }
 }
 
-bool qEventWaitModeValid(kcc_int32 mode)
+bool qEventSetModeValid(kcc_int32 mode)
 {
     switch (mode) {
-    case TONGA_ISA_TPB_MODE_WAIT_NONE:
+    case TONGA_ISA_TPB_MODE_SET_NONE:
     case TONGA_ISA_TPB_MODE_SET_ON_DONE_RD_SRC:
     case TONGA_ISA_TPB_MODE_SET_ON_DONE_WR_DST:
     case TONGA_ISA_TPB_MODE_SET_ON_INST_DONE:

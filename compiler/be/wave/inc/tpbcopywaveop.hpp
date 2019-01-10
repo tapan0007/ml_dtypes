@@ -54,12 +54,6 @@ public:
 
     kcc_int64 gLoadDataSizeInBytes () const;
 
-    kcc_int32 gReadEventLead() const override {
-        return 0;
-    }
-    kcc_int32 gWriteEventLead() const override {
-        return 0;
-    }
 
     const SbAtomLoadWaveOp* gPairLoadWaveOp() const {
         return m_PairLoadWaveOp;

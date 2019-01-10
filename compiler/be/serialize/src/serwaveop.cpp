@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "wave/inc/waveconsts.hpp"
+#include "wave/inc/regshufflewaveop.hpp"
 #include "serialize/inc/serwaveop.hpp"
 
 
@@ -380,6 +381,21 @@ SerWaveOp::verifyRegStore() const
 
     if (m_DstSbAddress < 0) {
         RETURN_ASSERT(false);
+    }
+
+    return true;
+}
+
+bool
+SerWaveOp::verifyRegShuffle() const
+{
+    if (m_StartReg < 0 || m_StartReg >= wave::RegShuffleWaveOp::MaxNumRegs) {
+        RETURN_ASSERT(false);
+    }
+    for (auto k : m_InSel) {
+        if (k < 0 || k >= wave::RegShuffleWaveOp::MaxNumRegs) {
+            RETURN_ASSERT(false);
+        }
     }
 
     return true;
@@ -1141,6 +1157,8 @@ SerWaveOp::verify() const
         return verifyRegLoad();
     } else if (m_WaveOpType == wave::WaveOpTypeStr::RegStore) {
         return verifyRegStore();
+    } else if (m_WaveOpType == wave::WaveOpTypeStr::RegShuffle) {
+        return verifyRegShuffle();
     } else if (m_WaveOpType == wave::WaveOpTypeStr::Activation) {
         return verifyActivation();
     } else if (m_WaveOpType == wave::WaveOpTypeStr::ClipByValue) {

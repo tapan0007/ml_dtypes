@@ -58,12 +58,6 @@ public:
         return m_FinalLayerOfmap;
     }
 
-    kcc_int32 gReadEventLead() const override {
-        return 0;
-    }
-    kcc_int32 gWriteEventLead() const override {
-        return 0;
-    }
 
 private:
     bool            m_FinalLayerOfmap   = false;

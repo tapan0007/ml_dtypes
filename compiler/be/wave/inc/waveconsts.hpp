@@ -15,6 +15,7 @@ constexpr const char* const Pool          = "Pool";
 constexpr const char* const Reciprocal    = "Reciprocal";
 constexpr const char* const RegLoad       = "RegLoad";
 constexpr const char* const RegStore      = "RegStore";
+constexpr const char* const RegShuffle      = "RegShuffle";
 constexpr const char* const Activation    = "Activation";
 
 constexpr const char* const ResAdd        = "ResAdd";
