@@ -113,6 +113,10 @@ testConfigMap = {
   "7-rn50_single_sg_nosm_fp32" : [
       "trivnet_opt_inf", "resnet50_keras/resnet50_fp32_keras_opt.pb--input_1--fc1000/BiasAdd--float32--1,224,224,3",
       "resnet50", kccOpts + ' --jf_data_layout native', rtOpts % 'trivnet_input_1:0.npy' ],
+  # Full resnet50 without FC, softmax
+  "7-rn50_single_sg_nofc_fp16" : [
+      "trivnet_opt_inf", "resnet50_keras/resnet50_fp16_keras_opt2.pb--input_1--avg_pool/AvgPool--float16--1,224,224,3",
+      "resnet50", kccOpts + ' --jf_data_layout native', rtOpts % 'trivnet_input_1:0.npy' ],
 
   # Resnet50 prefixes
   "6-rn50_single_sg_to_act10_fp16" : [
