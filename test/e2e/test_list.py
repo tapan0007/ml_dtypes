@@ -1192,6 +1192,7 @@ testConfigMap = {
     "--use_wc_2d_format --use_hwc_3d_format "
     "--executors wave 0 host 1 --images linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 linspace:0-0.1 "
     "{} --wavegraph_checks structure data-race --be_options sync-with-semaphores".format(MEv2("generic-noverify-qemu")),
+    " --diff_options '--tolerance 2.0 1e-5' "
     "--check_against_ref all_available "
     "--input_files input:0=trivnet_input:0.npy "
                   "input_bias_br_0:0=trivnet_input_bias_br_0:0.npy "
