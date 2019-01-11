@@ -16,6 +16,7 @@ kPath = os.environ.get('KAENA_PATH')
 if kPath is None:
   kPath =''
 sys.path.insert(0, kPath + "/compiler")
+aws_tonga_src_path = os.environ.get('AWS_TONGA_SRC')
 
 sys.path.insert(0, "/usr/lib/python3.6/site-packages/")
 import numpy as np
@@ -499,6 +500,7 @@ class NnExec:
     return 0
 
 ret = 0
+test_dir = os.getcwd()
 os.chdir(working_dir)
 nnExec = NnExec(nnGraphFile)
 ret = nnExec.run()
@@ -507,6 +509,33 @@ if ret != 0:
 if (ret == 0) and (args.check_against_ref != "none"):
   ret = nnExec.check(args.check_against_ref, args.diff_options,
                      args.cached_goldens, args.diff_options_cached)
+  if ret != 0:
+    # Run the script to compare simout and HH golden files for Sealife.
+    # Sealife has wavegraph.json in the test directory root.
+    if os.path.exists(os.path.join(working_dir, '..', 'wavegraph.json')):
+      os.chdir(test_dir)
+
+      print('\nINFO: Comparing simout and HH golden numpy files to find the first failing tensor')
+
+      # Generate golden numpy files
+      cmd = os.path.join(aws_tonga_src_path, 'starfish', 'bin', 'hhsim') + ' --debug 1 --hh_json hh-layout_transform_pool-elim_strided_load.json --tensormap tensor_map.json --writeall > log-hh-sim-golden.txt'
+      print('Executing ' + cmd, flush=True)
+      ret = os.system(cmd)
+      if ret != 0:
+        print('ERROR: cannot generate HH golden numpy files')
+
+      # Run the followings too when --verbose=2 can generate subtensors with distinct ref_file names.
+      # $AWS_TONGA_SRC/starfish/bin/starfish --verbose 2 --hh_json hh-layout_transform_pool-elim_strided_load.json
+      # $AWS_TONGA_SRC/kcc/compiler/be/compiler/compiler.exe --wavegraph wavegraph.json
+      # $AWS_TONGA_SRC/kcc/runtime/util/nn_executor --kelf_dir . --tfpb trivnet_freeze.pb --check_against_ref all --input_files trivnet_input_1:0.npy --check_against_ref all_available --inkling_debugflags
+
+      if ret == 0:
+        cmd = 'python3 ' + os.path.join(aws_tonga_src_path, 'starfish', 'util', 'find_simout_mismatch.py')
+        cmd += ' --wavegraph wavegraph.json'
+        print('Executing ' + cmd, flush=True)
+        os.system(cmd)
+      
+      print('See log-diff-layers.txt for details\n')
 
 print(getInfoDateStr(), "Kaena RT status %s" % ("PASS" if ret == 0 else "FAIL"))
 sys.exit(0 if ret == 0 else 1)
