@@ -270,7 +270,7 @@ class TPBSched:
                         i.populate_common_params(False)
                         first_op.populate_ofmaps_file_params()
                         first_op.ofmaps_file_params.input_layer_ifmap = True
-                        first_op.ofmaps_file_params.compute_params(i.stride, args, repl_multiple_of_C = 1)
+                        first_op.ofmaps_file_params.compute_params(i.stride, args, repl_multiple_of_C = 1, no_gap=True)
             elif first_op.data['layer_type'] == 'ConstLoad': 
                 first_op.result_avail = True
                 # Populate OFMAP params                        

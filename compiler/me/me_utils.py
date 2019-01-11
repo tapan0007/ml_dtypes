@@ -767,7 +767,7 @@ class FileParams():
         coord[self.file_dims.W_axis] = W
         return self.dram_data[tuple(coord)]
 
-    def compute_params(self, stride, args, repl_multiple_of_C = 1):
+    def compute_params(self, stride, args, repl_multiple_of_C = 1, no_gap=False):
         # Single FMAP elem count (unified formula for weights and FMAP)
         fmap_elem_count = self.file_dims.R * self.file_dims.S * self.file_dims.M * self.file_dims.H * self.file_dims.W
         self.fmap_data_len = fmap_elem_count * self.item_sz
@@ -818,8 +818,12 @@ class FileParams():
                         multiple = (multiple//input_fmap_full_tiley_sz) * input_fmap_full_tiley_sz
                     elif (self.fmap_full_tiley_sz < multiple):
                         multiple = (multiple//self.fmap_full_tiley_sz) * self.fmap_full_tiley_sz
+                    # if there's requirement for no-gaps between HW chunks, make chunk size multiple of alignment
+                    if no_gap:
+                        alignment = self.get_alignment_requirement()
+                        multiple = (multiple // alignment) * alignment
+                    assert(multiple != 0)
                     self.chunk_sz = ifmap_width_data_len * min(self.file_dims.H, multiple)
-                    print(multiple, ifmap_width_data_len, self.chunk_sz)
             if repl_multiple_of_C > 1:
                 # BE performs the DMAs necessary for replication, so need to compress when translating from chunk size to atom size
                 self.repl_chunk2atom_compress_ratio = self.stride.x * self.stride.x
@@ -863,18 +867,23 @@ class FileParams():
         self.fmap_data_len_padded           = self.fmap_data_len
         self.compute_padded_sizes()
 
-    def compute_padded_sizes(self):
+    def get_alignment_requirement(self):
         # kaena-643: pad sizes to 8B to satisfy HW 8B alignment requirement             
         # Only for weights/bias, input IFMAP and final OFMAP.
         # Internal layers will gang-up pairs of chunks (FP16) to satisfy 4B alignment requirement.
+        alignment = 1
         if self.contain_weights or self.final_layer_ofmap or self.share_w_final_layer_ofmap or self.input_layer_ifmap:
             # weights and replicated IFMAP requires 8B alignment
             alignment = 8
             # For non-replicated inputs, ok with 4B alignment (relax for pooling cases)
             if self.final_layer_ofmap or self.share_w_final_layer_ofmap or (self.input_layer_ifmap and self.repl_chunk2atom_compress_ratio == 1):
                 alignment = 4
-            self.chunk_sz_padded                      = align_addr_NB(self.chunk_sz, alignment * self.repl_chunk2atom_compress_ratio)                
-            self.fmap_data_len_padded                 = align_addr_NB(self.fmap_data_len, alignment * self.repl_chunk2atom_compress_ratio)
+        return alignment
+
+    def compute_padded_sizes(self):
+        alignment = self.get_alignment_requirement()
+        self.chunk_sz_padded                          = align_addr_NB(self.chunk_sz, alignment * self.repl_chunk2atom_compress_ratio)                
+        self.fmap_data_len_padded                     = align_addr_NB(self.fmap_data_len, alignment * self.repl_chunk2atom_compress_ratio)
         self.batch_item_partition_usage_sz_padded     = self.fmap_data_len_padded * self.fmap_channels_folds
         self.batch_item_partition_usage_elems_padded  = self.fmap_data_len_padded * self.fmap_channels_folds // self.item_sz
         self.tot_partition_usage_sz_padded            = self.batch_item_partition_usage_sz_padded * self.file_dims.N
@@ -1072,9 +1081,9 @@ class FileMapper():
                 largest_seg = i
                 break
         if allow_wrap and len(list_of_seg) > 0:
-            if (st < 0) or (region_sz > self.sb_partition_sz // 6):
+            if (st < 0) or (region_sz > self.sb_partition_sz // 4):
                 # if region_sz too large, and wrap-around is allowed, compute the wrap-around region size
-                max_region_sz = min(largest_seg[1], self.sb_partition_sz // 6)
+                max_region_sz = min(largest_seg[1], self.sb_partition_sz // 4)
                 if region_sz > max_region_sz:
                     multiplier = max_region_sz // chunk_sz
                     if multiplier > 0:

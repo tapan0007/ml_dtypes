@@ -1442,8 +1442,8 @@ class KGraph:
         bias_file_params.compute_params(Dim2D(1,1), self.args)
         bias_file_params.load_file()
         bias_file_sz = bias_file_params.tot_partition_usage_sz_padded
-        file_mapper.map_file(bias_file_params, 0, wrap_around=True, region_sz=min(region_sz, bias_file_sz))
-
+        region_sz = min(max(bias_file_params.chunk_sz_padded, region_sz), bias_file_sz)
+        file_mapper.map_file(bias_file_params, 0, wrap_around=True, region_sz=region_sz)
 
 # Transform
 class PrepareKGraph:

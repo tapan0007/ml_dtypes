@@ -601,7 +601,7 @@ testConfigMap = {
   "0-4conv_relu_nne" : [ "trivnet_lin",    "tfloat16-l3-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.4-imin-1-imax2", "4conv_nne", "--partition conv --executors wave 1 3 host 0 2 4 --debug 1 " + MEv2("Generic")],
 
   # Resnet
-  "8-rn50_nne_auto"             : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition auto --executors wave all host 37 38 --scheduler wave2 --schedule_options ' --nname=generic' --images %s --wavegraph_checks structure data-race" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
+  "8-rn50_nne_auto"             : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition auto --executors wave all host 37 38 --scheduler wave2 --schedule_options ' --nname=generic' --images %s --wavegraph_checks structure data-race" %(rnPreFp16, rnDogJpg), "--diff_options '--tolerance 1.4 1e-5' --input_files %s" % rnDogJpg ],
   #"8-rn50_nne_fp32_meauto"      : [ "tf_pb", "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition meauto --executors wave all host 17  --scheduler wave2 --images %s" %(rnPreFp32, rnDogJpg), "--input_files %s" % rnDogJpg ],
   "8-rn50_nne_fp16_meauto"      : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition meauto --executors wave all host 17  --scheduler wave2 --schedule_options ' --nname=generic' --images %s --waive_wavegraph_checks" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
   #"8-rn50_nne_conv"            : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition conv --executors tcc 2 6 8 13 15 20 22 host 0 --images %s" %(rnPreFp16, rnDogJpg), "linspace1"],
@@ -976,7 +976,7 @@ testConfigMap = {
   "0-1conv1maxpool_wave_k3d1"  : [ "trivnet_conv_pool", "tfloat16-b1-h4-r1-s1-c1-m1-VALID-MaxPool-k3-d1-wmin2-wmax2.2-imin1-imax16", "1conv1pool", MEv2("Generic")],
   "0-1conv1maxpool_wave_h17k3d1"  : [ "trivnet_conv_pool", "tfloat16-b1-h17-r1-s1-c1-m1-VALID-MaxPool-k3-d1-wmin2-wmax2.2-imin1-imax16", "1conv1pool", MEv2("Generic")],
   "0-1conv1maxpool_wave_h17c128k3d1"  : [ "trivnet_conv_pool", "tfloat16-b1-h17-r1-s1-c128-m1-VALID-MaxPool-k3-d1-wmin2-wmax2.2-imin1-imax16", "1conv1pool", MEv2("Generic")],
-  "0-1conv1maxpool_wave_h17c196k3d1"  : [ "trivnet_conv_pool", "tfloat16-b1-h17-r1-s1-c196-m1-VALID-MaxPool-k3-d1-wmin2-wmax2.2-imin1-imax16", "1conv1pool", MEv2("Generic")],
+  "0-1conv1maxpool_wave_h17c196k3d1"  : [ "trivnet_conv_pool", "tfloat16-b1-h17-r1-s1-c196-m1-VALID-MaxPool-k3-d1-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1conv1pool", MEv2("Generic")],
   "0-1conv1maxpool_wave_h71k3d1"  : [ "trivnet_conv_pool", "tfloat16-b1-h71-r1-s1-c1-m1-VALID-MaxPool-k3-d1-wmin2-wmax2.2-imin1-imax16", "1conv1pool", MEv2("Generic")],
   #"0-1conv1maxpool_wave_h71c192k3d1"  : [ "trivnet_conv_pool", "tfloat16-b1-h71-r1-s1-c192-m1-VALID-MaxPool-k3-d1-wmin2-wmax2.2-imin1-imax16", "1conv1pool", MEv2("Generic")],
   "0-1maxpool_wave_h71c192m192k3d1_valid"  : [ "trivnet_pool", "tfloat16-b1-h71-r1-s1-c192-m192-VALID-MaxPool-k3-d1-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1pool", MEv2("Generic")],
@@ -1045,8 +1045,9 @@ testConfigMap = {
   "0-1avgpool_wave_h65c1m1k1d2_valid"  : [ "trivnet_pool", "tfloat16-b1-h65-r1-s1-c1-m1-VALID-AvgPool-k1-d2-wmin-0.1-wmax0.2-imin1-imax1", "1pool", MEv2("Generic")],
   "0-1avgpool_wave_h149c1m1k1d2_valid"  : [ "trivnet_pool", "tfloat16-b1-h149-r1-s1-c1-m1-VALID-AvgPool-k1-d2-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1pool", MEv2("Generic")],
   "7-amoebanet_fp16_host" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --partition from predictions --executors host all --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
-  "7-amoebanet_fp16_pool" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_stem_1/AvgPool_1 --partition from cell_stem_1/Relu %s --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp32 --size 299' --images %s" % (MEv2("Generic"), rnDogJpg), "--input_files %s" % (rnDogJpg)],
-  "7-amoebanet_fp16_evict" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --partition from_multi cell_stem_1/Relu,cell_stem_1/Relu_1,cell_0/Relu --executors wave 0 host 1 %s --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp32 --size 299' --images %s" % (MEv2("Generic"), rnDogJpg), "--input_files %s" % (rnDogJpg)],
+  # Only a portion of input tensor is used, so wave-checker flags unconnected output as error (see similar issue kaena-943); waive wavechecker for now
+  "7-amoebanet_fp16_pool" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_stem_1/AvgPool_1 --partition from cell_stem_1/Relu %s --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (MEv2("Generic-WaiveWC"), fp16AccJpg), "--input_files %s" % (fp16AccJpg)],
+  "7-amoebanet_fp16_evict" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --partition from_multi cell_stem_1/Relu,cell_stem_1/Relu_1,cell_0/Relu --executors wave 0 host 1 %s --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (MEv2("Generic"), rnDogJpg), "--input_files %s" % (rnDogJpg)],
   "7-amoebanet_fp16_cell0" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_0/cell_output/concat --partition from_multi cell_0/Relu,cell_0/Relu_1 --executors host all wave 1 %s --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (MEv2("Generic"), rnDogJpg), "--input_files %s" % (rnDogJpg)],
   "7-amoebanet_fp16_cell1" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_1/cell_output/concat --partition from_multi cell_1/Relu,cell_1/Relu_1 --executors host all wave 1 %s --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (MEv2("Generic"), rnDogJpg), "--input_files %s" % (rnDogJpg)],
   "7-amoebanet_fp16_cell2" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_2/cell_output/concat --partition from_multi cell_2/Relu,cell_2/Relu_1 --executors host all wave 1 %s --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (MEv2("Generic"), rnDogJpg), "--input_files %s" % (rnDogJpg)],
@@ -1343,34 +1344,26 @@ def gen_7_rn50_nne_fp16_wave_no_repl_save(layer_name):
 # If the testname matches the regexp then the FAIL status is replaced with
 # with the string
 testWaiver = [
-    ['0-1conv1maxpool_k3d2_wave',   'WAIVE_WAVESC'],
-    ['0-1conv1pool_b5_wave',        'WAIVE_WAVESC'],
-    ['0-1conv1pool_b5m3_wave',      'WAIVE_WAVESC'],
-    ['0-1conv1maxpool_wave_h17c196k3d1', 'WAIVE_INCEPTIONV3'],
-    ['0-1maxpool_wave_h65c1m1k3d1_valid', 'WAIVE_INCEPTIONV3'],
-    ['0-1maxpool_wave_h71c1m1k3d2_same', 'WAIVE_INCEPTIONV3'],
+    ['0-1conv1pool_b5_wave',        'WAIVE_GENERIC_BATCH'],
+    ['0-1conv1pool_b5m3_wave',      'WAIVE_GENERIC_BATCH'],
+    ['0-1conv1maxpool_k3d2_wave',   'WAIVE_POOL'],
+    ['0-1maxpool_wave_h71c1m1k3d2_same', 'WAIVE_POOL'],
 
     # AmoebaNet currently produces all NaN outputs when run on CPU
     ['7-amoebanet_fp16_host', 'WAIVE_AMOEBA_NAN'],
-    ['7-amoebanet_fp16_pool', 'WAIVE_AMOEBA_POOL'],
-    ['7-amoebanet_fp16_evict', 'WAIVE_AMOEBA_SBEVICT'],
-    ['0-1conv_evict_wave', 'WAIVE_AMOEBA_SBEVICT'], # added by taemin
+    ['7-amoebanet_fp16_evict', 'WAIVE_AMOEBA_SBEVICT_KAENA849'],
+    ['0-1conv_evict_wave', 'WAIVE_AMOEBA_SBEVICT_KAENA849'], # added by taemin
 
     # Parallel wavenet
     ['0-1stridedslice_tanh_sigmoid_wave', 'WAIVE_KAENA711'],
     ['0-1stridedslice_wave', 'WAIVE_KAENA711'],
 
-    #['^0-act_wave$',   'WAIVE-KAENA452'],
-
-    ['4-rn50_matmul_plus_softmax_fp32_wave$',      'WAIVE-S10_BE_SOFTMAX'],
-    ['4-rn50_matmul_plus_softmax_fp16_wave$',      'WAIVE-S10_BE_SOFTMAX'],
+    ['4-rn50_matmul_plus_softmax_fp32_wave$',      'WAIVE_SOFTMAX_DLC156'],
+    ['4-rn50_matmul_plus_softmax_fp16_wave$',      'WAIVE_SOFTMAX_DLC156'],
 
     ['^[6]-alexnet',  'WAIVE-BENCH'],
-    #['7-rn50_nne_fc_wave$', 'WAIVE-WAVESC'],
-
     ['^[8]-resnet152',  'WAIVE-BENCH'],
     ['^[8]-resnet50',  'WAIVE-BENCH'],
-    ['8-rn50_nne_auto', 'WAIVE-NNE'],
 
     # LSMT
     ['4-ptb_word_lm1_host$', 'WAIVE-LSTM_HOST'],
@@ -1379,9 +1372,6 @@ testWaiver = [
     ['2-ptb_word_unstack_.*',             'WAIVE-LSTM'],
     ['4-ptb_word_small_sigmoid_2l_auto_waveopt',   'WAIVE-L_PART'],
     ['4-ptb_word_small_sigmoid_2l_b64_wave',   'WAIVE-LSTM_ME'],
-
-    # bugs
-    ['7-rn50_nne_fp16_wave-no_repl-all-layers$', 'WAIVE_KAENA734'],
 
     # Resnet 152
     ['^9-resnet152', 'WAIVE_RN152'],
@@ -1392,6 +1382,5 @@ noGpuTestWaiver = [
 ]
 
 qemuTestWaiver = [
-    ['7-rn50_nne_fp16_wave-no_repl-all-layers', 'WAIVE-ManyDescr-SIM742'],
     ['0-300conv_tanh_wave-all-layers', 'WAIVE-TooManyOfmaps-SIM746'],
 ]

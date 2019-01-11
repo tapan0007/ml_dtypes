@@ -250,7 +250,7 @@ class Pool:
         for j in range(Tn):
             for i in range(num_cols):
                 tile_array = in_array[j, i]
-                window_shape = (pool_window.y, pool_window.x)
+                window_shape = min((pool_window.y, pool_window.x), tile_array.shape)
                 stride_shape = (stride.y, stride.x)
                 pool_result_temp = view_as_windows(tile_array, window_shape, stride_shape)
                 if (type == "MaxPool"):

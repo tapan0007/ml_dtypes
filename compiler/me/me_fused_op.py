@@ -734,7 +734,7 @@ class FusedOp(list):
                                         , region_sz               = ifmaps_region_sz
                                         , min_region_start        = bias_region_sz
                                         , live_mapped_file_params = live_mapped_file_params
-                                        , allow_wrap              = not (is_pool_type and self.first_op.pool_window.x > 1)
+                                        , allow_wrap              = not is_pool_type
                                         , max_num_chunks          = 4
                                         , chunk_sz                = ifp.chunk_sz_padded)
                     map_file(ifp, ifmaps_region_start_addr, wrap_around=wrap_around, region_sz=ifmaps_region_sz)
@@ -2648,9 +2648,11 @@ class FusedOp(list):
                     main_sb_addr = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(ifmap_tile.file_params, batch_item, ifmap_tile.lower_addr[0])
                     psum_bank_src = psum_bank_id 
                     # If doing tensor-tensor op without PSUM, but distance between tensors is too far, or operation is non-commutativ, then move tile to PSUM
-                    if abs(residue_sb_addr - main_sb_addr) > (2**15 - 1) \
-                            and psum_bank_src < 0:
-                        psum_bank_residue = tpb.pearray.use_psum_bank_and_adv_ptr(True)
+                    if abs(residue_sb_addr - main_sb_addr) > (2**15 - 1):
+                        if psum_bank_src < 0:
+                            psum_bank_residue = tpb.pearray.use_psum_bank_and_adv_ptr(True)
+                        else:
+                            psum_bank_residue = psum_bank_src
                         residue_tile.lower_addr[0] = residue_file_addr
                         # grab dependencies for zeros
                         (writers, readers, dram_bias_waveops, zeros_reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
@@ -2695,8 +2697,8 @@ class FusedOp(list):
                             op                  = first_op, 
                             ifmap_tile          = ifmap_tile,
                             ofmap_tile          = ofmap_tile,
-                            src_is_psum         = psum_bank_src >= 0, 
-                            psum_bank_src       = psum_bank_src, 
+                            src_is_psum         = first_op.src_is_psum, 
+                            psum_bank_src       = psum_bank_src if first_op.src_is_psum else -1, 
                             dst_is_psum         = first_op.dst_is_psum, 
                             psum_bank_dst       = psum_bank_src if first_op.dst_is_psum else -1, 
                             dram_resadd_waveops = dram_ifmaps_waveops,
