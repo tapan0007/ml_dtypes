@@ -1,5 +1,7 @@
 #include <string>
 #include <vector>
+#include <set>
+#include <map>
 #include <limits>
 
 
@@ -17,8 +19,11 @@
 #include "nets/inc/network.hpp"
 
 namespace kcc {
-
 namespace nets {
+
+enum {
+    MM_REWIRE_DEBUG = 0
+};
 
 /****************************************************************
  *                                                              *
@@ -56,9 +61,26 @@ Network::RewireMultiOutEdgesOfMatMults()
     std::vector<wave::WaveOp*> newWaveops;
     levelizeByLongestPath();
     const kcc_int32 numWaveops = m_WaveOps.size();
+    size_t numNops = 0;
+
+    std::map<wave::WaveOp*, wave::NopWaveOp*> waveop2nop;
+    std::set<wave::NopWaveOp*> processedNops;
 
     for (kcc_int32 waveopIdx = 0; waveopIdx < numWaveops; ++waveopIdx) {
         const auto waveop = m_WaveOps[waveopIdx];
+
+        const auto mapIt = waveop2nop.find(waveop);
+        if (mapIt != waveop2nop.end()) {
+            // This is a succ of a Nop, add Nop first if not added already
+            auto nop = (*mapIt).second;
+            const auto foundIt = processedNops.find(nop);
+            if (foundIt == processedNops.end() ) {
+                processedNops.insert(nop);
+                newWaveops.push_back(nop);
+            }
+        }
+
+        //==========
         const auto matmulWaveop = dynamic_cast<wave::MatMulWaveOp*>(waveop);
         if (! matmulWaveop) {
             newWaveops.push_back(waveop);
@@ -74,12 +96,20 @@ Network::RewireMultiOutEdgesOfMatMults()
             newWaveops.push_back(waveop);
             continue;
         }
-
+        //----------
         auto nopWaveop = rewireMultiOutEdgesOfOneMatMul(matmulWaveop);
+        ++numNops;
         newWaveops.push_back(matmulWaveop);
-        newWaveops.push_back(nopWaveop);
+        //==========
+
+        // Remember Nop to add just before its earliest successor (ALAP)
+        for (auto succ : nopWaveop->gSuccWaveops()) {
+            waveop2nop[succ] = nopWaveop;
+        }
     }
 
+    Assert(numNops == processedNops.size(),
+        "MM rewiring: number of created and processed Nops should be equal");
     std::swap(newWaveops, m_WaveOps);
 }
 
@@ -89,31 +119,40 @@ Network::RewireMultiOutEdgesOfMatMults()
 wave::NopWaveOp*
 Network::rewireMultiOutEdgesOfOneMatMul(wave::MatMulWaveOp* matmulWaveop)
 {
-    Assert(matmulWaveop->gSuccWaveEdges().size() > 1, "MatMults with 1 successor should be skipped");
+    Assert(matmulWaveop->gSuccWaveEdges().size() > 1,
+        "MatMults with 1 successor should be skipped");
     std::vector<wave::WaveEdge*> syncedEdges;
     for (auto succEdge : matmulWaveop->gSuccWaveEdges()) {
         if (succEdge->qNeedToSync()) {
             syncedEdges.push_back(succEdge);
         }
     }
-    Assert(syncedEdges.size() >= 2, "Rewiring MatMul ", matmulWaveop->gName(), " has fewer than 2 outgoing synced edges");
+    Assert(syncedEdges.size() >= 2, "Rewiring MatMul ", matmulWaveop->gName(),
+        " has fewer than 2 outgoing synced edges");
+
+    // Min level and min ord are not necessarily the same Waveop:
+    // A->B->C->D   E
+    // +------------^
+    // lev(D)=3 > lev(E)=1  but ord(D)=3 < ord(E)=4 
     kcc_int32 minSuccLevel = std::numeric_limits<decltype(minSuccLevel)>::max();
     wave::WaveEdge* minSuccEdge = nullptr;
-
+    kcc_int32 minWopOrd = std::numeric_limits<decltype(minWopOrd)>::max();
+    wave::WaveEdge* minOrdSuccEdge = nullptr;
 
     for (auto succEdge : syncedEdges) {
         const auto succWaveop = succEdge->gToOp();
-        if (! minSuccEdge) {
-            minSuccEdge = succEdge;
-            minSuccLevel = succWaveop->gLevel();
-        } else if (succWaveop->gLevel() < minSuccLevel) {
+        if (! minSuccEdge || succWaveop->gLevel() < minSuccLevel) {
             minSuccEdge = succEdge;
             minSuccLevel = succWaveop->gLevel();
         }
+        if (!minOrdSuccEdge || succWaveop->gOrder() < minWopOrd) {
+            minOrdSuccEdge = succEdge;
+            minWopOrd = succWaveop->gOrder();
+        }
     }
+    const EngineId engId = minOrdSuccEdge->gToOp()->gEngineId();
     Assert(minSuccEdge, "Must have min succ edge for rewiring");
 
-    const EngineId engId = EngineId::Pooling;
 
     // Disconnect succ edges from matmul, say MM->A, MM->B, MM->C
     for (auto succSyncedEdge : syncedEdges) {
@@ -125,7 +164,8 @@ Network::rewireMultiOutEdgesOfOneMatMul(wave::MatMulWaveOp* matmulWaveop)
     params.m_WaveOpName = (std::string("nop-") + matmulWaveop->gName());
     std::vector<wave::WaveOp*> prevWaveOps;
     prevWaveOps.push_back(matmulWaveop);
-    auto nopWaveop = new wave::NopWaveOp(params, prevWaveOps, engId, events::EventId_Invalid(),
+    auto nopWaveop = new wave::NopWaveOp(params, prevWaveOps, engId,
+                                         events::EventId_Invalid(),
                                          wave::NopWaveOp::NopType::Broadcast);
     nopWaveop->rLevel( (matmulWaveop->gLevel() + minSuccLevel) / 2);  // middle
 
@@ -134,7 +174,9 @@ Network::rewireMultiOutEdgesOfOneMatMul(wave::MatMulWaveOp* matmulWaveop)
         nopWaveop->addSuccWaveEdge(succSyncedEdge);
     }
 
-    std::cout << "Rewired MatMul: " << matmulWaveop->gName() << "\n";
+    if (MM_REWIRE_DEBUG) {
+        std::cout << "Rewired MatMul: " << matmulWaveop->gName() << "\n";
+    }
 
     return nopWaveop;
 }

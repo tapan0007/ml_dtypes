@@ -45,7 +45,8 @@ WaveCodeMatMul::generate(wave::WaveOp* waveOp)
     kcc_int32 numSyncedPrevWeights;
     kcc_int32 numSyncedPrevIfmaps;
     countSyncedWeithsIfmapPred(matmulWaveOp, numSyncedPrevWeights, numSyncedPrevIfmaps);
-    m_SyncIfmapOnLdWeigthsInstr = (numSyncedPrevWeights < 1);
+    //m_SyncIfmapOnLdWeigthsInstr = (numSyncedPrevWeights < 1);
+    m_SyncIfmapOnLdWeigthsInstr = false;
 
     bool SyncPrevWavesOnMatMulInstr = generateLoadWeights(matmulWaveOp);
     generateMatMul(matmulWaveOp, SyncPrevWavesOnMatMulInstr);

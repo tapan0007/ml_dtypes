@@ -305,7 +305,6 @@ WaveCodeSbAtomLoadKelf::generateInputDmaReplWithCopy(wave::SbAtomLoadWaveOp* sbA
         }
     }
 
-    addDmaBarrier(sbAtomLoadWaveop, chosenEngId);
     dmaTriggerInstr.SetDmaQueueName(dmaInBlock->gDmaQueue()->gName().c_str());
     AssignWithSizeCheck(dmaTriggerInstr.use_raw_count, 0);
     AssignWithSizeCheck(dmaTriggerInstr.block_id, dmaInBlock->gBlockId());
@@ -315,7 +314,13 @@ WaveCodeSbAtomLoadKelf::generateInputDmaReplWithCopy(wave::SbAtomLoadWaveOp* sbA
             << "-" << sbAtomLoadWaveop ->gName();
         m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
     }
+
+    addDmaBarrier(sbAtomLoadWaveop, chosenEngId);
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
+    const auto pairCopy = sbAtomLoadWaveop->gPairCopyWaveOp();
+    if (pairCopy) {
+        m_WaveCodeTpbCopy->writeDmaTriggerInstruction();
+    }
 } // generateInputDmaReplWithCopy(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
 
 //======================================================================
@@ -323,7 +328,6 @@ void
 WaveCodeSbAtomLoadKelf::generateInputDmaReplWithoutCopy(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
 {
     Assert(m_WaveCode.qBinFileRuntimeKelf(), "Must be binary for Runtime Kelf");
-    //const auto pairCopy = sbAtomLoadWaveop->gPairCopyWaveOp();
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
 
     const utils::DataType& dataType(sbAtomLoadWaveop->gDataType());
@@ -410,7 +414,8 @@ WaveCodeSbAtomLoadKelf::generateInputDmaReplWithoutCopy(wave::SbAtomLoadWaveOp* 
                         } else {
                             numBytesToWrite = inputSize - filePartAddress;
                             {
-                                std::cout << "Trimming SbAtomLoad:\n"
+                                std::cout << "Trimming SbAtomLoad: "
+                                        << sbAtomLoadWaveop->gName() << "\n"
                                         << "    input size: " << inputSize << "\n"
                                         << "    file address: " << filePartAddress << "\n"
                                         << "    num bytes per part (requested): " << numBytesPerPart << "\n"

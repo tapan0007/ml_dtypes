@@ -12,7 +12,7 @@
 #include "utils/inc/consts.hpp"
 #include "utils/inc/types.hpp"
 
-//#include "compisa/inc/compisasimmemcpy.hpp"
+#include "compisa/inc/compisadmatrigger.hpp"
 
 #include "wavecode/inc/wavecodewaveop.hpp"
 
@@ -44,13 +44,15 @@ public:
     const auto& gNotCopied() const {
         return m_NotCopiedFileToSbufAddress;
     }
-#if 0
-    bool Copied(const FileRange& tongaRange) const;
-#endif
+    void writeDmaTriggerInstruction() const;
 
 private:
     const WaveCodeSbAtomLoadKelf*   m_WaveCodeSbAtomLoadKelf = nullptr;
-    std::set<TransferRange> m_NotCopiedFileToSbufAddress;
+    std::set<TransferRange>         m_NotCopiedFileToSbufAddress;
+
+    // To issue DMA TRIGGER after DMA_TRIGGER for parallel Load
+    compisa::DmaTriggerInstr        m_DmaTriggerInstr;
+    EngineId                        m_ChosenEngId;
 };
 
 }}

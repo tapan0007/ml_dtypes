@@ -177,6 +177,7 @@ LoadSplitter::SplitReplicatedLoads()
         wave::TpbCopyWaveOp* copyWaveop = splitOneReplicatedLoad(
                                             prevReplicatedLoad,
                                             loadWaveop);
+        // DO NOT CHANGE THE ORDER OF THESE TWO WAVEOPS
         // copy should go first since waveop (load) will reset address map
         // Processing of waveops during code generation should be
         // L0, C1,L1, C2,L2

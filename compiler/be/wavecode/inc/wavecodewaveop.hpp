@@ -51,7 +51,7 @@ protected:
     class OffsetRange;
     class FileRange;
     using WaveCodeRef = WaveCode&;
-    enum {REPL_DEBUG = 1};
+    enum {REPL_DEBUG = 0};
 public:
     //----------------------------------------------------------------
     WaveCodeWaveOp(WaveCodeRef wavecode);

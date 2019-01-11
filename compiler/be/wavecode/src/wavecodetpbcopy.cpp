@@ -144,9 +144,10 @@ WaveCodeTpbCopy::generate(wave::WaveOp* waveOp)
     std::ostringstream oss;
     oss << tpbCopyWaveop->gOrder() << "-" << tpbCopyWaveop->gName();
 
-    EngineId chosenEngId = tpbCopyWaveop->gEngineId();
+    EngineId& chosenEngId(m_ChosenEngId);
+    chosenEngId = tpbCopyWaveop->gEngineId();
     //************************************************************************
-    compisa::DmaTriggerInstr dmaTriggerInstr;
+    compisa::DmaTriggerInstr& dmaTriggerInstr(m_DmaTriggerInstr);
     AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_idx, 0);
     AssignWithSizeCheck(dmaTriggerInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
     AssignWithSizeCheck(dmaTriggerInstr.inst_events.set_event_idx, 0); // succ evt is in the descriptor block
@@ -181,7 +182,8 @@ WaveCodeTpbCopy::generate(wave::WaveOp* waveOp)
                     } else {
                         numBytesToWrite = inputSize - filePartAddress;
                         {
-                            std::cout << "Trimming SbAtomLoad:\n"
+                            std::cout << "Trimming TpbCopy: "
+                                    << tpbCopyWaveop->gName() << "\n"
                                     << "    input size: " << inputSize << "\n"
                                     << "    file address: " << filePartAddress << "\n"
                                     << "    num bytes per part (requested): " << numBytesPerPart << "\n"
@@ -305,7 +307,6 @@ WaveCodeTpbCopy::generate(wave::WaveOp* waveOp)
         dmaTpbToTpbBlock->addDmaDesc(1, address, address);
     }
 
-    addDmaBarrier(pairLoad, chosenEngId);
     dmaTriggerInstr.SetDmaQueueName(dmaTpbToTpbBlock->gDmaQueue()->gName().c_str());
     AssignWithSizeCheck(dmaTriggerInstr.use_raw_count, 0); // get from JSON
     AssignWithSizeCheck(dmaTriggerInstr.block_id, dmaTpbToTpbBlock->gBlockId());
@@ -316,12 +317,24 @@ WaveCodeTpbCopy::generate(wave::WaveOp* waveOp)
             << "-" << tpbCopyWaveop ->gName();
         m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
     }
-    m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
+
+    // Write this instruction after instruction for pair SbAtomLoad:
+    // SbAtomLoad is slower, so start it earlier
+    //addDmaBarrier(pairLoad, chosenEngId);
+    //m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
 }
 
 
 
-
+void
+WaveCodeTpbCopy::writeDmaTriggerInstruction() const
+{
+    //const auto pairLoad = tpbCopyWaveop->gPairLoadWaveOp();
+    //addDmaBarrier(pairLoad, m_ChosenEngId);
+    // No dma barrier because this instruction is written after
+    // DmaTriger for the pair SbAtomLoad
+    m_WaveCode.writeInstruction(m_DmaTriggerInstr, m_ChosenEngId);
+}
 
 /***********************************************************************
 ***********************************************************************/

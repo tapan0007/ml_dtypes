@@ -351,7 +351,8 @@ WaveCodeSbAtomLoadSim::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoad
                         } else {
                             numBytesToWrite = inputSize - filePartAddress;
                             if (true) {
-                                std::cout << "Trimming SbAtomLoad:\n"
+                                std::cout << "Trimming SbAtomLoad: "
+                                        << sbAtomLoadWaveop->gName() << "\n"
                                         << "    input size: " << inputSize << "\n"
                                         << "    file address: " << filePartAddress << "\n"
                                         << "    num bytes per part (requested): " << numBytesPerPart << "\n"
