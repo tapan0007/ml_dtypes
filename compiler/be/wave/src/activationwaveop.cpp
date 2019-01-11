@@ -20,7 +20,6 @@ ActivationWaveOp::ActivationWaveOp(const ActivationWaveOp::Params& params,
                        const std::vector<WaveOp*>& prevWaveOps)
     : BaseClass(params, prevWaveOps)
     , m_ActivationFunc(params.m_ActivationFunc)
-    , m_BiasAddEn(params.m_BiasAddEn)
     , m_BiasSbAddress(params.m_BiasSbAddress)
     , m_BiasStartAtMidPart(params.m_BiasStartAtMidPart)
     , m_Scale(params.m_Scale)
@@ -36,8 +35,6 @@ ActivationWaveOp::ActivationWaveOp(const ActivationWaveOp::Params& params,
     , m_SrcYStep(params.m_SrcYStep)
     , m_SrcZNum(params.m_SrcZNum)
     , m_SrcZStep(params.m_SrcZStep)
-    , m_TileId(params.m_TileId)
-    , m_TileIdFormat(params.m_TileIdFormat)
 {
     m_DstXNum           = params.m_DstXNum;
     m_DstXStep          = params.m_DstXStep;
@@ -85,7 +82,6 @@ ActivationWaveOp::verify() const
     default:
         RETURN_ASSERT(false);
     }
-    // m_BiasAddEn
     if (m_BiasSbAddress < 0) {
         RETURN_ASSERT(false);
     }
@@ -161,16 +157,6 @@ ActivationWaveOp::verify() const
         }
     } else {
         if (m_SrcSbAddress < 0) {
-            RETURN_ASSERT(false);
-        }
-    }
-
-    if (m_TileIdFormat == "") {
-        RETURN_ASSERT(false);
-    }
-
-    for (auto n : m_TileId) {
-        if (n < 0) {
             RETURN_ASSERT(false);
         }
     }

@@ -111,7 +111,7 @@ constexpr static const char* BiasDtype            = "bias_dtype";
 
 constexpr static const char* NumPartitions        = "num_partitions";
 constexpr static const char* OutDtype             = "out_dtype";
-constexpr static const char* PoolFrequency        = "pool_frequency";
+constexpr static const char* PoolScale            = "pool_scale";
 constexpr static const char* PoolFunc             = "pool_func";
 
 constexpr static const char* SrcIsPsum            = "src_is_psum";
@@ -128,9 +128,6 @@ constexpr static const char* SrcYStep             = "src_y_step";
 constexpr static const char* SrcZNum              = "src_z_num";
 constexpr static const char* SrcZStep             = "src_z_step";
 
-constexpr static const char* TileId               = "tile_id";
-constexpr static const char* TileIdFormat         = "tile_id_format";
-
 constexpr static const char* ActivationFunc              = "activation_func";
 constexpr static const char* ActivationFunc_None         = "none"; /* until Jeff fixes none */
 constexpr static const char* ActivationFunc_Identity     = "Identity";
@@ -144,7 +141,6 @@ constexpr static const char* ActivationFunc_Softplus     = "Softplus";
 constexpr static const char* ActivationFunc_Sqrt         = "Sqrt";
 
 
-constexpr static const char* BiasAddEn            = "bias_add_en";
 constexpr static const char* BiasSbAddress        = "bias_sb_address";
 constexpr static const char* BiasStartAtMidPart   = "bias_start_at_mid_part";
 constexpr static const char* DstPsumBankId        = "dst_psum_bank_id";
@@ -400,7 +396,7 @@ public:
     std::string                 m_BiasDtype         = "";
     kcc_int32                   m_NumPartitions     = -1;
     std::string                 m_OutDtype          = "";
-    kcc_int32                   m_PoolFrequency     = -1;
+    kcc_float32                 m_PoolScale;
     std::string                 m_PoolFunc          = "";
 
     std::string                 m_PairLoadWaveOp    = "";
@@ -454,14 +450,11 @@ public:
     kcc_int32                   m_SrcBZNum              = -1;
     kcc_int32                   m_SrcBZStep             = -1;
 
-    std::vector<kcc_int32>      m_TileId;
-    std::string                 m_TileIdFormat          = "";
     //waveopname": "1conv/i1/Pooln0m0h0w0",
     //waveoptype": "Pool"
 
     // Activation
     std::string                 m_ActivationFunc    = "";
-    bool                        m_BiasAddEn         = false;
     kcc_int64                   m_BiasSbAddress     = -1;
     bool                        m_BiasStartAtMidPart = false;
     bool                        m_DstIsPsum         = true;

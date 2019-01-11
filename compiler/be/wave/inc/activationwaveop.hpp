@@ -53,9 +53,6 @@ public:
     }
     TONGA_ISA_TPB_ACTIVATION_FUNC gSimActivationFunc() const;
 
-    bool qBiasAddEn () const {
-        return m_BiasAddEn;
-    }
     kcc_int64 gBiasSbAddress () const {
         return m_BiasSbAddress;
     }
@@ -156,13 +153,6 @@ public:
         return m_SrcZStep;
     }
 
-    const std::string& gTileIdFormat () const {
-        return m_TileIdFormat;
-    }
-    const std::array<kcc_int32, 4>& gTileId () const {
-        return m_TileId;
-    }
-
     kcc_float32 gScale() const {
         return m_Scale;
     }
@@ -179,7 +169,6 @@ public:
 
 private:
     ActivationFunc              m_ActivationFunc        = ActivationFunc::Invalid;
-    bool                        m_BiasAddEn;
     kcc_int64                   m_BiasSbAddress         = -1;
     bool                        m_BiasStartAtMidPart    = false;
     kcc_float32                 m_Scale                 = -1.0;
@@ -209,8 +198,6 @@ private:
     kcc_int32                   m_SrcZStep              = 1; // //issues.amazon.com/issues/kaena-198
     kcc_int64                   m_SrcSbAddress          = -1;
     bool                        m_SrcStartAtMidPart     = false;
-    std::array<kcc_int32, 4>    m_TileId;
-    std::string                 m_TileIdFormat          = "";
 }; // class ActivationWaveOp : public WaveOp
 
 
@@ -221,7 +208,6 @@ public:
     bool verify() const;
 public:
     ActivationFunc              m_ActivationFunc        = ActivationFunc::Invalid;
-    bool                        m_BiasAddEn;
     kcc_int64                   m_BiasSbAddress         = -1;
     bool                        m_BiasStartAtMidPart    = false;
     kcc_float32                 m_Scale                 = -1.0;
@@ -251,8 +237,6 @@ public:
     kcc_int32                   m_SrcZStep              = 1; // //issues.amazon.com/issues/kaena-198
     kcc_int64                   m_SrcSbAddress          = -1;
     bool                        m_SrcStartAtMidPart     = false;
-    std::array<kcc_int32, 4>    m_TileId;
-    std::string                 m_TileIdFormat          = "";
 }; // class ActivationWaveOp::Params : public WaveOp::Params
 
 

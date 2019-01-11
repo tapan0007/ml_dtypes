@@ -142,13 +142,6 @@ public:
         return WaveOpType::ClipByValue;
     }
 
-    const std::string& gTileIdFormat () const {
-        return m_TileIdFormat;
-    }
-    const std::array<kcc_int32, 4>& gTileId () const {
-        return m_TileId;
-    }
-
     bool verify() const override;
 
 
@@ -189,8 +182,6 @@ private:
     kcc_float32                 m_MinValue;
     kcc_float32                 m_MaxValue;
 
-    std::array<kcc_int32, 4>    m_TileId;
-    std::string                 m_TileIdFormat          = "";
 }; // class ClipByValueWaveOp : public WaveOp
 
 
@@ -228,8 +219,6 @@ public:
 
     kcc_float32                 m_MinValue;
     kcc_float32                 m_MaxValue;
-    std::array<kcc_int32, 4>    m_TileId;
-    std::string                 m_TileIdFormat          = "";
 };
 
 }}

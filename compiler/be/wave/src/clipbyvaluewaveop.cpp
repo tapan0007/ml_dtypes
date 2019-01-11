@@ -39,9 +39,6 @@ ClipByValueWaveOp::ClipByValueWaveOp(const ClipByValueWaveOp::Params& params,
 
     , m_MinValue(params.m_MinValue)
     , m_MaxValue(params.m_MaxValue)
-
-    , m_TileId(params.m_TileId)
-    , m_TileIdFormat(params.m_TileIdFormat)
 {
 
     if (m_DstIsPsum) {
@@ -137,16 +134,6 @@ ClipByValueWaveOp::verify() const
         }
     } else {
         if (m_SrcSbAddress < 0) {
-            RETURN_ASSERT(false);
-        }
-    }
-
-    if (m_TileIdFormat == "") {
-        RETURN_ASSERT(false);
-    }
-
-    for (auto n : m_TileId) {
-        if (n < 0) {
             RETURN_ASSERT(false);
         }
     }

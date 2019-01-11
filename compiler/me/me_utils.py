@@ -1980,7 +1980,6 @@ class FileMapper():
         #    self.circbuf_stats.sb_all_channels_memcpys_out += ofmap_count*((tile_id.m_id%2)+1)
         # if this is last chunk in OFMAP, mark it as last
         last_atom_of_file = chunk_id == (file_params.tot_num_chunks - 1)
-        #last_atom_of_file = (tile_id.m_id+1 == tile_id.m) and (ceildiv(offset_in_fold+length, self.atom_data_sz) == ceildiv(self.ofmap_data_len, self.atom_data_sz))
         # use "simout" tag for Back-end/Inkling result file
         simout_file = file_params.file_name.replace("-midout.", "-simout.")
         waveop_name = simout_file.replace(":", "__") + "_%d"%(chunk_id)
@@ -1990,10 +1989,6 @@ class FileMapper():
         if file_params.produce_op.is_id_pool:
             if len(file_params.produce_op.prev) > 0:
                 ref_file_shape = file_params.produce_op.prev[0].data["ofmap_shape"]
-        #if (waveop_name == 'trivnet_activation_1__Relu__0_NCHW-simout.npy_0'):
-        #    import inspect
-        #    print ("INFO: %s is calling gen_dram_save_waveop"%(
-        #        inspect.stack()[1][3]))
         return {
               'previous_waveops' : previous_waveops,
               'waveop_type'      : "SBAtomSave",
@@ -2008,8 +2003,6 @@ class FileMapper():
               'offset_in_file'   : offset_in_file,
               'length'           : length,
               'start_at_mid_part' : False, #(tile_id.m_id%2) == 1,
-              'ofmaps_fold_idx'  : 0,   # TODO: is this still needed?
-              'batch_fold_idx'   : 0,   # TODO: is this still needed?
               'num_partitions'   : fmap_count,
               'partition_step_bytes': file_params.file_addr_skip_per_outer_chan,
               'last_save_of_file' : last_atom_of_file,

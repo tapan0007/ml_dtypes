@@ -10,7 +10,6 @@ namespace serialize {
 SerWaveOp::SerWaveOp()
 {
     m_RefFileShape.resize(utils::TensorParams::NUM_DIMS, 1);
-    m_TileId.resize(4, -1);
 }
 
 // #define RETURN_ASSERT(x) return (x)
@@ -182,9 +181,6 @@ SerWaveOp::verifyPool() const
     if (m_OutDtype == "") {
         RETURN_ASSERT(false);
     }
-    if (m_PoolFrequency < 1) {
-        RETURN_ASSERT(false);
-    }
     if (m_PoolFunc == "") {
         RETURN_ASSERT(false);
     }
@@ -228,20 +224,6 @@ SerWaveOp::verifyPool() const
             RETURN_ASSERT(false);
         }
     }
-
-    if (m_TileId.size() != 4) {
-        RETURN_ASSERT(false);
-    }
-    for (auto n : m_TileId) {
-        if (n < 0) {
-            RETURN_ASSERT(false);
-        }
-    }
-    if (m_TileIdFormat == "") {
-        RETURN_ASSERT(false);
-    }
-    //waveopname": "1conv/i1/Pooln0m0h0w0",
-    //waveoptype": "Pool"
 
     return true;
 }
@@ -316,17 +298,6 @@ SerWaveOp::verifyReciprocal() const
         }
     }
 
-    if (m_TileId.size() != 4) {
-        RETURN_ASSERT(false);
-    }
-    for (auto n : m_TileId) {
-        if (n < 0) {
-            RETURN_ASSERT(false);
-        }
-    }
-    if (m_TileIdFormat == "") {
-        RETURN_ASSERT(false);
-    }
     //waveopname": "1conv/i1/Pooln0m0h0w0",
     //waveoptype": "Pool"
 
@@ -419,7 +390,6 @@ SerWaveOp::verifyActivation() const
     if (m_ActivationFunc == "") {
         RETURN_ASSERT(false);
     }
-    // m_BiasAddEn
     if (m_BiasSbAddress < 0) {
         RETURN_ASSERT(false);
     }
@@ -498,18 +468,6 @@ SerWaveOp::verifyActivation() const
         RETURN_ASSERT(false);
     }
 
-    if (m_TileId.size() != 4) {
-        RETURN_ASSERT(false);
-    }
-    for (auto n : m_TileId) {
-        if (n < 0) {
-            RETURN_ASSERT(false);
-        }
-    }
-
-    if (m_TileIdFormat == "") {
-        RETURN_ASSERT(false);
-    }
     return true;
 }
 
@@ -586,20 +544,6 @@ SerWaveOp::verifyClipByValue() const
         RETURN_ASSERT(false);
     }
     if (m_SrcZStep == 0 && m_SrcZNum != 1) {
-        RETURN_ASSERT(false);
-    }
-
-    if (m_TileId.size() != 4) {
-        RETURN_ASSERT(false);
-    }
-
-    for (auto n : m_TileId) {
-        if (n < 0) {
-            RETURN_ASSERT(false);
-        }
-    }
-
-    if (m_TileIdFormat == "") {
         RETURN_ASSERT(false);
     }
     return true;

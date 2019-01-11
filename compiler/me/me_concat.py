@@ -479,7 +479,6 @@ class Concat:
                                , dst_z_step = ifmap.H * ifmap.W\
                                , src_start = (0, 0)\
                                , dst_start = (0, 0)\
-                               , pool_frequency = 1\
                                , pool_func = "MaxPool"\
                                , pool_scale = "1.0"\
                                , prev_waveops = prev_ops\

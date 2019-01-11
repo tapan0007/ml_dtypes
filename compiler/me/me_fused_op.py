@@ -1392,8 +1392,6 @@ class FusedOp(list):
               'waveop_type'             : 'Pool',
               'waveop_name'             : waveop_name,
               'layer_name'              : self.pool_op.data['layer_name'],
-              'tile_id_format'          : ofmap_tile.format,
-              'tile_id'                 : ofmap_tile.id_array,
               'pool_func'               : self.pool_op.data['layer_type'],
               'in_dtype'                : in_dtype,
               'out_dtype'               : out_dtype,
@@ -1406,7 +1404,6 @@ class FusedOp(list):
               'src_z_num'               : ofmap_tile.subtile_rect.dim2d.x,
               'src_w_step'              : src_ifmap_width * self.pool_op.stride.y,
               'src_w_num'               : ofmap_tile.subtile_rect.dim2d.y,
-              'pool_frequency'          : pool_frequency,
               'pool_scale'              : pool_scale,
               'num_partitions'          : ofmap_tile.tile.get_ofmap_count(),
               'dst_is_psum'             : dst_is_psum,
@@ -1908,13 +1905,11 @@ class FusedOp(list):
     def gen_act_waveop_inline(self, tpb, biasadd_op, act_op, conv_op, ifmap_tile, ofmap_tile, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, bias_start, new_reader_morsels=[]):
         layer_name = ""
         # kaena-452: load zeros into start of SB and use it for Activation instruction when there's no BiasAdd
-        bias_add_en = True
         bias_sb_address = 0
         act_or_biasadd_op = None
         alpha = 1.0
         if biasadd_op is not None:
             act_or_biasadd_op = biasadd_op
-            bias_add_en = True
             bias_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(biasadd_op.parent.combined_bias_file_params, 0, bias_start)
             layer_name = biasadd_op.data['layer_name']
         act_type = "Identity"    
@@ -1992,8 +1987,6 @@ class FusedOp(list):
               'waveop_type'             : 'Activation',
               'waveop_name'             : waveop_name,
               'layer_name'              : layer_name,
-              'tile_id_format'          : ofmap_tile.format,
-              'tile_id'                 : ofmap_tile.id_array,
               'activation_func'         : act_type,
               'alpha'                   : alpha,
               'in_dtype'                : in_dtype,
@@ -2015,7 +2008,6 @@ class FusedOp(list):
               'dst_z_step'              : dst_z_step,
               'dst_z_num'               : dst_z_num,
               'num_partitions'          : num_partitions,
-              'bias_add_en'             : bias_add_en,
               'bias_sb_address'         : bias_sb_address,
               'bias_start_at_mid_part'  : ofmap_tile.m_id%2 == 1,
             }
@@ -2076,8 +2068,6 @@ class FusedOp(list):
               'op'                      : op_type,
               'waveop_name'             : waveop_name,
               'layer_name'              : op.data['layer_name'],
-              'tile_id_format'          : ofmap_tile.format,
-              'tile_id'                 : ofmap_tile.id_array,
               'num_partitions'          : num_partitions,
             }
 
@@ -2148,8 +2138,6 @@ class FusedOp(list):
               'waveop_type'             : "TensorScalar",
               'waveop_name'             : waveop_name,
               'layer_name'              : op.data['layer_name'],
-              'tile_id_format'          : ofmap_tile.format,
-              'tile_id'                 : ofmap_tile.id_array,
               'num_partitions'          : num_partitions,
               'op0'                     : scalar_op[0],
               'op1'                     : scalar_op[1],
@@ -2196,8 +2184,6 @@ class FusedOp(list):
               'waveop_type'             : waveop_type,
               'waveop_name'             : waveop_name,
               'layer_name'              : op.data['layer_name'],
-              'tile_id_format'          : ofmap_tile.format,
-              'tile_id'                 : ofmap_tile.id_array,
               'num_partitions'          : num_partitions,
             }
 

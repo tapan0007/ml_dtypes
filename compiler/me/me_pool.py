@@ -476,7 +476,6 @@ class Pool:
               , dst_z_step = i.dst_z_step\
               , src_start = i.src_start\
               , dst_start = i.dst_start\
-              , pool_frequency = pool_frequency\
               , pool_func = self.pool_func\
               , pool_scale = pool_scale\
               , prev_waveops = []\

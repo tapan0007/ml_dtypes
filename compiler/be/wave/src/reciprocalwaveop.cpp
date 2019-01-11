@@ -24,8 +24,6 @@ ReciprocalWaveOp::ReciprocalWaveOp(const ReciprocalWaveOp::Params& params,
     , m_DstStartAtMidPart(params.m_DstStartAtMidPart)
     , m_DstIsPsum(params.m_DstIsPsum)
     , m_SrcIsPsum(params.m_SrcIsPsum)
-    , m_TileId(params.m_TileId)
-    , m_TileIdFormat(params.m_TileIdFormat)
 {
     if (m_SrcIsPsum) {
         m_SrcPsumBankId     = params.m_SrcPsumBankId;
@@ -124,14 +122,6 @@ ReciprocalWaveOp::verify() const
         RETURN_ASSERT(false);
     }
 
-    for (auto n : m_TileId) {
-        if (n < 0) {
-            RETURN_ASSERT(false);
-        }
-    }
-    if (m_TileIdFormat == "") {
-        RETURN_ASSERT(false);
-    }
     //waveopname;
     //waveoptype;
     return true;

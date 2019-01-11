@@ -139,10 +139,9 @@ def conflict (cur_op, prev_op):
         conf = check_overlap(cur_sb_start,cur_sb_end,prev_sb_start,prev_sb_end)
     if (prev_op['waveop_type'] == 'Activation' and conf == False):
       print ("2.prev_start = %d, prev_end = %d"%(prev_sb_start, prev_sb_end))
-      if (prev_op['bias_add_en'] == True):
-        prev_sb_start = prev_op['bias_sb_address']
-        prev_sb_end = prev_sb_start + np.dtype(prev_op['bias_dtype']).itemsize - 1
-        conf = check_overlap(cur_sb_start,cur_sb_end,prev_sb_start,prev_sb_end)
+      prev_sb_start = prev_op['bias_sb_address']
+      prev_sb_end = prev_sb_start + np.dtype(prev_op['bias_dtype']).itemsize - 1
+      conf = check_overlap(cur_sb_start,cur_sb_end,prev_sb_start,prev_sb_end)
       if (prev_op['dst_is_psum'] == False and conf == False):
         print ("3.prev_start = %d, prev_end = %d"%(prev_sb_start, prev_sb_end))
         prev_sb_start = prev_op['dst_sb_address']

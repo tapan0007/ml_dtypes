@@ -109,12 +109,6 @@ public:
     kcc_int32 gSrcZStep () const {
         return m_SrcZStep;
     }
-    const std::array<kcc_int32, 4>& gTileId () const {
-        return m_TileId;
-    }
-    const std::string& gTileIdFormat () const {
-        return m_TileIdFormat;
-    }
 
     bool qReciprocalWaveOp() const override {
         return true;
@@ -139,7 +133,6 @@ private:
     kcc_int32                   m_DstYStep              = -1;
     kcc_int32                   m_DstZNum               = -1;
     kcc_int32                   m_DstZStep              = -1;
-    kcc_int32                   m_PoolFrequency         = -1;
     PoolType                    m_PoolFunc              = PoolType::None;
     bool                        m_DstIsPsum             = false;
     bool                        m_SrcIsPsum             = true;
@@ -157,8 +150,6 @@ private:
     kcc_int32                   m_SrcYStep              = -1;
     kcc_int32                   m_SrcZNum               = -1;
     kcc_int32                   m_SrcZStep              = -1;
-    std::array<kcc_int32, 4>    m_TileId;
-    std::string                 m_TileIdFormat          = "";
 }; // class ReciprocalWaveOp : public PoolEngWaveOp
 
 
@@ -195,8 +186,6 @@ public:
     kcc_int32                   m_SrcYStep = -1;
     kcc_int32                   m_SrcZNum = -1;
     kcc_int32                   m_SrcZStep = -1;
-    std::array<kcc_int32, 4>    m_TileId;
-    std::string                 m_TileIdFormat;
 
 };
 

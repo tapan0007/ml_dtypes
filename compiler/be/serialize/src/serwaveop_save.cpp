@@ -149,11 +149,8 @@ SerWaveOp::savePool(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(DstStartAtMidPart);
 
     KCC_ARCHIVE(NumPartitions);
-    KCC_ARCHIVE(PoolFrequency);
+    KCC_ARCHIVE(PoolScale);
     KCC_ARCHIVE(PoolFunc);
-
-    KCC_ARCHIVE(TileId);
-    KCC_ARCHIVE(TileIdFormat);
 }
 
 
@@ -178,9 +175,6 @@ SerWaveOp::saveReciprocal(cereal::JSONOutputArchive& archive) const
     saveDst(archive, Dims::XYZ);
 
     KCC_ARCHIVE(NumPartitions);
-
-    KCC_ARCHIVE(TileId);
-    KCC_ARCHIVE(TileIdFormat);
 }
 
 //===========================================================================
@@ -255,16 +249,12 @@ SerWaveOp::saveActivation(cereal::JSONOutputArchive& archive) const
     saveDst(archive, Dims::XYZ);
 
     KCC_ARCHIVE(ActivationFunc);
-    KCC_ARCHIVE(BiasAddEn);
     KCC_ARCHIVE(BiasSbAddress);
     KCC_ARCHIVE(BiasStartAtMidPart);
     KCC_ARCHIVE(Scale);
 
     KCC_ARCHIVE(BiasDtype);
     KCC_ARCHIVE(NumPartitions);
-
-    KCC_ARCHIVE(TileId);
-    KCC_ARCHIVE(TileIdFormat);
 }
 
 
@@ -276,8 +266,6 @@ SerWaveOp::saveClipByValue(cereal::JSONOutputArchive& archive) const
     saveDst(archive, Dims::XYZ);
 
     KCC_ARCHIVE(NumPartitions);
-    KCC_ARCHIVE(TileId);
-    KCC_ARCHIVE(TileIdFormat);
 
     KCC_ARCHIVE(MinValue);
     KCC_ARCHIVE(MaxValue);
@@ -291,8 +279,6 @@ SerWaveOp::saveTensorTensor(cereal::JSONOutputArchive& archive) const
     saveDst(archive, Dims::XYZ);
 
     KCC_ARCHIVE(NumPartitions);
-    KCC_ARCHIVE(TileId);
-    KCC_ARCHIVE(TileIdFormat);
 
     KCC_ARCHIVE(Op);
 }
@@ -305,8 +291,6 @@ SerWaveOp::saveTensorScalar(cereal::JSONOutputArchive& archive) const
     saveDst(archive, Dims::XYZ);
 
     KCC_ARCHIVE(NumPartitions);
-    KCC_ARCHIVE(TileId);
-    KCC_ARCHIVE(TileIdFormat);
 
     KCC_ARCHIVE(Op0);
     KCC_ARCHIVE(Op1);
@@ -324,8 +308,6 @@ SerWaveOp::saveTensorScalarPtr(cereal::JSONOutputArchive& archive) const
     saveDst(archive, Dims::XYZ);
 
     KCC_ARCHIVE(NumPartitions);
-    KCC_ARCHIVE(TileId);
-    KCC_ARCHIVE(TileIdFormat);
 
     KCC_ARCHIVE(Op0);
     KCC_ARCHIVE(Op1);

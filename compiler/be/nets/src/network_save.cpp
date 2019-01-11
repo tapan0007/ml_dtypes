@@ -219,7 +219,7 @@ Network::Save::savePool(const wave::PoolWaveOp* poolWaveOp,
     serWaveOp.m_WaveOpType = wave::PoolWaveOp::gTypeStrStatic();
 
     KCC_SERIALIZE(NumPartitions);
-    KCC_SERIALIZE(PoolFrequency);
+    KCC_SERIALIZE(PoolScale);
     serWaveOp.m_PoolFunc = utils::poolType2Str(poolWaveOp->gPoolFunc());
 
     saveSrc(WAVE_OP, serWaveOp, Dims::XYZ);
@@ -227,10 +227,6 @@ Network::Save::savePool(const wave::PoolWaveOp* poolWaveOp,
     KCC_SERIALIZE(SrcWStep);
     saveDst(WAVE_OP, serWaveOp, Dims::XYZ);
 
-    for (unsigned int i = 0; i < poolWaveOp->gTileId().size(); ++i) {
-        serWaveOp.m_TileId[i] = poolWaveOp->gTileId()[i];
-    }
-    KCC_SERIALIZE(TileIdFormat);
 #undef WAVE_OP
 }
 
@@ -247,10 +243,6 @@ Network::Save::saveReciprocal(const wave::ReciprocalWaveOp* reciprocalWaveOp,
     saveSrc(WAVE_OP, serWaveOp, Dims::XYZ);
     saveDst(WAVE_OP, serWaveOp, Dims::XYZ);
 
-    for (unsigned int i = 0; i < reciprocalWaveOp->gTileId().size(); ++i) {
-        serWaveOp.m_TileId[i] = reciprocalWaveOp->gTileId()[i];
-    }
-    KCC_SERIALIZE(TileIdFormat);
 #undef WAVE_OP
 }
 
@@ -376,7 +368,6 @@ Network::Save::saveActivation(const wave::ActivationWaveOp* activationWaveOp,
     serWaveOp.m_WaveOpType = wave::ActivationWaveOp::gTypeStrStatic();
 
     serWaveOp.m_ActivationFunc      = serialize::SerWaveOp::activationType2Str(activationWaveOp->gActivationFunc());
-    serWaveOp.m_BiasAddEn           = activationWaveOp->qBiasAddEn();
 
     KCC_SERIALIZE(BiasSbAddress);
     KCC_SERIALIZE(BiasStartAtMidPart);
@@ -389,12 +380,6 @@ Network::Save::saveActivation(const wave::ActivationWaveOp* activationWaveOp,
 
     KCC_SERIALIZE(NumPartitions);
 
-
-    const std::array<kcc_int32, 4>& tileId(activationWaveOp->gTileId());
-    for (unsigned int i = 0; i < tileId.size(); ++i) {
-        serWaveOp.m_TileId[i]       = tileId[i];
-    }
-    KCC_SERIALIZE(TileIdFormat);
 #undef WAVE_OP
 }
 
@@ -414,11 +399,6 @@ Network::Save::saveClipByValue(const wave::ClipByValueWaveOp* clipByValueWaveOp,
     saveSrc(WAVE_OP, serWaveOp, Dims::XYZ);
     saveDst(WAVE_OP, serWaveOp, Dims::XYZ);
 
-    const std::array<kcc_int32, 4>& tileId(WAVE_OP->gTileId());
-    for (unsigned int i = 0; i < tileId.size(); ++i) {
-        serWaveOp.m_TileId[i]       = tileId[i];
-    }
-    KCC_SERIALIZE(TileIdFormat);
 #undef WAVE_OP
 }
 

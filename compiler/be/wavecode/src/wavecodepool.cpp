@@ -84,9 +84,8 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
 
     AssignWithSizeCheck(poolInstr.num_active_channels, poolWaveop->gNumPartitions());
 
-    // AssignWithSizeCheck(poolInstr.pool_frequency, poolWaveop->gPoolFrequency());
     AssignWithSizeCheck(poolInstr.pool_dim, TONGA_ISA_TPB_TENSOR_SUBDIM_XY);
-    poolInstr.pool_scale            = static_cast<float>(1.0/poolWaveop->gPoolFrequency()); // float
+    poolInstr.pool_scale = poolWaveop->gPoolScale();    // float
 
     /* Pool  */
     initMemAccess(poolInstr.dst_mem_pattern);

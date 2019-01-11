@@ -241,16 +241,8 @@ Network::Load::loadPool(const serialize::SerWaveOp& serWaveOp)
     poolParams.m_InDtypeId  = DataType::dataTypeStr2Id(serWaveOp.m_InDtype.c_str());
 
     KCC_UNSERIALIZE(NumPartitions);
-    KCC_UNSERIALIZE(PoolFrequency);
+    KCC_UNSERIALIZE(PoolScale);
     poolParams.m_PoolFunc  = utils::poolTypeStr2Id(serWaveOp.m_PoolFunc);
-
-    Assert(poolParams.m_TileId.size() == serWaveOp.m_TileId.size(),
-        serWaveOp.m_WaveOpType, " waveop '", serWaveOp.m_WaveOpName,
-        "' has wrong tile id size: ", poolParams.m_TileId.size());
-    for (unsigned int i = 0; i < serWaveOp.m_TileId.size(); ++i) {
-        poolParams.m_TileId[i] = serWaveOp.m_TileId[i];
-    }
-    poolParams.m_TileIdFormat           = serWaveOp.m_TileIdFormat;
 
     auto waveOp = new wave::PoolWaveOp(poolParams, prevWaveOps);
     Assert(waveOp->gName() == poolParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
@@ -273,14 +265,6 @@ Network::Load::loadReciprocal(const serialize::SerWaveOp& serWaveOp)
     reciprocalParams.m_InDtypeId  = DataType::dataTypeStr2Id(serWaveOp.m_InDtype.c_str());
 
     KCC_UNSERIALIZE(NumPartitions);
-
-    Assert(reciprocalParams.m_TileId.size() == serWaveOp.m_TileId.size(),
-        serWaveOp.m_WaveOpType, " waveop '", serWaveOp.m_WaveOpName,
-        "' has wrong tile id size: ", reciprocalParams.m_TileId.size());
-    for (unsigned int i = 0; i < serWaveOp.m_TileId.size(); ++i) {
-        reciprocalParams.m_TileId[i] = serWaveOp.m_TileId[i];
-    }
-    reciprocalParams.m_TileIdFormat = serWaveOp.m_TileIdFormat;
 
     auto waveOp = new wave::ReciprocalWaveOp(reciprocalParams, prevWaveOps);
     Assert(waveOp->gName() == reciprocalParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
@@ -397,7 +381,6 @@ Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)
     PARAMS.m_ActivationFunc   = serialize::SerWaveOp::str2ActivationFunc(serWaveOp.m_ActivationFunc);
 
     PARAMS.m_BiasDtypeId      = DataType::dataTypeStr2Id(serWaveOp.m_BiasDtype.c_str());
-    KCC_UNSERIALIZE(BiasAddEn);
     KCC_UNSERIALIZE(BiasSbAddress);
     KCC_UNSERIALIZE(BiasStartAtMidPart);
     KCC_UNSERIALIZE(Scale);
@@ -406,15 +389,6 @@ Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)
     loadDst(PARAMS, serWaveOp, Dims::XYZ);
 
     KCC_UNSERIALIZE(NumPartitions);
-
-
-    Assert(PARAMS.m_TileId.size() == serWaveOp.m_TileId.size(),
-        serWaveOp.m_WaveOpType, " waveop '", serWaveOp.m_WaveOpName,
-        "' has wrong tile id size: ", PARAMS.m_TileId.size());
-    for (unsigned int i = 0; i < serWaveOp.m_TileId.size(); ++i) {
-        PARAMS.m_TileId[i] = serWaveOp.m_TileId[i];
-    }
-    KCC_UNSERIALIZE(TileIdFormat);
 
     auto waveOp = new wave::ActivationWaveOp(PARAMS, prevWaveOps);
     Assert(waveOp->gName() == PARAMS.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
@@ -437,14 +411,6 @@ Network::Load::loadClipByValue(const serialize::SerWaveOp& serWaveOp)
 
     loadSrc(PARAMS, serWaveOp, Dims::XYZ);
     loadDst(PARAMS, serWaveOp, Dims::XYZ);
-
-    Assert(PARAMS.m_TileId.size() == serWaveOp.m_TileId.size(),
-        serWaveOp.m_WaveOpType, " waveop '", serWaveOp.m_WaveOpName,
-        "' has wrong tile id size: ", PARAMS.m_TileId.size());
-    for (unsigned int i = 0; i < serWaveOp.m_TileId.size(); ++i) {
-        PARAMS.m_TileId[i] = serWaveOp.m_TileId[i];
-    }
-    KCC_UNSERIALIZE(TileIdFormat);
 
     auto waveOp = new wave::ClipByValueWaveOp(PARAMS, prevWaveOps);
     Assert(waveOp->gName() == PARAMS.m_WaveOpName, "Wrong waveop name ", waveOp->gName());

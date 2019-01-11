@@ -117,12 +117,8 @@ SerWaveOp::loadPool(cereal::JSONInputArchive& archive)
     loadDst(archive, Dims::XYZ);
 
     KCC_ARCHIVE(NumPartitions);
-    KCC_ARCHIVE(PoolFrequency);
+    KCC_ARCHIVE(PoolScale);
     KCC_ARCHIVE(PoolFunc);
-    // previouswaveops
-
-    KCC_ARCHIVE(TileId);
-    KCC_ARCHIVE(TileIdFormat);
 }
 
 void
@@ -132,10 +128,6 @@ SerWaveOp::loadReciprocal(cereal::JSONInputArchive& archive)
     loadDst(archive, Dims::XYZ);
 
     KCC_ARCHIVE(NumPartitions);
-    // previouswaveops
-
-    KCC_ARCHIVE(TileId);
-    KCC_ARCHIVE(TileIdFormat);
 }
 
 void
@@ -208,7 +200,6 @@ SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
 
     //archive(cereal::make_nvp(WaveOpKey::ActivationFunc, m_ActivationFunc);
     KCC_ARCHIVE(ActivationFunc);
-    KCC_ARCHIVE(BiasAddEn);
     KCC_ARCHIVE(BiasSbAddress);
     KCC_ARCHIVE(BiasStartAtMidPart);
     KCC_ARCHIVE(Scale);
@@ -219,9 +210,6 @@ SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(BiasDtype);
     KCC_ARCHIVE(NumPartitions);
     KCC_ARCHIVE(OutDtype);
-
-    KCC_ARCHIVE(TileId);
-    KCC_ARCHIVE(TileIdFormat);
 }
 
 //===========================================================================
@@ -232,8 +220,6 @@ SerWaveOp::loadTensorTensor(cereal::JSONInputArchive& archive)
     loadDst(archive, Dims::XYZ);
 
     KCC_ARCHIVE(NumPartitions);
-    KCC_ARCHIVE(TileId);
-    KCC_ARCHIVE(TileIdFormat);
 
     KCC_ARCHIVE(Op);
 }
@@ -246,8 +232,6 @@ SerWaveOp::loadTensorScalar(cereal::JSONInputArchive& archive)
     loadDst(archive, Dims::XYZ);
 
     KCC_ARCHIVE(NumPartitions);
-    KCC_ARCHIVE(TileId);
-    KCC_ARCHIVE(TileIdFormat);
 
     KCC_ARCHIVE(Op0);
     KCC_ARCHIVE(Op1);
@@ -264,8 +248,6 @@ SerWaveOp::loadTensorScalarPtr(cereal::JSONInputArchive& archive)
     loadDst(archive, Dims::XYZ);
 
     KCC_ARCHIVE(NumPartitions);
-    KCC_ARCHIVE(TileId);
-    KCC_ARCHIVE(TileIdFormat);
 
     KCC_ARCHIVE(Op0);
     KCC_ARCHIVE(Op1);
@@ -283,8 +265,6 @@ SerWaveOp::loadClipByValue(cereal::JSONInputArchive& archive)
 
 
     KCC_ARCHIVE(NumPartitions);
-    KCC_ARCHIVE(TileId);
-    KCC_ARCHIVE(TileIdFormat);
 
     KCC_ARCHIVE(MinValue);
     KCC_ARCHIVE(MaxValue);

@@ -23,13 +23,11 @@ PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
     , m_InDtype(DataType::dataTypeId2DataType(params.m_InDtypeId))
     , m_DstStartAtMidPart(params.m_DstStartAtMidPart)
 
-    , m_PoolFrequency(params.m_PoolFrequency)
+    , m_PoolScale(params.m_PoolScale)
     , m_PoolFunc(params.m_PoolFunc)
 
     , m_DstIsPsum(params.m_DstIsPsum)
     , m_SrcIsPsum(params.m_SrcIsPsum)
-    , m_TileId(params.m_TileId)
-    , m_TileIdFormat(params.m_TileIdFormat)
 {
     if (m_SrcIsPsum) {
         m_SrcPsumBankId     = params.m_SrcPsumBankId;
@@ -106,9 +104,6 @@ PoolWaveOp::verify() const
     if (m_DstZStep == 0 && m_DstZNum != 1) {
         RETURN_ASSERT(false);
     }
-    if (m_PoolFrequency < 1) {
-        RETURN_ASSERT(false);
-    }
     switch (m_PoolFunc) {
     case PoolType::Max:
     case PoolType::Avg:
@@ -158,14 +153,6 @@ PoolWaveOp::verify() const
         RETURN_ASSERT(false);
     }
 
-    for (auto n : m_TileId) {
-        if (n < 0) {
-            RETURN_ASSERT(false);
-        }
-    }
-    if (m_TileIdFormat == "") {
-        RETURN_ASSERT(false);
-    }
     //waveopname;
     //waveoptype;
     return true;

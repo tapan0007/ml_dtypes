@@ -245,7 +245,6 @@ class PoolWaveOpInfo(WaveOpInfo):
                  , dst_z_step\
                  , src_start\
                  , dst_start\
-                 , pool_frequency\
                  , pool_func\
                  , pool_scale\
                  , prev_waveops\
@@ -274,7 +273,6 @@ class PoolWaveOpInfo(WaveOpInfo):
             , src_start\
             , dst_start\
                            )
-        self.pool_frequency = pool_frequency
         self.pool_func = pool_func
         self.pool_scale = pool_scale
         self.prev_waveops = prev_waveops
