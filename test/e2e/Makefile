@@ -159,6 +159,10 @@ TEST_ARGS_CHECK_EMU_TESTS = \
 2-transformer_layer_norm \
 2-transformer_ffn \
 2-transformer_multihead_attention \
+3-transformer_encoder_layer \
+5-transformer_encoder_stack \
+3-transformer_decoder_layer \
+5-transformer_decoder_stack \
 7-inceptionv3_wave_dog_sg00_tpb_upto_concat11 \
 4-ptb_word_small_sigmoid_fp16_b32_wave \
 4-ptb_word_small_sigmoid_2l_fp16_b32_wave_qemu \
