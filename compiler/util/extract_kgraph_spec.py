@@ -162,6 +162,8 @@ field_descr = {
         'imm_val1': 'Immediate float/uint32 value for second Tensor-Scalar operation.',
         'imm_ptr0': 'Pointer to per-channel immediate float/uint32 value for first Tensor-Scalar-Ptr operation.',
         'imm_ptr1': 'Pointer to per-channel immediate float/uint32 value for second Tensor-Scalar-Ptr operation.',
+        'reverse0': 'Reverse the operands for op0 in tensor-scalar operation.',
+        'reverse1': 'Reverse the operands for op1 in tensor-scalar operation.',
         }
 
 decode_srcdst = {

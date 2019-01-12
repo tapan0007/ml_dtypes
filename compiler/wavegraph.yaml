@@ -10,9 +10,9 @@ previous_waveops: A list of names for Waveops that feed this Waveop (predecessor
   Ex. []
 waveop_name: Name of waveop. This is used in the list of predecessors (previous_waveops)
   to indicate dependency. Ex. trivnet_1conv__weight1__read__0_CRSM.npy_0
-waveop_type: Type of waveop. The types are SBAtomSave, Activation, Multiply, ResAdd,
-  Sub, SBAtomLoad, Reciprocal, Pool, ScaleAdd, ClipByValue, Maximum, MatMul, Add,
-  Minimum. Ex. SBAtomLoad
+waveop_type: Type of waveop. The types are MatMul, Sub, SBAtomLoad, SBAtomSave, ScaleAdd,
+  Reciprocal, Multiply, ResAdd, Maximum, Add, ClipByValue, Minimum, Pool, Activation.
+  Ex. SBAtomLoad
 
 --- # The following are pattern fields common to many waveops:
 dst_is_psum: Destination is PSUM. Ex. False
@@ -21,7 +21,7 @@ dst_psum_bank_id: Destination PSUM bank ID. Field exists only if PSUM is used (d
 dst_psum_bank_offset: Destination PSUM bank element offset for the first write to
   PSUM. Field exists only if PSUM is used (dst_is_psum == True). Ex. 0
 dst_sb_address: Destination SB address (one parition). Field exists only if SB is
-  used (dst_is_psum == False). Ex. 16
+  used (dst_is_psum == False). Ex. 128
 dst_start_at_mid_part: Destination starts at middle partition (parition 64), for operations
   that operate on up-to-64 channels. Field exists only if SB is used (dst_is_psum
   == False). Ex. False
@@ -57,7 +57,7 @@ src_a_z_step: Source (first of 2 inputs) data spatial pattern (per channel) - Z 
   (N for non-pool, stride-X for pool) step size in unit of elements. Ex. 1
 src_b_is_psum: Source (second of 2 inputs) is PSUM. Ex. False
 src_b_sb_address: Source (second of 2 inputs) SB address (one parition). Field exists
-  only if SB is used (src_b_is_psum == False). Ex. 45536
+  only if SB is used (src_b_is_psum == False). Ex. 7040
 src_b_start_at_mid_part: Source (second of 2 inputs) starts at middle partition (parition
   64), for operations that operate on up-to-64 channels. Field exists only if SB is
   used (src_b_is_psum == False). Ex. False
@@ -79,7 +79,7 @@ src_psum_bank_id: Source PSUM bank ID. Field exists only if PSUM is used (src_is
 src_psum_bank_offset: Source PSUM bank element offset for the first write to PSUM.
   Field exists only if PSUM is used (src_is_psum == True). Ex. 0
 src_sb_address: Source SB address (one parition). Field exists only if SB is used
-  (src_is_psum == False). Ex. 8
+  (src_is_psum == False). Ex. 64
 src_start_at_mid_part: Source starts at middle partition (parition 64), for operations
   that operate on up-to-64 channels. Field exists only if SB is used (src_is_psum
   == False). Ex. False
@@ -109,7 +109,6 @@ Activation:
   alpha: Multiplier for values less than 0, for modified leaky ReLu (original leaky
     ReLu value is 0.01). Ok for parametric ReLu if all channels share the same trained
     parameter. Ex. 1.0
-  bias_add_en: UNUSED AND TO BE REMOVED. Ex. True
   bias_dtype: Bias data type, one of fp16/bfloat16/fp32. Ex. float16
   bias_sb_address: Pointer to bias values in SB in one partition. Each activation
     engine would access it's own partition. (see bias_addr in aws_tonga_isa_tpb_activate.h).
@@ -127,9 +126,6 @@ Activation:
     float16
   scale: Scalar value to multiply result of input adder in ScaleAdd. Ex. 1.0
   src_*: Source data pattern (see common fields section above)
-  tile_id: String representing the tile ID, consisting of tile loop indices (for debug).
-    Ex. [0, 0, 0, 0]
-  tile_id_format: Format of string representing the tile ID (for debug). Ex. nmhw
 MatMul:
   '#comment': Description for Matrix Multiply instruction, preceded by Load Weights
     instruction if weights_sb_address is >= 0 (aws_tonga_isa_tpb_ldweights.h, aws_tonga_is_matmul.h).
@@ -146,7 +142,7 @@ MatMul:
     (see top of individual ISA instruction header for more detail/restrictions). Ex.
     float16
   is_dynamic_weights: Indicates that MatMul instruction takes dynamic weights from
-    another operation Ex. False
+    another operation. Ex. False
   num_column_partitions: Number of active columns in PE-Array starting from column
     0 (corresponding to number of weights columns to load). (see num_active_cols in
     aws_tonga_isa_tpb_matmul.h). Ex. 2
@@ -157,11 +153,11 @@ MatMul:
     (see top of individual ISA instruction header for more detail/restrictions). Ex.
     float32
   pe_perf_opt_mode: 'PEArray UINT8 performance optimization mode: 0: none, 1: double
-    row, 2: double col, 3: double pixel Ex. none'
+    row, 2: double col, 3: double pixel. Ex. none'
   quant_offset_ifmaps: Quantization offset for IFMAPs, to be subtracted from each
     fmap value, before feeding into the PE Array. Ex. 0
   quant_offset_weights: Quantization offset for weights, to be subtracted from each
-    weight value, before loading into the PE Array (LdWeights) Ex. 0
+    weight value, before loading into the PE Array (LdWeights). Ex. 0
   src_*: Source data pattern (see common fields section above)
   start_tensor_calc: Mark each element in entire destination PSUM for clearing before
     modification. Current MatMul results will be written without summing. Subsequent
@@ -170,7 +166,7 @@ MatMul:
   stop_tensor_calc: Indicate end of tensor calculation. Ex. False
   weights_sb_address: Start address (SB partition 0) of weights for LdWeights instruction
     to load into PEArray. -1 means to not issue LdWeights instruction and reused previously
-    loaded into PEArray. Ex. 2056
+    loaded into PEArray. Ex. 2112
 Pool:
   '#comment': Description for Pool instruction (aws_tonga_isa_tpb_pool.h).
   dst_*: Destination data pattern (see common fields section above)
@@ -182,14 +178,10 @@ Pool:
   out_dtype: Output (destination) data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
     (see top of individual ISA instruction header for more detail/restrictions). Ex.
     float16
-  pool_frequency: UNUSED AND TO BE REMOVED. Ex. 1
   pool_func: 'Pool function: MaxPool or AvgPool. Ex. MaxPool'
   pool_scale: The multiplier to scale the sum of input values (i.e. 1/N for average
     pooling). Ex. 1.0
   src_*: Source data pattern (see common fields section above)
-  tile_id: String representing the tile ID, consisting of tile loop indices (for debug).
-    Ex. [0, 0, 0, 0]
-  tile_id_format: Format of string representing the tile ID (for debug). Ex. nmhw
 Reciprocal:
   '#comment': Compute the reciprocal of input tensor, element-wise (aws_tonga_isa_tpb_reciprocal).
   dst_*: Destination data pattern (see common fields section above)
@@ -202,9 +194,6 @@ Reciprocal:
     (see top of individual ISA instruction header for more detail/restrictions). Ex.
     float16
   src_*: Source data pattern (see common fields section above)
-  tile_id: String representing the tile ID, consisting of tile loop indices (for debug).
-    Ex. [0, 0, 0, 0]
-  tile_id_format: Format of string representing the tile ID (for debug). Ex. nmhw
 RegLoad:
   in_dtype: Input (source) data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
     (see top of individual ISA instruction header for more detail/restrictions). Ex.
@@ -212,7 +201,7 @@ RegLoad:
   num_partitions: Number of partitions to access, starting from partition 0 if start_at_mid_part
     is False, or partition 64 of start_at_mid_part is True. Ex. 64
   parallel_mode: 'True: RegLoad/RegStore operates in parallel mode; False: serial
-    mode Ex. True'
+    mode. Ex. True'
   src_*: Source data pattern (see common fields section above)
 RegStore:
   dst_*: Destination data pattern (see common fields section above)
@@ -222,7 +211,7 @@ RegStore:
     (see top of individual ISA instruction header for more detail/restrictions). Ex.
     float16
   parallel_mode: 'True: RegLoad/RegStore operates in parallel mode; False: serial
-    mode Ex. False'
+    mode. Ex. False'
 SBAtomLoad:
   '#comment': Description for DMA loads of tensor/file chunk into SB atom.
   contain_weights: This DRAM waveop involves data that contains trained weights. Ex.
@@ -251,25 +240,21 @@ SBAtomLoad:
     Ex. [1, 1, 1, 2]
   ref_file_sz: Size in bytes of the tensor contained in numpy file ref_file. Ex. 4
   sb_address: The starting SB address (in one partition) for the load or save. Ex.
-    2056
+    2112
   start_at_mid_part: Data starts at middle partition (parition 64), for operations
     that operate on up-to-64 channels. Ex. False
   stride: Stride of convolution or pooling, specified as an array of strides for all
     dimensions. Ex. 1
 SBAtomSave:
   '#comment': Description for DMA saving of SB atom data into tensor/file chunk.
-  batch_fold_idx: UNUSED AND TO BE REMOVED. Ex. 0
   data_type: Data type of the tensor, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64.
     Ex. float16
   final_layer_ofmap: The SBAtomSave is for the final/output layer's OFMAP. Ex. True
-  last_save_of_file: This SBAtomSave is the very last save in the file/tensor. Ex.
-    True
   length: Number of bytes to load or save. Ex. 2048
   num_partitions: Number of partitions to access, starting from partition 0 if start_at_mid_part
     is False, or partition 64 of start_at_mid_part is True. Ex. 2
   offset_in_file: For SBAtomLoad/SBAtomSave, this field indicates the offset within
     file (flattened tensor) for the start of data. Ex. 0
-  ofmaps_fold_idx: UNUSED AND TO BE REMOVED. Ex. 0
   partition_step_bytes: Number of bytes to step in data file to reach data for the
     next parition. Ex. 2048
   ref_file: The name of numpy file containing a operator's output tensor data. Ex.
@@ -279,29 +264,28 @@ SBAtomSave:
     Ex. [1, 2, 32, 32]
   ref_file_sz: Size in bytes of the tensor contained in numpy file ref_file. Ex. 4096
   sb_address: The starting SB address (in one partition) for the load or save. Ex.
-    2064
+    2176
   start_at_mid_part: Data starts at middle partition (parition 64), for operations
     that operate on up-to-64 channels. Ex. False
 TensorScalar:
   dst_*: Destination data pattern (see common fields section above)
-  imm_val0: Immediate float/uint32 value for first Tensor-Scalar operation Ex. 127.5
-  imm_val1: Immediate float/uint32 value for second Tensor-Scalar operation Ex. 128.0
+  imm_val0: Immediate float/uint32 value for first Tensor-Scalar operation. Ex. 1.0
+  imm_val1: Immediate float/uint32 value for second Tensor-Scalar operation. Ex. 0.0
   in_dtype: Input (source) data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
     (see top of individual ISA instruction header for more detail/restrictions). Ex.
     float32
   num_partitions: Number of partitions to access, starting from partition 0 if start_at_mid_part
-    is False, or partition 64 of start_at_mid_part is True. Ex. 3
+    is False, or partition 64 of start_at_mid_part is True. Ex. 1
   op0: 'First operation for Tensor-Scalar: one of ALU ops defined in TONGA_ISA_TPB_ALU_OP
-    of aws_tonga_isa_tpb_common.h Ex. mult'
+    of aws_tonga_isa_tpb_common.h. Ex. subtract'
   op1: 'Second operation for Tensor-Scalar: one of ALU ops defined in TONGA_ISA_TPB_ALU_OP
-    of aws_tonga_isa_tpb_common.h Ex. add'
+    of aws_tonga_isa_tpb_common.h. Ex. bypass'
   out_dtype: Output (destination) data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
     (see top of individual ISA instruction header for more detail/restrictions). Ex.
-    uint8
+    float16
+  reverse0: Reverse the operands for op0 in tensor-scalar operation. Ex. True
+  reverse1: Reverse the operands for op1 in tensor-scalar operation. Ex. False
   src_*: Source data pattern (see common fields section above)
-  tile_id: String representing the tile ID, consisting of tile loop indices (for debug).
-    Ex. [0, 0, 0, 0]
-  tile_id_format: Format of string representing the tile ID (for debug). Ex. nmhw
 TensorTensor:
   dst_*: Destination data pattern (see common fields section above)
   in_a_dtype: Input A data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
@@ -313,12 +297,9 @@ TensorTensor:
   num_partitions: Number of partitions to access, starting from partition 0 if start_at_mid_part
     is False, or partition 64 of start_at_mid_part is True. Ex. 64
   op: 'Operation for Tensor-Tensor: one of ALU ops defined in TONGA_ISA_TPB_ALU_OP
-    of aws_tonga_isa_tpb_common.h Ex. add'
+    of aws_tonga_isa_tpb_common.h. Ex. add'
   out_dtype: Output (destination) data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
     (see top of individual ISA instruction header for more detail/restrictions). Ex.
     float32
   src_*: Source data pattern (see common fields section above)
-  tile_id: String representing the tile ID, consisting of tile loop indices (for debug).
-    Ex. [0, 0, 0, 0]
-  tile_id_format: Format of string representing the tile ID (for debug). Ex. nmhw
 

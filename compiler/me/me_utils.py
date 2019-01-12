@@ -2005,7 +2005,6 @@ class FileMapper():
               'start_at_mid_part' : False, #(tile_id.m_id%2) == 1,
               'num_partitions'   : fmap_count,
               'partition_step_bytes': file_params.file_addr_skip_per_outer_chan,
-              'last_save_of_file' : last_atom_of_file,
               'final_layer_ofmap' : file_params.final_layer_ofmap,
             }
 

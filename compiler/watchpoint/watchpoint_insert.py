@@ -478,11 +478,8 @@ class LowLevelWatchPointTool:
             'offset_in_file'      : file_c_offset,
             'length'              : sb_c_stride_bytes,
             'start_at_mid_part'   : False, 
-            'ofmaps_fold_idx'     : 0,   # TODO: is this still needed?
-            'batch_fold_idx'      : 0,   # TODO: is this still needed?
             'num_partitions'      : save_num_partitions, # ofmap_num_channels or folded by 128-partition chunks.
             'partition_step_bytes': dram_partition_steps, 
-            'last_save_of_file'   : False,
             'final_layer_ofmap'   : False,
           }
 
