@@ -36,7 +36,9 @@ SerWaveOp::verifySbAtom () const
     if (m_RefFile == "") {
         RETURN_ASSERT(false);
     }
-    if (m_RefFileFormat != "NCHW" && m_RefFileFormat != "CRSM" && m_RefFileFormat != "HNWC" && m_RefFileFormat != "CNcHW") {
+    if (m_RefFileFormat != "NCHW" && m_RefFileFormat != "CRSM" &&
+        m_RefFileFormat != "HNWC" && m_RefFileFormat != "CNcHW" &&
+        m_RefFileFormat != "NHWC") {
         RETURN_ASSERT(false);
     }
     //if (m_RefFileShape.size() != 4) {
