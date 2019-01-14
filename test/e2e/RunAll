@@ -836,7 +836,7 @@ class Ktests:
         # re.compile('allclose comparison failed'),
         re.compile('Allclose .+ result is FAIL'),
         re.compile(' File ".+", line \d+, in .*'),
-        re.compile('Error:\s\S| raise |AssertionError|Traceback|ERROR: shapes differ|ERROR hhIr.check|ERROR checkNode| FAIL'),
+        re.compile('Error:\s\S|error:\s\S| raise |AssertionError|Traceback|ERROR: shapes differ|ERROR hhIr.check|ERROR checkNode| FAIL'),
         ]
       addLineRe = errRe[1]  # Special regexp for which we'll add next line
       if os.path.isfile(logFile):
