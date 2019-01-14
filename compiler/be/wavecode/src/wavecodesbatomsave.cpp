@@ -37,9 +37,11 @@ WaveCodeSbAtomSave::calcOutputSize(const wave::SbAtomSaveWaveOp* sbAtomSaveWaveo
         sz *= n;
     }
     kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
-    const kcc_int64 existingSz = kelfDma.gOutputSizeBytes(sbAtomSaveWaveop->gRefFileName());
+    const bool qOut = ! sbAtomSaveWaveop->qTmpBuffer();
+
+    const kcc_int64 existingSz = kelfDma.gOutputSizeBytes(sbAtomSaveWaveop->gRefFileName(), qOut);
     if (existingSz < 0) {
-        kelfDma.rOutputSizeBytes(sz, sbAtomSaveWaveop->gRefFileName());
+        kelfDma.rOutputSizeBytes(sz, sbAtomSaveWaveop->gRefFileName(), qOut);
     } else {
         if (m_WaveCode.qBinFileRuntimeKelf()) {
             Assert(existingSz == sz,

@@ -67,7 +67,7 @@ WaveCodeSbAtomSaveKelf::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sb
     const kcc_int64 startPart       = sbAtomSaveWaveop->gStartAtMidPart() ? arch::Arch::gArch().gNumberPeArrayRows()/2 : 0;
 
     //************************************************************************
-    const bool qOut = sbAtomSaveWaveop-> qFinalLayerOfmap();
+    const bool qOut = ! sbAtomSaveWaveop->qTmpBuffer();
     std::ostringstream oss;
     oss << sbAtomSaveWaveop->gOrder() << "-" << sbAtomSaveWaveop->gName();
     const kcc_int32 blockIdx(kelfDma.startNewDmaBlockFromTpb(

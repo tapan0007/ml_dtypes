@@ -196,6 +196,7 @@ Stargazer::generateKelfStreams(
         ntwk.ClearEvents();
     }
 
+    ntwk.MarkTmpLoads();
     if (m_SbufCopy) {
         ntwk.SplitReplicatedLoads();
     }

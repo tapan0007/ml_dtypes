@@ -60,6 +60,15 @@ DmaDescription::DmaBlockToTpb::DmaBlockToTpb(DmaDescription* dmaDescription,
     : DmaBlockNonIo(dmaDescription, que, engId, comment)
     , m_QWeights(qWeights)
 {
+    if (qWeights) {
+        Assert(que->gQueueType() == dma::DmaQueue::QueueType::Weights,
+               "DMA block to TPB with weights must use weight queue");
+    } else {
+        Assert(que->gQueueType() == dma::DmaQueue::QueueType::Input
+               || que->gQueueType() == dma::DmaQueue::QueueType::TmpToSbuf,
+               "DMA block to TPB without weights must use input or tmp-to-sbuf queue");
+    }
+
     m_BlockId = m_DmaDescription->gBlockIdForQueue(m_Queue);
 }
 
@@ -69,6 +78,8 @@ DmaDescription::DmaBlockTpbToTpb::DmaBlockTpbToTpb(DmaDescription* dmaDescriptio
             const dma::DmaQueue* que, EngineId engId, const char* comment)
     : DmaBlockNonIo(dmaDescription, que, engId, comment)
 {
+    Assert(que->gQueueType() == dma::DmaQueue::QueueType::SbufToSbuf,
+           "DMA TPB-to-TPB block must use Sbuf-to-Sbuf queue");
     m_BlockId = m_DmaDescription->gBlockIdForQueue(m_Queue);
 }
 
@@ -93,6 +104,9 @@ DmaDescription::DmaBlockFromTpb::DmaBlockFromTpb(DmaDescription* dmaDescription,
     : DmaBlockNonIo(dmaDescription, que, engId, comment)
     , m_QOut(qOut)
 {
+    Assert(que->gQueueType() == dma::DmaQueue::QueueType::Output
+           || que->gQueueType() == dma::DmaQueue::QueueType::SbufToTmp,
+           "DMA block from TPB must use output or sbuf-to-tmp queue");
     m_BlockId = m_DmaDescription->gBlockIdForQueue(m_Queue);
 }
 
@@ -104,7 +118,7 @@ DmaDescription::DmaBlockFromTpb::addDmaDesc(TpbAddress srcTpbSbAddress,
         const std::string& refFile,
         kcc_int32 numBytes)
 {
-    const FileIdType idType = m_DmaDescription->gFileSymbolicId(refFile, FileType::LoadSave);
+    const FileIdType idType = m_DmaDescription->gFileSymbolicId(refFile, FileType::TmpBuffer);
     DmaDescFromTpb desc(numBytes, srcTpbSbAddress, dstFileAddress, idType);
 
     m_Descs.push_back(desc);
@@ -118,6 +132,8 @@ DmaDescription::DmaBlockInput::DmaBlockInput(DmaDescription* dmaDescription,
     : DmaBlock(dmaDescription, que, comment)
     , m_EngineId(engId)
 {
+    Assert(que->gQueueType() == dma::DmaQueue::QueueType::Input,
+           "DMA input block must use input queue");
     m_BlockId = m_DmaDescription->gBlockIdForQueue(m_Queue);
 }
 

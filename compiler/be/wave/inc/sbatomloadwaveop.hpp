@@ -101,6 +101,7 @@ public:
         m_PairCopyWaveOp = pairCopy;
     }
 
+
 private:
     const dma::DmaQueue* m_DmaQueue1                = nullptr;
     kcc_int32       m_TriggerOrd1                   = -1;

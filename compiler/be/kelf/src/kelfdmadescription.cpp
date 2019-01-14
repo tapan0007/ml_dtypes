@@ -11,6 +11,7 @@
 #include "utils/inc/version.hpp"
 #include "utils/inc/asserter.hpp"
 #include "utils/inc/misc.hpp"
+#include "utils/inc/debug.hpp"
 
 #include "nets/inc/network.hpp"
 #include "events/inc/eventmgr.hpp"
@@ -22,6 +23,7 @@ namespace kelf {
 using json = nlohmann::json;
 
 static const char* const singleInputName = "IN";
+
 
 /***********************************************************************
 ***********************************************************************/
@@ -244,16 +246,16 @@ DmaDescription::gInFileSymbolicId(const std::string& refFile)
 /***********************************************************************
 ***********************************************************************/
 void
-DmaDescription::rOutputSizeBytes(kcc_int64 sz, const std::string& refFileName)
+DmaDescription::rOutputSizeBytes(kcc_int64 sz, const std::string& refFileName, bool qOut)
 {
-    auto& idType(gFileSymbolicId(refFileName, FileType::LoadSave));
+    auto& idType(gFileSymbolicId(refFileName, qOut ? FileType::Output : FileType::TmpBuffer));
     idType.m_Size = sz;
 }
 
 kcc_int64
-DmaDescription::gOutputSizeBytes(const std::string& refFileName)
+DmaDescription::gOutputSizeBytes(const std::string& refFileName, bool qOut)
 {
-    const auto& idType(gFileSymbolicId(refFileName, FileType::LoadSave));
+    const auto& idType(gFileSymbolicId(refFileName, qOut ? FileType::Output : FileType::TmpBuffer));
     return idType.m_Size;
 }
 
@@ -369,7 +371,7 @@ DmaDescription::writeDmaDescriptors(
     j[Keys::gBinFileName()] = binFileName;
     j[Keys::gJsonName()] = name;
 
-    std::vector<json> jDmaBlocks;
+    auto jDmaBlocks = json::array();
 
     for (const auto& dmaBlockToTpb : m_DmaBlocksToTpb) {
         if (dmaBlockToTpb.gTriggerEngineId() != engId) {
@@ -384,7 +386,7 @@ DmaDescription::writeDmaDescriptors(
         jBlockToTpb[Keys::gHashNumDescs()]  = dmaBlockToTpb.gNumDescs();
         dmaBlockToTpb.setDmaEventField(jBlockToTpb);
 
-        std::vector<json> jDmaDescs;
+        auto jDmaDescs = json::array();
         for (const auto& desc : dmaBlockToTpb.gDescs()) {
             desc.assertAccessCheck();
             json jDmaDesc;
@@ -402,9 +404,6 @@ DmaDescription::writeDmaDescriptors(
     }
 
     for (const auto& dmaBlockFromTpb : m_DmaBlocksFromTpb) {
-        if (false && dmaBlockFromTpb.qOut()) {
-            continue;
-        }
         if (dmaBlockFromTpb.gTriggerEngineId() != engId) {
             continue;
         }
@@ -417,7 +416,7 @@ DmaDescription::writeDmaDescriptors(
         jBlockFromTpb[Keys::gHashNumDescs()]    = dmaBlockFromTpb.gNumDescs();
         dmaBlockFromTpb.setDmaEventField(jBlockFromTpb);
 
-        std::vector<json> jDmaDescs;
+        auto jDmaDescs = json::array();
         for (const auto& desc : dmaBlockFromTpb.gDescs()) {
             desc.assertAccessCheck();
             json jDmaDesc;
@@ -447,7 +446,7 @@ DmaDescription::writeDmaDescriptors(
         jBlockTpbToTpb[Keys::gHashNumDescs()]  = dmaBlockTpbToTpb.gNumDescs();
         dmaBlockTpbToTpb.setDmaEventField(jBlockTpbToTpb);
 
-        std::vector<json> jDmaDescs;
+        auto jDmaDescs = json::array();
         for (const auto& desc : dmaBlockTpbToTpb.gDescs()) {
             desc.assertAccessCheck();
             json jDmaDesc;
@@ -493,6 +492,13 @@ DmaDescription::writeDmaDescriptors(
     "pe_instr" : "Trivnet-pe.bin"
 }
 ***********************************************************************/
+
+
+
+
+
+/***********************************************************************
+***********************************************************************/
 void DmaDescription::writeActivationFuncs(json& j)
 {
     auto activationFuncs = json::array();
@@ -503,6 +509,119 @@ void DmaDescription::writeActivationFuncs(json& j)
     j[Keys::gActivationFuncs()] = activationFuncs;
 }
 
+/**********************************************************************/
+void
+DmaDescription::writeQueDefinitions(json&j)
+{
+    std::set<const dma::DmaQueue*> processedQues;
+    {
+        auto jDmaQueue = json::object();
+        {
+            std::set<const dma::DmaQueue*> inDmaQueues;
+            for (const auto& dmaInBlock : m_DmaBlocksInput) {
+                inDmaQueues.insert(dmaInBlock.gDmaQueue());
+            }
+            for (auto que : inDmaQueues) {
+                Assert(processedQues.find(que) == processedQues.end(), "Repeated DMA queue ", que->gName());
+                processedQues.insert(que);
+                json jInQueDesc;
+                jInQueDesc[Keys::gQueueType()] = "in";
+                if (qUseSemaphore()) {
+                    jInQueDesc[Keys::gSemId()] = que->gSemaphoreId();
+                }
+                char buf[512];
+                sprintf(buf, "# %s", Keys::gOwner());
+                jInQueDesc[buf] = gEngineName(que->gEngineId());
+                jDmaQueue[que->gName()]  = jInQueDesc;
+            }
+        }
+
+        {
+            std::set<const dma::DmaQueue*> outDmaQueues;
+            for (const auto& dmaBlockFromTpb : m_DmaBlocksFromTpb) {
+                if (dmaBlockFromTpb.qOut()) {
+                    outDmaQueues.insert(dmaBlockFromTpb.gDmaQueue());
+                }
+            }
+            for (auto que : outDmaQueues) {
+                Assert(processedQues.find(que) == processedQues.end(), "Repeated DMA queue ", que->gName());
+                processedQues.insert(que);
+                json jOutQueDesc;
+                jOutQueDesc[Keys::gQueueType()] = "out";
+                if (qUseSemaphore()) {
+                    jOutQueDesc[Keys::gSemId()] = que->gSemaphoreId();
+                }
+                jOutQueDesc[Keys::gOwner()] = gEngineName(que->gEngineId());
+                jDmaQueue[que->gName()]  = jOutQueDesc;
+            }
+        }
+
+        {
+            std::set<const dma::DmaQueue*> outDmaQueues;
+            for (const auto& dmaBlockFromTpb : m_DmaBlocksFromTpb) {
+                if (! dmaBlockFromTpb.qOut()) {
+                    outDmaQueues.insert(dmaBlockFromTpb.gDmaQueue());
+                }
+            }
+            for (auto que : outDmaQueues) {
+                Assert(processedQues.find(que) == processedQues.end(), "Repeated DMA queue ", que->gName());
+                processedQues.insert(que);
+                json jOutQueDesc;
+                jOutQueDesc[Keys::gQueueType()] = "data";
+                if (qUseSemaphore()) {
+                    jOutQueDesc[Keys::gSemId()] = que->gSemaphoreId();
+                }
+                jOutQueDesc[Keys::gOwner()] = gEngineName(que->gEngineId());
+                jDmaQueue[que->gName()]  = jOutQueDesc;
+            }
+        }
+
+        {
+            std::set<const dma::DmaQueue*> dataDmaQueues;
+            for (const auto& dmaBlockToTpb : m_DmaBlocksToTpb) {
+                dataDmaQueues.insert(dmaBlockToTpb.gDmaQueue());
+            }
+            for (auto que : dataDmaQueues) {
+                Assert(processedQues.find(que) == processedQues.end(), "Repeated DMA queue ", que->gName());
+                processedQues.insert(que);
+                json jDataQueDesc;
+                jDataQueDesc[Keys::gQueueType()] = "data";
+                if (qUseSemaphore()) {
+                    jDataQueDesc[Keys::gSemId()] = que->gSemaphoreId();
+                }
+                jDataQueDesc[Keys::gOwner()] = gEngineName(que->gEngineId());
+                if (! que->qFirstQueue()) {
+                    jDataQueDesc[Keys::gAxiPort()] = 1;
+                }
+                jDmaQueue[que->gName()]  = jDataQueDesc;
+            }
+        }
+
+        {
+            std::set<const dma::DmaQueue*> tpbToTpbDmaQueues;
+            for (const auto& dmaBlockTpbToTpb : m_DmaBlocksTpbToTpb) {
+                tpbToTpbDmaQueues.insert(dmaBlockTpbToTpb.gDmaQueue());
+            }
+            for (auto que : tpbToTpbDmaQueues) {
+                Assert(processedQues.find(que) == processedQues.end(), "Repeated DMA queue ", que->gName());
+                processedQues.insert(que);
+                json jTptToTpbQueDesc;
+                jTptToTpbQueDesc[Keys::gQueueType()] = "data";
+                if (qUseSemaphore()) {
+                    jTptToTpbQueDesc[Keys::gSemId()] = que->gSemaphoreId();
+                }
+                jTptToTpbQueDesc[Keys::gOwner()] = gEngineName(que->gEngineId());
+                jTptToTpbQueDesc[Keys::gAxiPort()] = 1;
+                jDmaQueue[que->gName()]  = jTptToTpbQueDesc;
+            }
+        }
+
+        j[Keys::gDmaQueue()] = jDmaQueue;
+    }
+
+}
+
+/**********************************************************************/
 void
 DmaDescription::writeDefinitions(const char* peInstrFileName,
     const char* actInstrFileName, const char* poolInstrFileName)
@@ -543,87 +662,39 @@ DmaDescription::writeDefinitions(const char* peInstrFileName,
         j[instrFileKey] = actInstrFileName;
     }
 
+
     j["host"] = m_HostJsonFileName;
-    {
-        json jDmaQueue;
-        {
-            std::set<const dma::DmaQueue*> dmaQueues;
-            for (const auto& dmaInBlock : m_DmaBlocksInput) {
-                dmaQueues.insert(dmaInBlock.gDmaQueue());
-            }
-            for (auto que : dmaQueues) {
-                json queDesc;
-                queDesc[Keys::gQueueType()] = "in";
-                if (qUseSemaphore()) {
-                    queDesc[Keys::gSemId()] = que->gSemaphoreId();
-                }
-                char buf[512];
-                sprintf(buf, "# %s", Keys::gOwner());
-                queDesc[buf] = gEngineName(que->gEngineId());
-                jDmaQueue[que->gName()]  = queDesc;
-            }
-        }
 
-        {
-            std::set<const dma::DmaQueue*> dmaQueues;
-            for (const auto& dmaBlockFromTpb : m_DmaBlocksFromTpb) {
-                dmaQueues.insert(dmaBlockFromTpb.gDmaQueue());
-            }
-            for (auto que : dmaQueues) {
-                json queDesc;
-                queDesc[Keys::gQueueType()] = "out";
-                if (qUseSemaphore()) {
-                    queDesc[Keys::gSemId()] = que->gSemaphoreId();
-                }
-                queDesc[Keys::gOwner()] = gEngineName(que->gEngineId());
-                jDmaQueue[que->gName()]  = queDesc;
-            }
-        }
+    writeQueDefinitions(j);
+    writeVarDefinitions(j);
 
-        {
-            std::set<const dma::DmaQueue*> dmaQueues;
-            for (const auto& dmaBlockToTpb : m_DmaBlocksToTpb) {
-                dmaQueues.insert(dmaBlockToTpb.gDmaQueue());
-            }
-            for (auto que : dmaQueues) {
-                json queDesc;
-                queDesc[Keys::gQueueType()] = "data";
-                if (qUseSemaphore()) {
-                    queDesc[Keys::gSemId()] = que->gSemaphoreId();
-                }
-                queDesc[Keys::gOwner()] = gEngineName(que->gEngineId());
-                if (! que->qFirstQueue()) {
-                    queDesc[Keys::gAxiPort()] = 1;
-                }
-                jDmaQueue[que->gName()]  = queDesc;
-            }
+    if (false) {
+        auto runtimeEventsJson = json::array();
+        for (uint8_t e = events::EventMgr::EventId_RunTimeFirst(); e <= events::EventMgr::EventId_RunTimeLast(); e++){
+            json e_json = e;
+            runtimeEventsJson.push_back(e_json);
         }
-
-        {
-            std::set<const dma::DmaQueue*> dmaQueues;
-            for (const auto& dmaBlockTpbToTpb : m_DmaBlocksTpbToTpb) {
-                dmaQueues.insert(dmaBlockTpbToTpb.gDmaQueue());
-            }
-            for (auto que : dmaQueues) {
-                json queDesc;
-                queDesc[Keys::gQueueType()] = "data";
-                if (qUseSemaphore()) {
-                    queDesc[Keys::gSemId()] = que->gSemaphoreId();
-                }
-                queDesc[Keys::gOwner()] = gEngineName(que->gEngineId());
-                queDesc[Keys::gAxiPort()] = 1;
-                jDmaQueue[que->gName()]  = queDesc;
-            }
-        }
-
-        j[Keys::gDmaQueue()] = jDmaQueue;
+        j["runtime_events"] = runtimeEventsJson;
     }
 
+    std::ofstream o(m_DefJsonFileName);
+    o << std::setw(4) << j << std::endl;
+}
+
+/**********************************************************************/
+void
+DmaDescription::writeVarDefinitions(json&j)
+{
+    const char varTypeStateBuffer[] = "state-buffer";
+    const char varTypeInput[]       = "input";
+    const char varTypeOutput[]      = "output";
+    const char varTypeWeight[]      = "weight";
+    const char varTypeTmpBuf[]      = "tmp-buf";
     {
         json jVars;
         {
             json varDesc;
-            varDesc[Keys::gDescType()] = "state-buffer";
+            varDesc[Keys::gDescType()] = varTypeStateBuffer;
             jVars[gSymbolicStateBuffer()] = varDesc;
         }
 
@@ -637,8 +708,8 @@ DmaDescription::writeDefinitions(const char* peInstrFileName,
 
                 const FileIdType& fileIdType(kv.second);
                 Assert(fileIdType.m_FileType == FileType::Input, "Must be Input");
-                varDesc[Keys::gHashTransferType()] = "input";
-                varDesc[Keys::gDescType()] = "input";
+                varDesc[Keys::gHashTransferType()] = varTypeInput;
+                varDesc[Keys::gDescType()] = varTypeInput;
                 varDesc[Keys::gSize()] = fileIdType.m_Size;
 
                 if (numInputs > 1) {
@@ -659,20 +730,20 @@ DmaDescription::writeDefinitions(const char* peInstrFileName,
                     Assert(false, "Cannot be Input");
                     break;
                 case FileType::Output:
-                    varDesc[Keys::gHashTransferType()] = "output";
+                    varDesc[Keys::gHashTransferType()] = varTypeOutput;
                     varDesc[Keys::gHashFileName()] = fileIdType.m_FileName;
-                    varDesc[Keys::gDescType()] = "output";
+                    varDesc[Keys::gDescType()] = varTypeOutput;
                     varDesc[Keys::gSize()] = fileIdType.m_Size;
                     break;
                 case FileType::Weight:
-                    varDesc[Keys::gHashTransferType()] = "weight";
+                    varDesc[Keys::gHashTransferType()] = varTypeWeight;
                     varDesc[Keys::gDescType()] = "file";
                     varDesc[Keys::gWeightFileName()] = fileIdType.m_FileName;
                     break;
-                case FileType::LoadSave:
-                    varDesc[Keys::gHashTransferType()] = "load_save";
+                case FileType::TmpBuffer:
+                    varDesc[Keys::gHashTransferType()] = varTypeTmpBuf;
                     varDesc[Keys::gHashFileName()] = fileIdType.m_FileName;
-                    varDesc[Keys::gDescType()] = "output";
+                    varDesc[Keys::gDescType()] = varTypeTmpBuf;
                     varDesc[Keys::gSize()] = fileIdType.m_Size;
                     break;
                 default:
@@ -684,20 +755,7 @@ DmaDescription::writeDefinitions(const char* peInstrFileName,
         }
 
         j["var"] = jVars;
-
-        if (false) {
-            auto runtimeEventsJson = json::array();
-            for (uint8_t e = events::EventMgr::EventId_RunTimeFirst(); e <= events::EventMgr::EventId_RunTimeLast(); e++){
-                json e_json = e;
-                runtimeEventsJson.push_back(e_json);
-            }
-            j["runtime_events"] = runtimeEventsJson;
-        }
-
     }
-
-    std::ofstream o(m_DefJsonFileName);
-    o << std::setw(4) << j << std::endl;
 }
 
 /***********************************************************************
@@ -708,7 +766,7 @@ DmaDescription::writeInOutDescriptors()
     json j;
 
     j[Keys::gJsonName()] = "host_json";
-    std::vector<json> jDmaBlocks;
+    auto jDmaBlocks = json::array();
 
     for (const auto& dmaInBlock : m_DmaBlocksInput) {
         json jDmaBlock;
@@ -720,7 +778,7 @@ DmaDescription::writeInOutDescriptors()
         dmaInBlock.setDmaEventField(jDmaBlock);
 
         const kcc_int32 numInputs = m_InFileNameToId.size();
-        std::vector<json> jDmaDescs;
+        auto jDmaDescs = json::array();
         for (const auto& desc : dmaInBlock.gDescs()) {
             desc.assertAccessCheck();
             json jDmaDesc;

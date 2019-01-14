@@ -91,6 +91,7 @@ public:
     ~Network();
 
     void SplitReplicatedLoads();
+    void MarkTmpLoads();
 
     const std::string& gGitVersion() const {
         return m_GitVersion;

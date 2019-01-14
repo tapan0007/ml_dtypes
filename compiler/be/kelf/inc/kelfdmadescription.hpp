@@ -36,7 +36,7 @@ private:
     enum class FileType {
         Weight,             // files containing weights
         Input,              // files containing IFMAPs
-        LoadSave,           // tmp for data eviction
+        TmpBuffer,          // tmp for data eviction
         Output,             // files for OFMAPs
         Invalid
     };
@@ -110,8 +110,8 @@ public:
     void rInputSizeBytes(kcc_int64 sz, const std::string& refFileName);
 
 
-    void rOutputSizeBytes(kcc_int64 sz, const std::string& refFileName);
-    kcc_int64 gOutputSizeBytes(const std::string& refFileName);
+    void rOutputSizeBytes(kcc_int64 sz, const std::string& refFileName, bool qOut);
+    kcc_int64 gOutputSizeBytes(const std::string& refFileName, bool qOut);
 
     void recordInFile(const std::string& refFileName);
 
@@ -124,6 +124,10 @@ public:
     bool qUseEvents() const {
         return ! qUseSemaphore();
     }
+
+private:
+    void writeQueDefinitions(json&j);
+    void writeVarDefinitions(json&j);
 
 private:
     std::set<ActivationFunc> m_ActivationFuncs;
@@ -233,7 +237,7 @@ public:
     {
         Assert(FileType::Weight == srcFileId.m_FileType
             || FileType::Input == srcFileId.m_FileType
-            || FileType::LoadSave == srcFileId.m_FileType,
+            || FileType::TmpBuffer == srcFileId.m_FileType,
             "Wrong file type of Dma descriptor to TPB");
     }
 
@@ -294,7 +298,7 @@ public:
         , m_DstFileId(dstFileId)
     {
         Assert(FileType::Output == dstFileId.m_FileType
-            || FileType::LoadSave == dstFileId.m_FileType,
+            || FileType::TmpBuffer == dstFileId.m_FileType,
             "Wrong file type of Dma descriptor to TPB");
     }
 

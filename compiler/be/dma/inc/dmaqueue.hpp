@@ -16,6 +16,8 @@ public:
         Weights,
         Output,
         SbufToSbuf,
+        SbufToTmp,
+        TmpToSbuf,
         None
     };
 public:

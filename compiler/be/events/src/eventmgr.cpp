@@ -11,7 +11,7 @@
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/datamovewaveop.hpp"
 #include "wave/inc/sbatomloadwaveop.hpp"
-//#include "wave/inc/sbatomsavewaveop.hpp"
+#include "wave/inc/sbatomsavewaveop.hpp"
 #include "wave/inc/tpbcopywaveop.hpp"
 #include "wave/inc/nopwaveop.hpp"
 
@@ -602,19 +602,30 @@ EventMgr::findQueue(const wave::DataMoveWaveOp* datamoveWaveop, bool firstQueue)
         if (loadWop->qContainWeights()) {
             typ = dma::DmaQueue::QueueType::Weights;
             if (firstQueue) {
-                queName += "InW0";
+                queName += "W0";
             } else {
-                queName += "InW1";
+                queName += "W1";
             }
         } else {
-            typ = dma::DmaQueue::QueueType::Input;
-            queName += "InD";
+            if (! loadWop->qTmpBuffer()) {
+                typ = dma::DmaQueue::QueueType::Input;
+                queName += "In";
+            } else {
+                typ = dma::DmaQueue::QueueType::TmpToSbuf;
+                queName += "R2S";
+            }
         }
     } else if (datamoveWaveop->qSbAtomSaveWaveOp()) {
-        queName += "Out";
-        typ = dma::DmaQueue::QueueType::Output;
+        auto saveWop = dynamic_cast<const wave::SbAtomSaveWaveOp*>(datamoveWaveop);
+        if (saveWop->qTmpBuffer()) {
+            queName += "Out";
+            typ = dma::DmaQueue::QueueType::Output;
+        } else {
+            queName += "S2R";
+            typ = dma::DmaQueue::QueueType::SbufToTmp;
+        }
     } else if (datamoveWaveop->qTpbCopyWaveOp()) {
-        queName += "S2s";
+        queName += "S2S";
         typ = dma::DmaQueue::QueueType::SbufToSbuf;
     } else {
         Assert(false, "DmaQueue is used only for Load, Save, or TpbCopy");

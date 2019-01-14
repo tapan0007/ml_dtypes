@@ -170,6 +170,7 @@ Network::rUseSem(bool useSem)
     m_UseSem = useSem;
 }
 
+//--------------------------------------------------------
 void
 Network::SplitReplicatedLoads()
 {
@@ -177,6 +178,56 @@ Network::SplitReplicatedLoads()
     splitter.SplitReplicatedLoads();
 }
 
+//--------------------------------------------------------
+void
+Network::MarkTmpLoads()
+{
+    // Collect all Ref files that are saved into by some tmp AtomSave
+    std::set<std::string> savedTmpRefFiles;
+    std::set<std::string> loadedTmpRefFiles;
+
+    for (auto waveop : m_WaveOps) {
+        auto saveWop = dynamic_cast<const wave::SbAtomSaveWaveOp*>(waveop);
+        if (! saveWop) {
+            continue;
+        }
+        savedTmpRefFiles.insert(saveWop->gRefFileName());
+    }
+
+    for (auto waveop : m_WaveOps) {
+        auto loadWop = dynamic_cast<wave::SbAtomLoadWaveOp*>(waveop);
+        if (! loadWop) {
+            continue;
+        }
+        loadedTmpRefFiles.insert(loadWop->gRefFileName());
+    }
+
+    for (auto waveop : m_WaveOps) {
+        auto saveWop = dynamic_cast<wave::SbAtomSaveWaveOp*>(waveop);
+        if (! saveWop) {
+            continue;
+        }
+        if (loadedTmpRefFiles.find(saveWop->gRefFileName()) != loadedTmpRefFiles.end()) {
+            saveWop->rTmpBuffer(true);
+            std::cout << "Save " << saveWop->gName() << " marked as tmp_buf\n";
+        } else {
+            std::cout << "Save " << saveWop->gName() << " NOT marked as tmp_buf (i.e. is input)\n";
+        }
+    }
+
+    for (auto waveop : m_WaveOps) {
+        auto loadWop = dynamic_cast<wave::SbAtomLoadWaveOp*>(waveop);
+        if (! loadWop) {
+            continue;
+        }
+        if (savedTmpRefFiles.find(loadWop->gRefFileName()) != savedTmpRefFiles.end()) {
+            loadWop->rTmpBuffer(true);
+            std::cout << "Load " << loadWop->gName() << " marked as tmp_buf\n";
+        } else {
+            std::cout << "Load " << loadWop->gName() << " NOT marked as tmp_buf (i.e. is input)\n";
+        }
+    }
+}
 
 }}
 

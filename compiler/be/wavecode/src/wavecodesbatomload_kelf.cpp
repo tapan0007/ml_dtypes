@@ -104,14 +104,14 @@ WaveCodeSbAtomLoadKelf::generate(wave::WaveOp* waveOp)
     const auto sbAtomLoadWaveop = dynamic_cast<wave::SbAtomLoadWaveOp*>(waveOp);
     assert(sbAtomLoadWaveop);
 
-    const kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
-    calcInputSize(sbAtomLoadWaveop);
+    //const kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
     if (sbAtomLoadWaveop->qContainWeights()) {
         generateForKelf(sbAtomLoadWaveop);
     } else {
-        if (kelfDma.qHasFile(sbAtomLoadWaveop->gRefFileName())) {
+        if (sbAtomLoadWaveop->qTmpBuffer()) {
             generateForKelf(sbAtomLoadWaveop); // intermediate load
         } else {
+            calcInputSize(sbAtomLoadWaveop);
             generateInputDma(sbAtomLoadWaveop);
         }
     }

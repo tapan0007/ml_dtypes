@@ -82,6 +82,13 @@ public:
         return m_RefFileShape;
     }
 
+    bool qTmpBuffer() const {
+        return m_TmpBuffer;
+    }
+    void rTmpBuffer(bool val) {
+        m_TmpBuffer = val;
+    }
+
 protected:
     bool verify() const override;
 
@@ -96,7 +103,9 @@ private:
     kcc_int64       m_PartitionStepBytes= -1;
     std::string     m_RefFileName       = "";
     std::string     m_RefFileFormat     = "";
+    bool            m_TmpBuffer         = false;
     utils::TensorParams::ShapeType m_RefFileShape;
+
 };
 
 
