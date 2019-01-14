@@ -29,7 +29,7 @@ RUN pip3 install --no-cache-dir \
         filelock \
         graphviz \
         keras \
-        numpy \
+        numpy==1.15.4 \
         pillow \
         psutil \
         virtualenv \
