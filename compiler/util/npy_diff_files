@@ -48,6 +48,12 @@ if gold.dtype == '|V2':
 if new.dtype == '|V2':
   new = ConvertBFP16FP32(new)
 
+if gold.shape != new.shape and gold.size == new.size:
+  # Allow exapanded dimensions such as gold NC and new NCHW
+  while len(new.shape) > len(gold.shape):
+    new = np.squeeze(new, axis=len(gold.shape))
+    print('INFO: squeezed new shape to ', new.shape)
+
 if gold.shape != new.shape:
   print("ERROR: shapes differ, gold %s, new %s" %(gold.shape, new.shape))
   if verbose >= 3:
@@ -68,7 +74,7 @@ if gold.shape != new.shape:
       else:
         valDiff = "Unknown"
       print("  %-5d  %12s  %12s    %s" % (i, valG, valN, valDiff))
-        
+
   else:
     print("Use --verbose 3 to see the content anyway")
   exit(2)

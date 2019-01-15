@@ -87,6 +87,10 @@ class NpTrans:
   @staticmethod
   def formatNpyFileAs(npFile, srcFormat, dstFormat, outFile=None, srcShape=None, dstShape=None):
     arr = np.load(npFile)
+    # Support exapanded dimensions, such is in Sealife native format
+    # Eg Array of shape (1, 1000, 1, 1) with srcShape NC gets squeezed into (1, 1000)
+    while len(arr.shape) > len(srcFormat):
+      arr = np.squeeze(arr, axis=len(srcFormat))
     arr = NpTrans.formatNpyArrAs(arr, srcFormat, dstFormat, srcShape=srcShape, dstShape=dstShape)
     if outFile == None:
       npFileDest = npFile.replace(".npy", "_" + dstFormat + ".npy")
