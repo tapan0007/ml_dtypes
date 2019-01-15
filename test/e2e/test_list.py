@@ -34,16 +34,8 @@ transformerEncoderRtIn = 'infer_x:0={0}/images/transformer_x.npy infer_y:0={0}/i
 
 transformerEncoderLen1In = "{0}/images/transformer_x_len1.npy".format(kePath)
 
-#imgList = glob.glob(kePath + "/images/*.JPEG")
-imgList = glob.glob(kePath + "/images/*.jpg") + glob.glob(kePath + "/images/*.jpeg")
-#print("INFO: List of images found in %s/images:"%kePath)
-#for idx, img in enumerate(sorted(imgList)):
-#    print ("INFO: index %d file %s"%(idx, img))
-
 def getBatchedJpgs(batchLevel):
-    #listExtraJpgs = [rnPandaJpg, rnCatJpg, rnKoalaJpg] * ((batchLevel+3)//3)
-    #listExtraJpgs = sorted(imgList)
-    listExtraJpgs = imgList
+    listExtraJpgs = [rnDogJpg, rnCatJpg, rnKoalaJpg, rnPandaJpg, fp16AccJpg] * ((batchLevel+5)//5)
     assert(len(listExtraJpgs) >= batchLevel)
     return ' '.join(tuple(listExtraJpgs[0:batchLevel]))
 
