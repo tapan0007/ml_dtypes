@@ -199,6 +199,33 @@ TEST_ARGS_CHECK_EMU_TESTS = \
 7-rn50_uint8_hcv0_b1_wave \
 8-rn50_nne_fp16_b16_wave
 
+TEST_ARGS_CHECK_EMU_TESTS_TDRAM1 = \
+0-3conv_ba_mult_fp16_wave \
+1-1conv_h3r2same_uint8_perf_wave \
+2-1conv_h71r1c512m256_uint8_perf_wave \
+2-rn50_block1_uint8_perf_b1_wave \
+3-h128r2s1c1m32_wave_repl \
+7-rn50_uint8_perf_hcv0_b1_wave \
+2-wavernn_tf_ts0_w1_h02_cb \
+2-transformer_layer_norm \
+7-inceptionv3_wave_dog_sg00_tpb_upto_concat11 \
+4-ptb_word_small_sigmoid_fp16_b32_wave \
+5-rn50_nne_to_act13_wave-repl \
+6-rn50_nne_to_act37_wave-repl \
+7-rn50_nne_bfloat16_wave \
+7-rn50_nne_fp16_b4_wave \
+7-rn50_nne_fp16_wave \
+7-rn50_nne_fp16_wave-no_repl \
+6-parwavenet_10_fp16_in_to_add12_wave \
+6-parwavenet_10_fp16_in_to_add15_wave \
+6-parwavenet_10_fp16_in_to_add18_wave \
+6-parwavenet_10_fp16_in_to_add22_wave \
+7-amoebanet_fp16_cell0 \
+7-amoebanet_fp16_cell1 \
+7-amoebanet_fp16_cell2 \
+7-amoebanet_fp16_cell3 \
+8-rn50_nne_fp16_b16_wave
+
 TEST_ARGS_CHECK_EMU_TESTS_EXTRA = \
 5-inceptionv3_wave_dog_sg00_tpb_upto_concat1 \
 5-inceptionv3_wave_dog_sg00_tpb_upto_concat2 \
@@ -250,6 +277,9 @@ check_level7:
 
 check_emu:
 	${KAENA_PATH}/test/e2e/RunAll ${TEST_ARGS_CHECK_EMU} ${TEST_ARGS_CHECK_EMU_TESTS}
+
+check_emu_tdram1:
+	${KAENA_PATH}/test/e2e/RunAll ${TEST_ARGS_CHECK_EMU} ${TEST_ARGS_CHECK_EMU_TESTS_TDRAM1}
 
 check_emu_weekend:
 	${KAENA_PATH}/test/e2e/RunAll ${TEST_ARGS_CHECK_EMU} ${TEST_ARGS_CHECK_EMU_TESTS} ${TEST_ARGS_CHECK_EMU_TESTS_EXTRA}
