@@ -57,6 +57,7 @@ WaveCodeSbAtomSaveSim::generateForSim(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop)
         npyFileInfo.m_FileDramOffset = npyFileDramOffset;
         npyFileInfo.m_SimTypeId = sbAtomSaveWaveop->gDataType().gSimTypeId();
         npyFileInfo.m_RefFileShape = sbAtomSaveWaveop->gRefFileShape();
+        npyFileInfo.m_RefFileFormat = sbAtomSaveWaveop->gRefFileFormat();
         m_WaveCode.recordDramForNpyFile(sbAtomSaveWaveop->gRefFileName(), npyFileInfo);
     }
 

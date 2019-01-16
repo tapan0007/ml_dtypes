@@ -311,7 +311,7 @@ WaveCode::saveAllNpyFiles ()
         strcpy(simDramToNpyInstr.dst_fname, (*it).first.c_str());
         const NpyFileInfo& npyFileInfo((*it).second);
         AssignWithSizeCheck(simDramToNpyInstr.src_addr, npyFileInfo.m_FileDramOffset);
-        AssignWithSizeCheck(simDramToNpyInstr.dst_ndims, 4);
+        AssignWithSizeCheck(simDramToNpyInstr.dst_ndims, npyFileInfo.m_RefFileFormat.size());
         for (int i = 0; i < simDramToNpyInstr.dst_ndims; ++i) {
             AssignWithSizeCheck(simDramToNpyInstr.dst_dims[i], npyFileInfo.m_RefFileShape[i]);
         }

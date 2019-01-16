@@ -324,7 +324,8 @@ Network::Save::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
     serWaveOp.m_RefFile = sbatomWaveOp->gRefFileName();
     KCC_SERIALIZE(RefFileFormat);
     const utils::TensorParams::ShapeType& refFileShape(sbatomWaveOp->gRefFileShape());
-    for (unsigned int shapeIdx = 0; shapeIdx < refFileShape.size(); ++shapeIdx) {
+    serWaveOp.m_RefFileShape.resize(sbatomWaveOp->gRefFileFormat().size());
+    for (unsigned int shapeIdx = 0; shapeIdx < sbatomWaveOp->gRefFileFormat().size(); ++shapeIdx) {
         serWaveOp.m_RefFileShape[shapeIdx] = refFileShape[shapeIdx];
     }
 #undef WAVE_OP

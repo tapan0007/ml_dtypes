@@ -69,6 +69,7 @@ public:
         bool                        m_Dirty             = false;
         TONGA_ISA_TPB_DTYPE         m_SimTypeId         = TONGA_ISA_TPB_DTYPE_INVALID;
         utils::TensorParams::ShapeType    m_RefFileShape;
+        std::string                 m_RefFileFormat;
     };
 public:
 

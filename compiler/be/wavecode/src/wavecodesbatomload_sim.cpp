@@ -97,6 +97,7 @@ WaveCodeSbAtomLoadSim::generateForSimNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWa
         npyFileInfo.m_FileDramOffset = npyFileDramOffset;
         npyFileInfo.m_SimTypeId = sbAtomLoadWaveop->gDataType().gSimTypeId();
         npyFileInfo.m_RefFileShape = sbAtomLoadWaveop->gRefFileShape();
+        npyFileInfo.m_RefFileFormat = sbAtomLoadWaveop->gRefFileFormat();
         m_WaveCode.recordDramForNpyFile(sbAtomLoadWaveop->gRefFileName(), npyFileInfo);
     }
 
@@ -221,6 +222,7 @@ WaveCodeSbAtomLoadSim::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoad
         npyFileInfo.m_FileDramOffset = npyFileDramOffset;
         npyFileInfo.m_SimTypeId = dtype.gSimTypeId();
         npyFileInfo.m_RefFileShape = sbAtomLoadWaveop->gRefFileShape();
+        npyFileInfo.m_RefFileFormat = sbAtomLoadWaveop->gRefFileFormat();
         m_WaveCode.recordDramForNpyFile(refFileName, npyFileInfo);
     }
 
