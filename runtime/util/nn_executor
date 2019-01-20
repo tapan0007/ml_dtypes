@@ -222,6 +222,10 @@ class NnSubgraph:
       if self.parallel_streams:
         cmd += " --parallel_streams"
       cmd += ' --inkling_debugflags %s' % " ".join(args.inkling_debugflags)
+    elif executor == 'wavesim':
+      self.linkConsts()
+      self.createTpbFormatInputs()
+      cmd = "%s/starfish/bin/wavegrind --mode simulation ../%s/wavegraph.json --ref=none --cwd=." % (aws_tonga_src_path, self.sgDir)
     elif 'qemu' in executor:
       self.linkConsts()
       ifmapFiles = self.createTpbFormatInputs()
@@ -269,14 +273,16 @@ class NnSubgraph:
     print("\n", getInfoDateStr(), " executing %s" % cmd, flush=True)
     ret = os.system(cmd)
     if ret != 0:
-      print("\nERROR: command  %s  returned non-zero exit code" % cmd, flush=True)
+      print("\nERROR: command  %s  returned non-zero exit code %d" % (cmd, ret), flush=True)
       return ret
+    else:
+      print("Info: command %s finished" % cmd)
 
 
     # Translate TPB format back to TF format.
     isWaveopt = (executor == "waveopt" or executor == "waveopt2")
     isQemu = 'qemu' in executor
-    if (executor == "tcc" or  executor == "wave" or isQemu or isWaveopt) and len(self.outputs) > 0:
+    if (executor == "tcc" or  executor == "wave" or executor == "wavesim" or isQemu or isWaveopt) and len(self.outputs) > 0:
       for jsonOutput in self.outputs:
         outNodeName, outFileRaw, outShape = [jsonOutput[k] for k in ['name', 'file', 'shape']]
         tff = self.tensorFormatMap.get(outNodeName)
