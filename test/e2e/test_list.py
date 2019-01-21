@@ -75,6 +75,9 @@ def MEv2(optstr):
         test_options.append("--" + i)
     return " --show_op_name_in_kgraph --scheduler %s --schedule_options \' %s \' %s "%(sched_type, " ".join(sched_options), " ".join(tffe_options))
 
+def WaveSim():
+  return " --nn-executor wavesim " 
+
 TFFE_OPTION_IDX = 3
 NNE_OPTION_IDX = 4
 
@@ -307,7 +310,7 @@ testConfigMap = {
   "0-1conv_h4_softplus_wave" : [ "trivnet_lin",    "tfloat16-l2-b1-h4-r1-s1-c1-m1-softplus-wmin-0.2-wmax0.4-imin-1-imax1.2", "10cr", MEv2("Generic")],
   "0-1conv_h4_sigmoid_wave" : [ "trivnet_lin",    "tfloat16-l2-b1-h4-r1-s1-c1-m1-sigmoid-wmin-0.2-wmax0.4-imin-1000-imax1010", "10cr", MEv2("Generic")],
   "0-116conv_tanh_wave" : [ "trivnet_lin",   "tfloat16-l116-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "116ct", MEv2("Generic")],
-
+  "0-116conv_tanh_wavesim" : [ "trivnet_lin",   "tfloat16-l116-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "116ct", WaveSim() + MEv2("Generic")],
   "0-116conv_tanh_sem_qemu_wave" : [ "trivnet_lin",   "tfloat16-l116-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "116ct",
       ( "--scheduler qemu_wave2 "
       + " --schedule_options ' --nname=generic ' "
@@ -471,7 +474,7 @@ testConfigMap = {
 
   "3-1conv0_padvalid_wave" : [ "trivnet_conv1_padvalid",  "tfloat16-b1-h230-r7-s2-c3-m64-wmin-2-wmax2.2-imin-3-imax3.2", "1conv", MEv2("Generic")],
   "3-1conv0_h298_wave" : [ "trivnet_conv1",  "tfloat16-b1-h298-r3-s2-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv", MEv2("Generic")],
-
+  "3-1conv0_h298_wavesim" : [ "trivnet_conv1",  "tfloat16-b1-h298-r3-s2-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv", WaveSim() + MEv2("Generic")],
   # Sprint9 Story 1 milestone - all resnet50 float32 Conv2D layers as unit test
   # The 00 is just for testing the regression harness
   "3-rn50-t00_fp32_wave" : [ "trivnet_conv1",  "tfloat32-b1-h1-r1-s1-c1-m1-wmin-1-wmax1.1-imin-3-imax3.2",       "1conv", MEv2("Generic")],

@@ -620,7 +620,8 @@ class Ktests:
       if ("trivnet" in nnStruct or "ckpt" in nnStruct) and "--input_files" not in rtArgs:
           rtArgs += " --input_files %s " % default_image # default if none..
       if args.force_wavesim:
-        nnArgs += " --nn-executor wavesim "
+        if " --nn-executor wavesim " not in nnArgs:
+          nnArgs += " --nn-executor wavesim "
 
       rtArgs += ' --inkling_debugflags "%s"' % inklingArgs # add passed inkling args to rt Args
       mtMultiplier = 32
