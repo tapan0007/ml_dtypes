@@ -79,6 +79,7 @@ parser.add_argument('--force_qemu', help='Apply additional --filter and various 
                     'tests with \"fp32\", \"waveopt\", \"fast_dram\", \"two_banks\", and \"host\" are filtered out. '
                     'Due to qemu reliability issues the --parallel is limited to 16 and 30 sec spacing added between jobs', action='store_true', default=False)
 parser.add_argument('--sealife', help='Use sealife compiler instead of kcc', action='store_true', default=False)
+parser.add_argument('--force_wavesim', help='Use wavegraph simulator as nn_executor backend', action='store_true', default=False)
 parser.add_argument('--waive', help='Additional test to waive', nargs='+', default=[])
 parser.add_argument('--cached_kelf', help='Instead of compiling copy test dir from here/test_name and run inference. It can be unix path, ssh URL or s3 URL. Also triggers additional comparison with tensors computed by the cached run, and qor TopEffs comparison.', default=None)
 parser.add_argument('--be_options', help='Additional BE options without "--" prefix', nargs='+', default=[])
@@ -618,6 +619,8 @@ class Ktests:
           nnArgs += " --images %s " % default_image # default if none..
       if ("trivnet" in nnStruct or "ckpt" in nnStruct) and "--input_files" not in rtArgs:
           rtArgs += " --input_files %s " % default_image # default if none..
+      if args.force_wavesim:
+        nnArgs += " --nn-executor wavesim "
 
       rtArgs += ' --inkling_debugflags "%s"' % inklingArgs # add passed inkling args to rt Args
       mtMultiplier = 32
