@@ -199,6 +199,10 @@ def selectTests(testConfigMap, testWaiver, argLevel, argTest,
       isWaived = calcIsWaived(testName, testWaiver)
       if not re.search(r'waveopt|host|fp32|fast_dram|two_banks', testName):
         testListFiltered.append(testName)
+  if not args.sealife:
+    testsPreCustom = testListFiltered
+    testListFiltered = [test for test in testsPreCustom if 'wavesim' not in test]
+    
   # Remove duplicates
   testListFinal = sorted(list(set(testListFiltered)))
   return testListFinal
