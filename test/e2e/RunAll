@@ -303,7 +303,7 @@ class QoR:
               sgCycles, sgElapsedTimeSec = QoR.traceGetCycles(filepath)
               self.cycles += sgCycles
               self.elapsedTimeSec += sgElapsedTimeSec
-            elif re.match(r'log-exec-sg\d+-(wave|tcc)', file):
+            elif re.match(r'log-exec-(sg\d+|\.)-(wave|tcc)', file):
               sgCycles, sgElapsedTimeSec = QoR.simLogGetCycles(filepath)
               self.cycles += sgCycles
               self.elapsedTimeSec += sgElapsedTimeSec
@@ -1196,7 +1196,9 @@ else:
   if plotQor:
     keyDesigns = ['7-rn50_nne_fp16_wave', '7-rn50_nne_fp16_b4_wave', '8-rn50_nne_fp16_b16_wave', '7-rn50_nne_fp16_wave-two_banks', '7-rn50_nne_fp16_b4_wave-two_banks', '8-rn50_nne_fp16_b16_wave-two_banks']
     keyDesignsHistory = keyDesigns + ['7-rn50_nne_fp16_wave-fast_dram', '7-rn50_nne_fp16_b4_wave-fast_dram', '8-rn50_nne_fp16_b16_wave-fast_dram']
-    #keyDesignsHistory = ['7-rn50_nne_fp16_wave']
+    if args.sealife:
+      keyDesigns = ['7-rn50_single_sg_nofc_fp16', '7-rn50_single_sg_nosm_fp16']
+      keyDesignsHistory = keyDesigns
     tests.plotTops("qor_tops_raw.svg", 0.1, 16, {100 : 'lightgreen', 75 : 'gold', 60 : 'orange'}, keyDesigns)
     tests.plotTops("qor_tops_effective.svg", 0.1, 16, {100 : 'lightgreen', 75 : 'gold', 60 : 'orange'}, keyDesigns, padded=True)
     tests.plotInf("qor_inf.svg", 1e9, 0, 5000, keyDesigns)
