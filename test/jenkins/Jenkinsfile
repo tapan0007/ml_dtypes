@@ -251,7 +251,7 @@ pipeline{
                     steps {
                         catchError {
                             sh '''
-                            cd $TEST_DIR/test_inst_sweep && export KRT_INST_SWEEP_TEST_DIR=$KRT_BLD_DIR/tests/inst-sweep/ && export KRT_INST_SWEEP_OUTPUT_DIR=$TEST_DIR/test_inst_sweep && export KAENA_QEMU_POOL=$QEMU_POOL && pytest $KAENA_RT_PATH/tests/inst-sweep/inst-sweep.py --junitxml=pytestResult.xml -k "Softmax or QuantMatmul8DR or ActLeaky" 2>&1 | tee log-pytest.txt
+                            cd $TEST_DIR/test_inst_sweep && export KRT_INST_SWEEP_TEST_DIR=$KRT_BLD_DIR/tests/inst-sweep/ && export KRT_INST_SWEEP_OUTPUT_DIR=$TEST_DIR/test_inst_sweep && export KAENA_QEMU_POOL=$QEMU_POOL && pytest $KAENA_RT_PATH/tests/inst-sweep/inst-sweep.py --junitxml=pytestResult.xml -k "Softmax or QuantMatmul8DR or ActLeaky or PseudoDmaMemcpy" 2>&1 | tee log-pytest.txt
                             '''
                         }
                     }
