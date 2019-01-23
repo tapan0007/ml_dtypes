@@ -95,9 +95,10 @@ def is_sb_addr_in_bound(sb_addr, start_sb_addr, end_sb_addr):
  - for num_to_split>2: split W columns into multiple HWi, where HWi includes i columns, i = column idx % num_to_split
  - (kaena-593: for replication, round width to nearest 4 elements, to align to 8B and prevent bubbles in IFMAP stream)
 """ 
-def pad_and_split_file(file_to_split, file_format, num_to_split, pad_west, pad_east, pad_north, pad_south):
+def pad_and_split_file(file_to_split, file_format, num_to_split, pad_west, pad_east, pad_north, pad_south, pad_const=0):
     assert(file_format == "NCHW" or file_format == "NHWC")
     dram_data = np.load(file_to_split)
+    pad_const = np.array(pad_const).astype(dram_data.dtype)
     if file_format == "NHWC":
         dram_data = np.transpose(dram_data, (0,3,1,2))
     N, C, H, W = dram_data.shape
@@ -105,6 +106,8 @@ def pad_and_split_file(file_to_split, file_format, num_to_split, pad_west, pad_e
     new_width = W + pad_west + pad_east
     # kaena-593: for replication, round width to nearest 4 elements, to align to 8B and prevent bubbles in IFMAP stream
     multiple = num_to_split * 4 // math.gcd(num_to_split, 4)
+    if dram_data.dtype == np.uint8:
+        multiple = num_to_split * 8 // math.gcd(num_to_split, 8)
     new_width = ceildiv(new_width, multiple) * multiple
     new_pad_east = new_width - (W + pad_west)
     new_height = H + pad_north + pad_south
@@ -115,7 +118,7 @@ def pad_and_split_file(file_to_split, file_format, num_to_split, pad_west, pad_e
         for c in range(C):
             #print("original channel %d:"%c)
             #print(dram_data[n,c,:])
-            new_hw_padded = np.pad(dram_data[n,c,:], ((pad_north, pad_south), (pad_west, new_pad_east)), 'constant')
+            new_hw_padded = np.pad(dram_data[n,c,:], ((pad_north, pad_south), (pad_west, new_pad_east)), 'constant', constant_values=pad_const)
             new_hw_split = []
             for i in range(num_to_split):
                 # split even/odd elements in each row
@@ -128,7 +131,7 @@ def pad_and_split_file(file_to_split, file_format, num_to_split, pad_west, pad_e
             new_dram_data[n, c, :] = np.concatenate(new_hw_split, 0)
             #print("all frames channel %d:"%c)
             #print(new_dram_data[n, c, :])
-    new_file = file_to_split.replace(".npy", "_padsplit_stride%d_n%d_s%d_w%d_e%d.npy"%(num_to_split, pad_north, pad_south, pad_west, pad_east))
+    new_file = file_to_split.replace(".npy", "_padsplit_stride%d_n%d_s%d_w%d_e%d_pc%d.npy"%(num_to_split, pad_north, pad_south, pad_west, pad_east, int(pad_const)))
     try:
         np.save(new_file, new_dram_data)
     except:

@@ -229,7 +229,7 @@ class TPBSched:
                     i.is_input = True
                     #if i.is_nop:
                     #    raise RuntimeError("Sorry, cannot have a data movement op (Reshape, Squeeze, ExpandDims) as the first node after placeholder")
-                    if (i.data['layer_type'] == 'Conv' or i.data['layer_type'] == 'MatMul' or i.data['layer_type'] == 'Softmax2'):
+                    if i.data['layer_type'] in {'Conv', 'QuantizedConv', 'MatMul', 'Softmax2'}:
                         # We support matmul with the non-constant second operand.
                         # Fixme: resiude_index is not set before entering populate_common_params..
                         skip_conv_populate = False
@@ -245,12 +245,14 @@ class TPBSched:
                             i.populate_common_params(False)
                             # IFMAP replication
                             if i.repl_multiple_of_C > 1 and not i.ifmaps_padded_and_split:
+                                pad_const = i.data['zero_point_input'] if 'zero_point_input' in i.data else 0
                                 (file_name, new_shape) = pad_and_split_file(
                                                             first_op.data['ref_file'], 
                                                             first_op.data['ofmap_format'],
                                                             i.stride.x,
                                                             i.padWN.x, i.padES.x,
-                                                            i.padWN.y, i.padES.y)
+                                                            i.padWN.y, i.padES.y,
+                                                            pad_const=pad_const)
                                 first_op.data['ref_file'] = file_name
                                 # fake the shape to make convolution work
                                 [N, C, H, W] = new_shape

@@ -38,6 +38,13 @@ def mem_pattern_uint8_perf(conv_op, instr, ifmap_tile_dim2d):
     return instr
 
 def reorder_waveops_uint8_perf(conv_op, waveop_list):
+    need_reorder = False
+    for waveop in waveop_list:
+        if 'pe_perf_opt_mode' in waveop and waveop['pe_perf_opt_mode'] != 'none':
+            need_reorder = True
+            break
+    if not need_reorder:
+        return waveop_list
     # need to reorder uint8 matmul's for convolution if performance mode is on
     padding_diff = conv_op.padES - conv_op.padWN
     padding_condition = padding_diff.x in {0, 1} and padding_diff.y in {0, 1}

@@ -152,17 +152,18 @@ class NnSubgraph:
           if len(tpbInpPadSplitFileList) > 1:
               print("WARNING: more than one pad/split file found; using the first one to obtain pad/split parameters.")
           assert(inputFormatSim == "NCHW" or inputFormatSim == "NHWC")
-          m = re.search(r"padsplit_stride(\d)_n(\d)_s(\d)_w(\d)_e(\d)", tpbInpPadSplitFileList[0])
+          m = re.search(r"padsplit_stride(\d)_n(\d)_s(\d)_w(\d)_e(\d)_pc(\d)", tpbInpPadSplitFileList[0])
           if m:
               stride = int(m.group(1))
               padN = int(m.group(2))
               padS = int(m.group(3))
               padW = int(m.group(4))
               padE = int(m.group(5))
+              padConst = int(m.group(6))
           else:
               raise RuntimeError("Cannot extract pad/split parameters from file name %s"%tpbInpPadSplitFileList[0])
-          cmd = "%s/compiler/util/padsplit_npy_for_repl.py --input_file %s --format %s --stride %d --padding=\"[ [0,0], [0,0], [%d,%d], [%d,%d] ]\"" % (
-                  kPath, tpbInpFile, inputFormatSim, stride, padN, padS, padW, padE)
+          cmd = "%s/compiler/util/padsplit_npy_for_repl.py --input_file %s --format %s --stride %d --padding=\"[ [0,0], [0,0], [%d,%d], [%d,%d] ]\" --pad_const %d" % (
+                  kPath, tpbInpFile, inputFormatSim, stride, padN, padS, padW, padE, padConst)
           print("INFO: executing %s" % cmd, flush=True)
           ret = os.system(cmd)
           if ret != 0:

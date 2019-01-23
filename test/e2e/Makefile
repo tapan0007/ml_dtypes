@@ -126,6 +126,7 @@ TEST_ARGS_CHECK = --timeout 900 --test \
 0-1conv_uint8_wave \
 0-1conv1ba1relu_b1h1r1s1c1m1_uint8_wave \
 0-1conv_h10r1_uint8_perf_wave \
+3-1conv_h10r7c3m64valid_wave_repl \
 
 # Tests that will be run on emulator. These tests are run to check if RTL is fine.
 # Using parallel 1 till we figure out the lock issue
@@ -148,7 +149,9 @@ TEST_ARGS_CHECK_EMU_TESTS = \
 2-rn50_block16_uint8_perf_b1_wave \
 2-rn50_block1_uint8_perf_b1_wave \
 3-h128r2s1c1m32_wave_repl \
+3-rn50_block0_uint8_b1_wave_repl \
 7-rn50_uint8_perf_hcv0_b1_wave \
+7-rn50_uint8_perf_hcv0_b1_wave_repl \
 0-3conv_ba_mult_fp16_wave \
 0-1maxpool_wave_h71c192m192k3d2_valid \
 0-rtl-act_tanh_minisweep_wave \
@@ -188,6 +191,7 @@ TEST_ARGS_CHECK_EMU_TESTS_TDRAM1 = \
 2-rn50_block1_uint8_perf_b1_wave \
 3-h128r2s1c1m32_wave_repl \
 7-rn50_uint8_perf_hcv0_b1_wave \
+7-rn50_uint8_perf_hcv0_b1_wave_repl \
 2-wavernn_tf_ts0_w1_h02_cb \
 2-transformer_layer_norm \
 7-inceptionv3_wave_dog_sg00_tpb_upto_concat11 \

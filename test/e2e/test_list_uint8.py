@@ -39,6 +39,12 @@ def options_uint8_perf_loose(module, harness, net_name, rt_option=""):
         "--partition from_multi '%s/output' " % (net_name))
     return module, harness, net_name, tffe_options, rt_option
 
+def options_uint8_repl_strict(module, harness, net_name):
+    tffe_options = ("--executors wave 1 host 0 2 --scheduler wave2 "
+        "--schedule_options ' --nname=generic --enable_replication --no_verify ' " # me options
+        "--partition from_multi '%s/quantized_conv2d' '%s/output' " % (net_name, net_name))
+    return module, harness, net_name, tffe_options, RT_STRICT_OPTION
+
 testConfigMap = {
     # Need rather high tolerance for now since TensorFlow's quantize/dequantize
     # operators are different than ours
@@ -290,6 +296,37 @@ testConfigMap = {
         "%s --executors wave 1 host 0 2 --scheduler wave2 "
         "--waive_wavegraph_check "
         "--schedule_options ' --nname=generic --no_verify --uint8_performance_mode ' " # me options
+        "--input_node input --images %s "
+        "--partition from_multi 'conv1/quantized_conv2d' 'output' " % (rnPreFp32, rnDogJpg),
+        "--input_files %s" % rnDogJpg,
+        ],
+
+    # replication tests
+    "3-1conv_h10r7c3m64valid_wave_repl":        options_uint8_repl_strict(
+        "trivnet_conv_ba_relu_pool_uint8",
+        "tuint8-b1-h10-r7-s2-c3-m64-valid-imin-3-imax4-wmin-1-wmax2",
+        "conv_uint8"),
+    "3-1conv_h224r7c3m64valid_wave_repl":       options_uint8_repl_strict(
+        "trivnet_conv_ba_relu_pool_uint8",
+        "tuint8-b1-h224-r7-s2-c3-m64-valid-imin-3-imax4-wmin-1-wmax2",
+        "conv_uint8"),
+    "3-rn50_block0_uint8_b1_wave_repl":         options_uint8_repl_strict(
+        "trivnet_conv_ba_relu_pool_uint8",
+        "tuint8-b1-h224-r7-s2-c3-m64-imin0-imax1-wmin-0.03-wmax0.03-amin-0.1-amax0.1-same-maxpool-k3-d2-hasba1-hasrelu1-haspool1-quantizeback1-rqmin0-rqmax1",
+        "rn50_block0_uint8"),
+    "7-rn50_uint8_hcv0_b1_wave_repl": [
+        "tf_s3", "s3://kaena-nn-models", "resnet50_uint8_hcv0.pb",
+        "%s --executors wave 1 host 0 2 --scheduler wave2 "
+        "--schedule_options ' --nname=generic --enable_replication --no_verify ' " # me options
+        "--input_node input --images %s "
+        "--partition from_multi 'conv1/quantized_conv2d' 'output' " % (rnPreFp32, rnDogJpg),
+        "--input_files %s" % rnDogJpg,
+        ],
+    "7-rn50_uint8_perf_hcv0_b1_wave_repl": [
+        "tf_s3", "s3://kaena-nn-models", "resnet50_uint8_hcv0.pb",
+        "%s --executors wave 1 host 0 2 --scheduler wave2 "
+        "--waive_wavegraph_check "
+        "--schedule_options ' --nname=generic --enable_replication --uint8_performance_mode --no_verify ' " # me options
         "--input_node input --images %s "
         "--partition from_multi 'conv1/quantized_conv2d' 'output' " % (rnPreFp32, rnDogJpg),
         "--input_files %s" % rnDogJpg,

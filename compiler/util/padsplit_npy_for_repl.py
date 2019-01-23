@@ -12,6 +12,7 @@ if __name__ == "__main__":
     parser.add_argument("--format", default="NHWC", help="Format of input file. Currently, only NCHW or NHWC format supported.")
     parser.add_argument("--stride", type=int, default=2, help="Stride value of the convolution requiring replication.")
     parser.add_argument("--padding", default="[ [ 0, 0 ], [ 0, 0 ], [ 2, 3 ], [ 2, 3 ] ]", help="Padding info from compiler.json, expressed as a string; i.e. \"[ [ 0, 0 ], [ 0, 0 ], [ 2, 3 ], [ 2, 3 ] ]\"")
+    parser.add_argument("--pad_const", type=int, default=0, help="Padding constant.")
     args = parser.parse_args()
 
     if args.format != "NCHW" and args.format != "NHWC":
@@ -37,4 +38,5 @@ if __name__ == "__main__":
                                 args.format,
                                 args.stride,
                                 padW, padE,
-                                padN, padS)
+                                padN, padS,
+                                pad_const=args.pad_const)

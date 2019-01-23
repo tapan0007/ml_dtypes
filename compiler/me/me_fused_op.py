@@ -1344,7 +1344,7 @@ class FusedOp(list):
                   'pe_perf_opt_mode'        : 'none',
             }
             # uint8 performance mode adjustments
-            if self.args.uint8_performance_mode and in_dtype == 'uint8':
+            if self.args.uint8_performance_mode and in_dtype == 'uint8' and repl_multiple_of_C <= 1:
                 instr = mem_pattern_uint8_perf(self.conv_op, instr, ifmap_pewave.tile.tile_rect.dim2d)
             matmul_waveop.append(instr)
             start_tensor_calc = False   # this is only true for the first MatMul, even when there's a break
@@ -2153,6 +2153,9 @@ class FusedOp(list):
             sb_dtype=op.ifmaps_file_params.data_type)
         ofmap_subtile.set_waveop_pattern(mapper, waveop, 'dst', dst_psum_bank, dst_sb_address, start_at_mid_part,
             sb_dtype=op.ofmaps_file_params.data_type)
+        if self.conv_op is not None and self.conv_op.repl_multiple_of_C > 1:
+            # Kaena-593: ensure no bubble during IFMAP streaming (packed pattern)
+            waveop['src_y_step'] = self.conv_op.W // self.conv_op.stride.x
         waveop_stream.add_linked(waveop, dram_waveops, src_psum_bank, new_reader_morsels)
         return waveop
         
