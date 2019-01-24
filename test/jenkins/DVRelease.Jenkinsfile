@@ -36,10 +36,10 @@ pipeline {
             }
             post {
                 success {
-                    sh 'cp $KRT_DV_BLD_DIR/krt-*.*-dv-hal.tar.gz /artifact/'
-                    archiveArtifacts artifacts:'krt-*.*-dv-hal.tar.gz'
+                    sh 'cp $KRT_DV_BLD_DIR/krt-*-dv-hal.tar.gz /artifact/'
+                    archiveArtifacts artifacts:'krt-*-dv-hal.tar.gz'
                     sh 'chown 506:505 /artifact/*.*'
-                    stash includes: 'krt-*.*-dv-hal.tar.gz', name: 'krt_dv_package'
+                    stash includes: 'krt-*-dv-hal.tar.gz', name: 'krt_dv_package'
 
                     node ('tonga-nodocker'){
                         script {

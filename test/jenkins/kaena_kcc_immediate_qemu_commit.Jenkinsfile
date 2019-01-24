@@ -110,10 +110,10 @@ pipeline{
             }
             post {
                 success {
-                    sh 'cp $KRT_BLD_DIR/krt-*.*.tar.gz /artifact/'
-                    sh 'cp $KRT_DV_BLD_DIR/krt-*.*.tar.gz /artifact/'
-                    sh 'cp $KRT_EMU_BLD_DIR/krt-*.*.tar.gz /artifact/'
-                    archiveArtifacts artifacts:'krt-*.*.tar.gz'
+                    sh 'cp $KRT_BLD_DIR/krt-*-*-*.tar.gz /artifact/'
+                    sh 'cp $KRT_DV_BLD_DIR/krt-*-*-*.tar.gz /artifact/'
+                    sh 'cp $KRT_EMU_BLD_DIR/krt-*-*-*.tar.gz /artifact/'
+                    archiveArtifacts artifacts:'krt-*-*-*.tar.gz'
                 }
             }
         }

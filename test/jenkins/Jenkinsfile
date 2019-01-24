@@ -106,10 +106,10 @@ pipeline{
                     }
                     post {
                         success {
-                            sh 'cp $KRT_BLD_DIR/krt-*.*.tar.gz /artifact/'
-                            sh 'cp $KRT_DV_BLD_DIR/krt-*.*.tar.gz /artifact/'
-                            sh 'cp $KRT_EMU_BLD_DIR/krt-*.*.tar.gz /artifact/'
-                            archiveArtifacts artifacts:'krt-*.*.tar.gz'
+                            sh 'cp $KRT_BLD_DIR/krt-*-*-*.tar.gz /artifact/'
+                            sh 'cp $KRT_DV_BLD_DIR/krt-*-*-*.tar.gz /artifact/'
+                            sh 'cp $KRT_EMU_BLD_DIR/krt-*-*-*.tar.gz /artifact/'
+                            archiveArtifacts artifacts:'krt-*-*-*.tar.gz'
 
                             sh 'for f in `ls $KAENA_BLD_DIR/*.tar.gz`; do aws s3 --profile kaena cp $f s3://kaena-release-bucket/$BUILD_TAG/; done'
                             sh 'aws s3 --profile kaena ls --recursive --human-readable s3://kaena-release-bucket/$BUILD_TAG/ > /artifact/files_uploaded.txt'

@@ -843,7 +843,7 @@ class Krtd():
     runtimSrcPath = os.environ["KAENA_RT_PATH"]
     if not os.path.isdir(runtimSrcPath):
       raise ValueError("ERROR: missing runtime src at %s" % runtimSrcPath)
-    krtPkgPattern = 'krt-*.*-*-core.tar.gz'
+    krtPkgPattern = 'krt-*-*-core.tar.gz'
     krtPackages = glob.glob(os.path.join(krtBldPath, krtPkgPattern))
     if len(krtPackages) != 1:
       raise ValueError("ERROR: Found {} runtime packages at {}".format(len(krtPackages), krtBldPath))
@@ -966,7 +966,7 @@ class Krtd():
     runtimSrcPath = os.environ["KAENA_RT_PATH"]
     if not os.path.isdir(runtimSrcPath):
       raise ValueError("ERROR: missing runtime src at %s" % runtimSrcPath)
-    krtPkgPattern = 'krt-*.*-*-core.tar.gz'
+    krtPkgPattern = 'krt-*-*-core.tar.gz'
     krtPackages = glob.glob(os.path.join(krtBldPath, krtPkgPattern))
 
     if len(krtPackages) != 1:
