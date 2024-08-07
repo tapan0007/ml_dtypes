@@ -30,6 +30,7 @@ __all__ = [
 from typing import Type
 
 from ml_dtypes._custom_floats import bfloat16
+from ml_dtypes._custom_floats import float8_e4m3
 from ml_dtypes._custom_floats import float8_e4m3b11fnuz
 from ml_dtypes._custom_floats import float8_e4m3fn
 from ml_dtypes._custom_floats import float8_e4m3fnuz
@@ -43,6 +44,7 @@ from ml_dtypes._iinfo import iinfo
 import numpy as np
 
 bfloat16: Type[np.generic]
+float8_e4m3: Type[np.generic]
 float8_e4m3b11fnuz: Type[np.generic]
 float8_e4m3fn: Type[np.generic]
 float8_e4m3fnuz: Type[np.generic]
